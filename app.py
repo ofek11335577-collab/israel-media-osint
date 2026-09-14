@@ -13,7 +13,7 @@ def init_db():
     cursor.execute("PRAGMA table_info(articles)")
     columns = [col[1] for col in cursor.fetchall()]
     
-    if "analyst_name" not in columns:
+    if "full_content_hebrew" not in columns:
         cursor.execute("DROP TABLE IF EXISTS articles")
         conn.commit()
 
@@ -38,7 +38,8 @@ def init_db():
     cursor.execute("SELECT COUNT(*) FROM articles")
     count = cursor.fetchone()[0]
     
-    if count < 500:
+    # נפציץ את המסד ב-5,000+ כתבות ארכיון איכותיות
+    if count < 5000:
         now_t = datetime.now()
         sources_pool = [
             {"name": "Tehran Times", "country": "איראן", "url": "https://www.tehrantimes.com", "img": "https://images.unsplash.com/photo-1508614589041-895b88991e3e?w=1200"},
@@ -53,7 +54,7 @@ def init_db():
             {"name": "Reuters", "country": "ארה\"ב", "url": "https://www.reuters.com", "img": "https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=1200"}
         ]
         
-        analysts_pool = ["רענן ברנובסקי (דסק מודיעין)", "אלון בן-דוד (חטיבת מחקר)", "סpיר אברהמי (אנליסט זירות)", "דסק המערכת (OSINT IL)"]
+        analysts_pool = ["רענן ברנובסקי (דסק מודיעין)", "אלון בן-דוד (חטיבת מחקר)", "ספיר אברהמי (אנליסט זירות)", "דסק המערכת (OSINT IL)"]
         
         unique_topics = [
             ("בחינת מעטפת ההגנה האווירית והיערכות טכנולוגית חדשה בגזרה", "צבאי וביטחוני", 9),
@@ -65,25 +66,25 @@ def init_db():
         
         bulk_data = []
         item_id = 1
-        for day in range(0, 40):
+        for day in range(0, 100):
             for src in sources_pool:
                 for t_idx, (t_title, t_sent, t_prio) in enumerate(unique_topics):
-                    pub_date = now_t - timedelta(days=day, hours=(item_id % 24), minutes=(item_id * 7) % 60)
+                    pub_date = now_t - timedelta(days=day, hours=(item_id % 24), minutes=(item_id * 3) % 60)
                     analyst = analysts_pool[item_id % len(analysts_pool)]
                     
                     full_text = (
                         f"בדיקה מעמיקה של דיווחי סוכנות הידיעות {src['name']} ({src['country']}) מעלה כי ההתפתחויות האחרונות "
-                        f"סביב {t_title} משקפות שינוי טקטי משמעותי במרחב. "
+                        f"סביב {t_title} משקפות שינוי טקטי משמעותי במרחב האזורי. "
                         f"לפי הערכות גורמי מקצוע, המהלך הנוכחי נוצר כדי להעביר מסר הרתעתי לכלל השחקנים באזור. "
-                        f"בחינה של נתוני העבר מלמדת כי אירועים מסוג זה מלווים לרוב בתגובות שרשרת מדיניות, "
-                        f"והדסק ממשיך לעקוב אחר ההשלכות בשטח מסביב לשעון."
+                        f"בחינה של נתוני העבר מלמדת כי אירועים מסוג זה מלווים לרוב בתגובות שרשרת מדיניות וביטחוניות, "
+                        f"והדסק ממשיך לעקוב אחר ההשלכות בשטח מסביב לשעון ללא הפסקה."
                     )
                     
                     bulk_data.append((
                         f"{src['url']}/story-{item_id}",
                         src['name'],
                         src['country'],
-                        f"{src['country']} | {src['name']}: {t_title}",
+                        f"{src['country']} | {src['name']}: {t_title} (דוח #{item_id})",
                         f"סיכום מערכת: {t_title}. ניתוח ראשוני מצביע על השפעות אסטרטגיות רוחביות.",
                         full_text,
                         analyst,
@@ -159,7 +160,7 @@ st.markdown("""
     .ticker-content {
         display: flex;
         white-space: nowrap;
-        animation: ticker 85s linear infinite;
+        animation: ticker 90s linear infinite;
         font-size: 0.88rem;
         font-weight: 600;
         color: #f8fafc;
@@ -238,7 +239,7 @@ df = pd.read_sql_query("SELECT * FROM articles ORDER BY priority DESC, published
 conn.close()
 
 # פס מבזקים
-ticker_headlines = [f"⚡ [{r['source_name']}] {r['title_hebrew']}" for _, r in df.head(40).iterrows()]
+ticker_headlines = [f"⚡ [{r['source_name']}] {r['title_hebrew']}" for _, r in df.head(50).iterrows()]
 ticker_html = "".join([f"<span class='ticker-item'>{item}</span>" for item in ticker_headlines])
 st.markdown(f"""
 <div class="ticker-wrap">
@@ -248,7 +249,7 @@ st.markdown(f"""
 """, unsafe_allow_html=True)
 
 # ==========================================
-# מסך קריאת כתבה בעיצוב פורטל חדשות יוקרתי (Article Reader View)
+# מסך קריאת כתבה בעיצוב נקי ללא שגיאות HTML (Article Reader View)
 # ==========================================
 if st.session_state['reading_article_id'] is not None:
     art_id = st.session_state['reading_article_id']
@@ -261,35 +262,34 @@ if st.session_state['reading_article_id'] is not None:
             st.session_state['reading_article_id'] = None
             st.rerun()
             
-        # מעטפת כתבה בסגנון ספורט 1 / Ynet נקי ומוקפד
+        # תצוגה נקייה ובטוחה באמצעות רכיבי Streamlit מובנים (מונע שגיאות רינדור HTML)
+        st.markdown(f"### {art['sentiment']} | 📰 {art['source_name']} ({art['country']})")
+        st.title(art['title_hebrew'])
+        
+        col_meta1, col_meta2 = st.columns([2, 10])
+        with col_meta1:
+            st.write(f"**מאת:** {art['analyst_name']}")
+        with col_meta2:
+            st.write(f"🕒 **פורסם בתאריך:** {art['published_at']}")
+            
+        st.markdown("<hr style='border-color: rgba(56, 189, 248, 0.3); margin: 10px 0 20px 0;'>", unsafe_allow_html=True)
+        
+        st.image(art['image_url'], use_container_width=True)
+        
+        st.markdown("")
         st.markdown(f"""
-        <div style="background: rgba(15, 23, 42, 0.95); border: 1px solid rgba(56, 189, 248, 0.3); border-radius: 12px; padding: 30px; margin-top: 15px; direction: rtl; text-align: right;">
-            <div style="margin-bottom: 10px;">
-                <span class="tag tag-category">{art['sentiment']}</span>
-                <span class="tag tag-source">📰 {art['source_name']} ({art['country']})</span>
-            </div>
-            
-            <h1 style="font-size: 2.2rem; font-weight: 900; line-height: 1.3; margin: 15px 0 20px 0; color: #ffffff;">{art['title_hebrew']}</h1>
-            
-            <div style="display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid rgba(255,255,255,0.15); padding-bottom: 15px; margin-bottom: 20px; font-size: 0.9rem; color: #94a3b8;">
-                <div>מאת: <b style="color: #38bdf8;">{art['analyst_name']}</b></div>
-                <div>🕒 פורסם בתאריך: {art['published_at']}</div>
-            </div>
-            
-            <img src="{art['image_url']}" style="width: 100%; height: 420px; object-fit: cover; border-radius: 8px; margin-bottom: 25px;" />
-            
-            <div style="font-size: 1.15rem; line-height: 1.9; color: #f1f5f9; margin-bottom: 30px; text-align: right;">
-                {art['full_content_hebrew']}
-            </div>
-            
-            <div style="border-top: 1px solid rgba(255,255,255,0.15); padding-top: 20px; margin-top: 20px;">
-                <a href="{art['url']}" target="_blank" rel="noopener noreferrer" style="color: #38bdf8; font-weight: 700; text-decoration: none; font-size: 1rem;">🔗 מעבר לדיווחי המקור החיצוני ברשת ←</a>
-            </div>
+        <div style="font-size: 1.15rem; line-height: 1.9; color: #f1f5f9; background: rgba(15, 23, 42, 0.95); padding: 25px; border-radius: 10px; border-right: 4px solid #0284c7; direction: rtl; text-align: right;">
+            <b>תרגום וניתוח תוכן מלא (Full Intelligence Translation):</b><br><br>
+            {art['full_content_hebrew']}
         </div>
         """, unsafe_allow_html=True)
         
+        st.markdown("")
+        st.markdown(f"🔗 [מעבר לדיווחי המקור החיצוני ברשת]({art['url']})")
+        
         # אזור המלצות: כתבות שעשויות לעניין אותך
-        st.markdown("<h3 style='margin-top: 40px; font-weight: 800; direction: rtl; text-align: right;'>📌 אם עניינה אותך כתבה זו, כתבות נוספות שיכולות לעניין אותך:</h3>", unsafe_allow_html=True)
+        st.markdown("---")
+        st.markdown("### 📌 אם עניינה אותך כתבה זו, כתבות נוספות שיכולות לעניין אותך:")
         related_df = df[(df['country'] == art['country']) & (df['id'] != art_id)].head(3)
         if related_df.empty:
             related_df = df[df['id'] != art_id].head(3)
@@ -297,16 +297,9 @@ if st.session_state['reading_article_id'] is not None:
         rel_cols = st.columns(3)
         for r_idx, (_, rel_row) in enumerate(related_df.iterrows()):
             with rel_cols[r_idx]:
-                st.markdown(f"""
-                <div class="card">
-                    <img class="card-img" src="{rel_row['image_url']}" />
-                    <div>
-                        <span class="tag tag-source">{rel_row['source_name']}</span>
-                        <span class="tag tag-time">🕒 {rel_row['published_at']}</span>
-                    </div>
-                    <div style="font-weight: 800; font-size: 0.95rem; margin: 8px 0; line-height: 1.3; color: #ffffff;">{rel_row['title_hebrew']}</div>
-                </div>
-                """, unsafe_allow_html=True)
+                st.image(rel_row['image_url'], use_container_width=True)
+                st.write(f"**{rel_row['source_name']}** | 🕒 {rel_row['published_at']}")
+                st.write(rel_row['title_hebrew'])
                 if st.button("קרא כתבה זו", key=f"rel_btn_{rel_row['id']}", use_container_width=True):
                     st.session_state['reading_article_id'] = rel_row['id']
                     st.rerun()
@@ -393,7 +386,7 @@ else:
         </div>
         """, unsafe_allow_html=True)
         
-        if st.button("קרא כתבה מלאה ותרוגום עומק בדסק ←", key=f"main_read_{main_art['id']}", type="primary"):
+        if st.button("קרא כתבה מלאה ותרגום עומק בדסק ←", key=f"main_read_{main_art['id']}", type="primary"):
             st.session_state['reading_article_id'] = main_art['id']
             st.rerun()
 
@@ -416,6 +409,6 @@ else:
                         <p style="color: #94a3b8; font-size: 0.88rem; line-height: 1.5; margin-bottom: 10px;">{row['summary_hebrew']}</p>
                     </div>
                     """, unsafe_allow_html=True)
-                    if st.button("צפה בכתבה המלאה ←", key=f"grid_read_{row['row_id'] if 'row_id' in row else row['id']}", use_container_width=True):
+                    if st.button("צפה בכתבה המלאה ←", key=f"grid_read_{row['id']}", use_container_width=True):
                         st.session_state['reading_article_id'] = row['id']
                         st.rerun()
