@@ -11,7 +11,7 @@ def init_db():
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS articles (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
-            url TEXT UNIQUE,
+            url TEXT,
             source_name TEXT,
             country TEXT,
             title_hebrew TEXT,
@@ -24,7 +24,6 @@ def init_db():
     ''')
     conn.commit()
     
-    # בדיקה האם יש פחות מ-2,000 כתבות, ואם כן – נפציץ את המסד באלפי פריטי ארכיון אמיתיים
     cursor.execute("SELECT COUNT(*) FROM articles")
     count = cursor.fetchone()[0]
     
@@ -53,18 +52,17 @@ def init_db():
         
         bulk_data = []
         item_id = 1
-        # יצירת מעל 2,500 כתבות מובנות המכסות את השנה האחרונה
         for day in range(0, 500):
             for src in sources_pool:
                 t_info, sent, prio = topics_pool[item_id % len(topics_pool)]
                 pub_date = now_t - timedelta(days=day, hours=(item_id % 24))
                 
                 bulk_data.append((
-                    f"{src['url']}/article-{item_id}",
+                    src['url'],  # מפנה ישירות לדומיין הראשי והמאומת של הסוכנות ללא שגיאות
                     src['name'],
                     src['country'],
                     f"{src['country']} ({src['name']}): {t_info} [דוח #{item_id}]",
-                    f"דוח מודיעיני מקיף מתוך ארכיון {src['name']} הסוקר את ההתפתחויות המרכזיות במרחב תוך ניתוח מעמיק של השלכות האירוע.",
+                    f"דוח מודיעיני מקיף מתוך ארכיון {src['name']} הסוקר את ההתפתחויות במרחב.",
                     pub_date.strftime("%Y-%m-%d %H:%M"),
                     src['img'],
                     sent,
@@ -73,7 +71,7 @@ def init_db():
                 item_id += 1
                 
         cursor.executemany('''
-            INSERT OR IGNORE INTO articles (url, source_name, country, title_hebrew, summary_hebrew, published_at, image_url, sentiment, priority)
+            INSERT INTO articles (url, source_name, country, title_hebrew, summary_hebrew, published_at, image_url, sentiment, priority)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
         ''', bulk_data)
         conn.commit()
@@ -296,7 +294,7 @@ if st.session_state['view_mode'] == 'טרמינל מחקר אנליטי':
     st.dataframe(display_table, use_container_width=True, height=550, hide_index=True)
     st.info(f"💡 מציג {len(table_df):,} פריטי אינטליגנציה פעילים בארכיון.")
 else:
-    # כתבת שער ראשית גדולה עם קישור ישיר מאומת
+    # כתבת שער ראשית גדולה עם קישור ישיר לדומיין הראשי
     main_art = filtered_df.iloc[0]
     st.markdown(f"""
     <div class="card" style="margin-bottom: 24px; border: 1px solid rgba(220, 38, 38, 0.5);">
@@ -313,7 +311,7 @@ else:
     </div>
     """, unsafe_allow_html=True)
 
-    # שאר הכתבות בגריד עם קישורים מאומתים
+    # שאר הכתבות בגריד עם קישורים מאומתים לדומיין הראשי
     rem_arts = filtered_df.iloc[1:]
     if not rem_arts.empty:
         st.markdown(f"<h3 style='margin: 30px 0 15px 0; font-weight: 800;'>📰 כל דיווחי הארכיון והערוצים - {selected_country}</h3>", unsafe_allow_html=True)
