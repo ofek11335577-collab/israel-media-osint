@@ -2,7 +2,6 @@ import streamlit as st
 import pandas as pd
 from datetime import datetime, timedelta
 import sqlite3
-import os
 
 DB_PATH = "osint_desk.db"
 
@@ -10,11 +9,11 @@ def init_db():
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
     
-    # בדיקה האם העמודה החדשה קיימת, אם לא - ניצור מחדש את הטבלה בצורה נקייה ומלאה
+    # בדיקת מבנה הטבלה ויצירה מחדש במידת הצורך
     cursor.execute("PRAGMA table_info(articles)")
     columns = [col[1] for col in cursor.fetchall()]
     
-    if "full_content_hebrew" not in columns:
+    if "analyst_name" not in columns:
         cursor.execute("DROP TABLE IF EXISTS articles")
         conn.commit()
 
@@ -27,6 +26,7 @@ def init_db():
             title_hebrew TEXT,
             summary_hebrew TEXT,
             full_content_hebrew TEXT,
+            analyst_name TEXT,
             published_at TEXT,
             image_url TEXT,
             sentiment TEXT,
@@ -53,38 +53,40 @@ def init_db():
             {"name": "Reuters", "country": "ארה\"ב", "url": "https://www.reuters.com", "img": "https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=1200"}
         ]
         
+        analysts_pool = ["רענן ברנובסקי (דסק מודיעין)", "אלון בן-דוד (חטיבת מחקר)", "סpיר אברהמי (אנליסט זירות)", "דסק המערכת (OSINT IL)"]
+        
         unique_topics = [
             ("בחינת מעטפת ההגנה האווירית והיערכות טכנולוגית חדשה בגזרה", "צבאי וביטחוני", 9),
             ("הודעה רשמית מטעם בכירי הממשל על מהלכים דיפלומטיים עתידיים", "מדיני ודיפלומטי", 7),
             ("דוח כלכלי מיוחד: השפעת הלחץ הבינלאומי על שווקי האנרגיה באזור", "כלכלה וסנקציות", 5),
             ("פריסת כוחות רחבה ותגובות מבצעיות במוקדי החיכוך המרכזיים", "צבאי וביטחוני", 8),
-            ("ועידת חירום סגורה לתיאום עמדות אסטרטגיות בין נציגי הציר", "מדיני ודיפלומטי", 6),
-            ("תיעוד וניתוח תנועות חריגות במרחב הימי והאווירי", "צבאי וביטחוני", 10),
-            ("הצהרות דוברות רשמיות סביב עיצוב מחדש של משוואת ההרתעה", "מדיני ודיפלומטי", 8)
+            ("ועידת חירום סגורה לתיאום עמדות אסטרטגיות בין נציגי הציר", "מדיני ודיפלומטי", 6)
         ]
         
         bulk_data = []
         item_id = 1
-        for day in range(0, 50):
+        for day in range(0, 40):
             for src in sources_pool:
                 for t_idx, (t_title, t_sent, t_prio) in enumerate(unique_topics):
                     pub_date = now_t - timedelta(days=day, hours=(item_id % 24), minutes=(item_id * 7) % 60)
+                    analyst = analysts_pool[item_id % len(analysts_pool)]
                     
                     full_text = (
-                        f"דוח מודיעיני מלא ומתורגם מתוך סוכנות הידיעות {src['name']} ({src['country']}). "
-                        f"המסמך מנתח לעומק את האירוע סביב {t_title}. "
-                        f"לפי דיווחים ממקורות זרים ומעקבים שוטפים של חטיבת המחקר, המהלך נועד לייצר הד תקשורתי ואסטרטגי רחב. "
-                        f"גורמים ביטחוניים מציינים כי ההשלכות לטווח הקצר צפויות להשפיע על שיווי המשקל האזורי, "
-                        f"ובפרט על תפקוד המערכות המקומיות והגורמים המעורבים."
+                        f"בדיקה מעמיקה של דיווחי סוכנות הידיעות {src['name']} ({src['country']}) מעלה כי ההתפתחויות האחרונות "
+                        f"סביב {t_title} משקפות שינוי טקטי משמעותי במרחב. "
+                        f"לפי הערכות גורמי מקצוע, המהלך הנוכחי נוצר כדי להעביר מסר הרתעתי לכלל השחקנים באזור. "
+                        f"בחינה של נתוני העבר מלמדת כי אירועים מסוג זה מלווים לרוב בתגובות שרשרת מדיניות, "
+                        f"והדסק ממשיך לעקוב אחר ההשלכות בשטח מסביב לשעון."
                     )
                     
                     bulk_data.append((
-                        f"{src['url']}/report-{item_id}",
+                        f"{src['url']}/story-{item_id}",
                         src['name'],
                         src['country'],
-                        f"{src['country']} | {src['name']}: {t_title} (אירוע #{item_id})",
-                        f"סיכום מבצעי: {t_title}. ניתוח ראשוני מצביע על משמעויות רוחב אסטרטגיות.",
+                        f"{src['country']} | {src['name']}: {t_title}",
+                        f"סיכום מערכת: {t_title}. ניתוח ראשוני מצביע על השפעות אסטרטגיות רוחביות.",
                         full_text,
+                        analyst,
                         pub_date.strftime("%Y-%m-%d %H:%M"),
                         src['img'],
                         t_sent,
@@ -93,8 +95,8 @@ def init_db():
                     item_id += 1
                 
         cursor.executemany('''
-            INSERT OR IGNORE INTO articles (url, source_name, country, title_hebrew, summary_hebrew, full_content_hebrew, published_at, image_url, sentiment, priority)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            INSERT OR IGNORE INTO articles (url, source_name, country, title_hebrew, summary_hebrew, full_content_hebrew, analyst_name, published_at, image_url, sentiment, priority)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ''', bulk_data)
         conn.commit()
     conn.close()
@@ -211,19 +213,6 @@ st.markdown("""
         100% { opacity: 1; }
     }
 
-    .read-btn {
-        color: #38bdf8 !important;
-        font-weight: 700;
-        font-size: 0.82rem !important;
-        text-decoration: none !important;
-        margin-top: auto;
-        padding-top: 12px;
-        display: inline-block;
-        direction: rtl;
-        text-align: right;
-        cursor: pointer;
-    }
-
     div.stButton > button {
         background-color: #0f172a !important;
         color: #f8fafc !important;
@@ -259,7 +248,7 @@ st.markdown(f"""
 """, unsafe_allow_html=True)
 
 # ==========================================
-# מצב קריאת כתבה מלאה בתוך הדסק (Article Reader View)
+# מסך קריאת כתבה בעיצוב פורטל חדשות יוקרתי (Article Reader View)
 # ==========================================
 if st.session_state['reading_article_id'] is not None:
     art_id = st.session_state['reading_article_id']
@@ -272,29 +261,35 @@ if st.session_state['reading_article_id'] is not None:
             st.session_state['reading_article_id'] = None
             st.rerun()
             
+        # מעטפת כתבה בסגנון ספורט 1 / Ynet נקי ומוקפד
         st.markdown(f"""
-        <div style="background: rgba(15, 23, 42, 0.95); border: 1px solid rgba(56, 189, 248, 0.3); border-radius: 12px; padding: 25px; margin-top: 15px;">
-            <div>
+        <div style="background: rgba(15, 23, 42, 0.95); border: 1px solid rgba(56, 189, 248, 0.3); border-radius: 12px; padding: 30px; margin-top: 15px; direction: rtl; text-align: right;">
+            <div style="margin-bottom: 10px;">
                 <span class="tag tag-category">{art['sentiment']}</span>
                 <span class="tag tag-source">📰 {art['source_name']} ({art['country']})</span>
-                <span class="tag tag-time">🕒 {art['published_at']}</span>
             </div>
-            <h1 style="font-size: 2rem; font-weight: 900; margin: 15px 0; color: #ffffff;">{art['title_hebrew']}</h1>
-            <img src="{art['image_url']}" style="width: 100%; height: 400px; object-fit: cover; border-radius: 8px; margin-bottom: 20px;" />
             
-            <div style="font-size: 1.1rem; line-height: 1.8; color: #e2e8f0; background: rgba(0,0,0,0.3); padding: 20px; border-radius: 8px; border-right: 4px solid #0284c7; margin-bottom: 20px;">
-                <b>תרגום וניתוח תוכן מלא (Full Intelligence Translation):</b><br><br>
+            <h1 style="font-size: 2.2rem; font-weight: 900; line-height: 1.3; margin: 15px 0 20px 0; color: #ffffff;">{art['title_hebrew']}</h1>
+            
+            <div style="display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid rgba(255,255,255,0.15); padding-bottom: 15px; margin-bottom: 20px; font-size: 0.9rem; color: #94a3b8;">
+                <div>מאת: <b style="color: #38bdf8;">{art['analyst_name']}</b></div>
+                <div>🕒 פורסם בתאריך: {art['published_at']}</div>
+            </div>
+            
+            <img src="{art['image_url']}" style="width: 100%; height: 420px; object-fit: cover; border-radius: 8px; margin-bottom: 25px;" />
+            
+            <div style="font-size: 1.15rem; line-height: 1.9; color: #f1f5f9; margin-bottom: 30px; text-align: right;">
                 {art['full_content_hebrew']}
             </div>
             
-            <div style="margin-top: 15px;">
+            <div style="border-top: 1px solid rgba(255,255,255,0.15); padding-top: 20px; margin-top: 20px;">
                 <a href="{art['url']}" target="_blank" rel="noopener noreferrer" style="color: #38bdf8; font-weight: 700; text-decoration: none; font-size: 1rem;">🔗 מעבר לדיווחי המקור החיצוני ברשת ←</a>
             </div>
         </div>
         """, unsafe_allow_html=True)
         
-        # מנוע המלצות: כתבות נוספות שעשויות לעניין אותך
-        st.markdown("<h3 style='margin-top: 35px; font-weight: 800;'>📌 כתבות נוספות שעשויות לעניין אותך (Related Intelligence)</h3>", unsafe_allow_html=True)
+        # אזור המלצות: כתבות שעשויות לעניין אותך
+        st.markdown("<h3 style='margin-top: 40px; font-weight: 800; direction: rtl; text-align: right;'>📌 אם עניינה אותך כתבה זו, כתבות נוספות שיכולות לעניין אותך:</h3>", unsafe_allow_html=True)
         related_df = df[(df['country'] == art['country']) & (df['id'] != art_id)].head(3)
         if related_df.empty:
             related_df = df[df['id'] != art_id].head(3)
@@ -312,7 +307,7 @@ if st.session_state['reading_article_id'] is not None:
                     <div style="font-weight: 800; font-size: 0.95rem; margin: 8px 0; line-height: 1.3; color: #ffffff;">{rel_row['title_hebrew']}</div>
                 </div>
                 """, unsafe_allow_html=True)
-                if st.button("קרא דיווח זה", key=f"rel_btn_{rel_row['id']}", use_container_width=True):
+                if st.button("קרא כתבה זו", key=f"rel_btn_{rel_row['id']}", use_container_width=True):
                     st.session_state['reading_article_id'] = rel_row['id']
                     st.rerun()
     else:
@@ -398,7 +393,7 @@ else:
         </div>
         """, unsafe_allow_html=True)
         
-        if st.button("קרא כתבה מלאה ותרגום עומק בדסק ←", key=f"main_read_{main_art['id']}", type="primary"):
+        if st.button("קרא כתבה מלאה ותרוגום עומק בדסק ←", key=f"main_read_{main_art['id']}", type="primary"):
             st.session_state['reading_article_id'] = main_art['id']
             st.rerun()
 
@@ -421,6 +416,6 @@ else:
                         <p style="color: #94a3b8; font-size: 0.88rem; line-height: 1.5; margin-bottom: 10px;">{row['summary_hebrew']}</p>
                     </div>
                     """, unsafe_allow_html=True)
-                    if st.button("צפה בכתבה המלאה ←", key=f"grid_read_{row['id']}", use_container_width=True):
+                    if st.button("צפה בכתבה המלאה ←", key=f"grid_read_{row['row_id'] if 'row_id' in row else row['id']}", use_container_width=True):
                         st.session_state['reading_article_id'] = row['id']
                         st.rerun()
