@@ -3,6 +3,9 @@ import pandas as pd
 import threading
 import time
 from datetime import datetime
+import urllib.parse
+import urllib.request
+import json
 from src.storage.database import get_connection, init_db, is_article_exists, save_article
 from src.ingestion.rss_fetcher import fetch_relevant_articles
 from src.nlp.llm_client import analyze_article
@@ -189,37 +192,36 @@ st.markdown("""
 
 init_db()
 
-# מאגר תמונות צבאיות ומודיעיניות אותנטיות בלבד (נבדקו ידנית ללא תמונות סטודנטים/צבעים)
 TOPIC_IMAGE_POOLS = {
     "soldiers": [
-        "https://images.unsplash.com/photo-1595590424283-b8f17842773f?w=1000", # לוחם עם אפוד קרבי
-        "https://images.unsplash.com/photo-1579783902614-a3fb3927b675?w=1000", # צוות לוחמים מבצעי
-        "https://images.unsplash.com/photo-1578632767115-351597cf2477?w=1000"  # כוח צבאי בשטח
+        "https://images.unsplash.com/photo-1595590424283-b8f17842773f?w=1000",
+        "https://images.unsplash.com/photo-1579783902614-a3fb3927b675?w=1000",
+        "https://images.unsplash.com/photo-1578632767115-351597cf2477?w=1000"
     ],
     "artillery_missiles": [
-        "https://images.unsplash.com/photo-1509316975850-ff9c5deb0cd9?w=1000", # עשן קרב ותקיפות ארטילריה
-        "https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=1000", # זירת פעילות לוויינית
-        "https://images.unsplash.com/photo-1518709268805-4e9042af9f23?w=1000"  # הבזק אש ושיגור
+        "https://images.unsplash.com/photo-1509316975850-ff9c5deb0cd9?w=1000",
+        "https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=1000",
+        "https://images.unsplash.com/photo-1518709268805-4e9042af9f23?w=1000"
     ],
     "radar": [
-        "https://images.unsplash.com/photo-1508614589041-895b88991e3e?w=1000", # אנטנות מכ"ם ותקשורת צבאית
-        "https://images.unsplash.com/photo-1516849841032-87cbac4d88f7?w=1000"  # מערך בקרה טכנולוגי
+        "https://images.unsplash.com/photo-1508614589041-895b88991e3e?w=1000",
+        "https://images.unsplash.com/photo-1516849841032-87cbac4d88f7?w=1000"
     ],
     "drone": [
-        "https://images.unsplash.com/photo-1527977966376-1c8408f9f108?w=1000", # כלי טיס בלתי מאויש באוויר
+        "https://images.unsplash.com/photo-1527977966376-1c8408f9f108?w=1000",
         "https://images.unsplash.com/photo-1508614589041-895b88991e3e?w=1000"
     ],
     "lebanon": [
-        "https://images.unsplash.com/photo-1534447677768-be436bb09401?w=1000", # קו גבול הררי וגזרת לבנון
+        "https://images.unsplash.com/photo-1534447677768-be436bb09401?w=1000",
         "https://images.unsplash.com/photo-1509316975850-ff9c5deb0cd9?w=1000"
     ],
     "iran": [
-        "https://images.unsplash.com/photo-1584551246679-0daf3d275d0f?w=1000", # טהראן ואיראן
+        "https://images.unsplash.com/photo-1584551246679-0daf3d275d0f?w=1000",
         "https://images.unsplash.com/photo-1508614589041-895b88991e3e?w=1000"
     ],
     "diplomacy": [
-        "https://images.unsplash.com/photo-1585829365295-ab7cd400c167?w=1000", # ועידת פסגה בינלאומית
-        "https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?w=1000"  # מטה ממשלתי
+        "https://images.unsplash.com/photo-1585829365295-ab7cd400c167?w=1000",
+        "https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?w=1000"
     ],
     "general": [
         "https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=1000",
@@ -228,76 +230,49 @@ TOPIC_IMAGE_POOLS = {
 }
 
 BAD_IMAGE_URLS = [
-    "photo-1517486808906", # תמונת הסטודנטים
-    "photo-1541872703",   # תמונת משפחה/אנשים
-    "photo-1579546929"    # גרדיאנט צבעים
+    "photo-1517486808906",
+    "photo-1541872703",
+    "photo-1579546929"
 ]
 
-def is_hebrew(text: str) -> bool:
+def is_fully_hebrew(text: str) -> bool:
+    """בודק אם הטקסט מתורגם כראוי ואינו בליל של אנגלית ועברית"""
     if not text:
         return False
-    return any("\u0590" <= c <= "\u05ea" for c in str(text))
+    # בדיקה שאין רצף של מילים באנגלית
+    words = str(text).split()
+    english_words = [w for w in words if any('a' <= c.lower() <= 'z' for c in w)]
+    # אם יש יותר מ-2 מילים באנגלית, זה לא תרגום מלא
+    return len(english_words) <= 1
 
-def fast_fallback_translation(title: str) -> str:
-    t_low = str(title).lower()
-    if "kfar tebnit" in t_low or "fire shells" in t_low or "shells" in t_low:
-        return "כוחות צה\"ל ביצעו ירי ארטילרי באזור כפר תבנית בדרום לבנון"
-    if "palestinian man injured" in t_low or "west bank" in t_low or "detained" in t_low:
-        return "פעילות כוחות הביטחון באיו\"ש: מעצר מבוקשים וסריקות מבצעיות"
-    if "morning recap" in t_low:
-        return "תמונת מצב ביטחונית וסקירת אירועי הבוקר בזירה האזורית"
-    if "drone" in t_low or "intercept" in t_low:
-        return "יירוט כטב\"מים עוינים מעל נתיבי השיט הבינלאומיים בים האדום"
-    if "radar" in t_low or "iran" in t_low:
-        return "איראן: דיווחים על שדרוג מערכי המכ\"ם וההתרעה האווירית"
-        
-    replacements = {
-        "israeli forces": "כוחות צה\"ל",
-        "israeli": "ישראלי",
-        "israel": "ישראל",
-        "hezbollah": "חיזבאללה",
-        "lebanon": "לבנון",
-        "gaza": "עזה",
-        "west bank": "איו\"ש",
-        "strike": "תקיפה",
-        "drone": "כטב\"ם",
-        "missile": "טיל",
-        "ceasefire": "הפסקת אש",
-        "iran": "איראן",
-        "tehran": "טהראן",
-        "fire shells": "ירי ארטילרי",
-        "gunfire": "חילופי אש",
-        "detained": "מעצר חשודים",
-        "injured": "פצועים"
-    }
-    res = str(title)
-    for eng, heb in replacements.items():
-        if eng in res.lower():
-            res = res.lower().replace(eng, heb)
-    return res if is_hebrew(res) else f"דיווח ביטחוני: {str(title)[:75]}"
+def translate_to_hebrew_fast(text: str) -> str:
+    """תרגום משפט מלא לעברית נקייה באמצעות שירות תרגום ישיר"""
+    if not text:
+        return ""
+    try:
+        url = f"https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=iw&dt=t&q={urllib.parse.quote(str(text))}"
+        req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
+        with urllib.request.urlopen(req, timeout=4) as response:
+            result = json.loads(response.read().decode('utf-8'))
+            translated = "".join([part[0] for part in result[0] if part[0]])
+            return translated.strip()
+    except Exception:
+        return str(text)
 
 def get_unique_smart_image(title: str, content: str, used_set: set) -> str:
     text = f"{title} {content}".lower()
-    
-    # 1. ירי, ארטילריה, פגזים, טילים ותקיפות
     if any(w in text for w in ["fire shells", "shells", "artillery", "missile", "rocket", "strike", "blast", "attack", "gunfire", "ארטילר", "פגז", "ירי", "טיל", "יירוט", "תקיפה"]):
         pool = TOPIC_IMAGE_POOLS["artillery_missiles"]
-    # 2. לוחמים, פעילות צבאית ומעצרים
     elif any(w in text for w in ["soldier", "army", "idf", "tank", "troops", "military", "operation", "west bank", "jenin", "nablus", "צה\"ל", "צהל", "לוחמ", "חיילים", "סריקות", "איו\"ש", "מעצר", "שכם", "ג'נין"]):
         pool = TOPIC_IMAGE_POOLS["soldiers"]
-    # 3. מכ"ם והתרעה
     elif any(w in text for w in ["radar", "warning", "surveillance", "מכ\"ם", "מכם", "התרעה", "גילוי"]):
         pool = TOPIC_IMAGE_POOLS["radar"]
-    # 4. כטב"מים
     elif any(w in text for w in ["drone", "uav", "unmanned", "כטב", "מל\"ט"]):
         pool = TOPIC_IMAGE_POOLS["drone"]
-    # 5. לבנון
     elif any(w in text for w in ["lebanon", "beirut", "hezbollah", "לבנון", "ביירות", "חיזבאללה", "tebnit"]):
         pool = TOPIC_IMAGE_POOLS["lebanon"]
-    # 6. איראן
     elif any(w in text for w in ["iran", "tehran", "איראן", "טהראן"]):
         pool = TOPIC_IMAGE_POOLS["iran"]
-    # 7. דיפלומטיה
     elif any(w in text for w in ["summit", "diplomacy", "minister", "מדיני", "פסגה", "הסכם"]):
         pool = TOPIC_IMAGE_POOLS["diplomacy"]
     else:
@@ -318,21 +293,21 @@ def get_unique_smart_image(title: str, content: str, used_set: set) -> str:
 
 DEFAULT_ARTICLES = [
     {
-        "url": "https://www.middleeasteye.net/news/2026/lebanon-tebnit-artillery",
+        "url": "https://www.middleeasteye.net/news",
         "source_name": "Middle East Eye",
         "country": "לבנון",
         "title_original": "Israeli forces fire shells near residents approaching Lebanon's Kfar Tebnit",
         "content_original": "Artillery shelling targeted areas adjacent to southern Lebanese villages during border tensions.",
         "published_at": "14:15 2026-09-14",
         "image_url": TOPIC_IMAGE_POOLS["artillery_missiles"][0],
-        "title_hebrew": "כוחות צה\"ל ביצעו ירי ארטילרי באזור כפר תבנית בדרום לבנון",
+        "title_hebrew": "כוחות צה\"ל ביצעו ירי ארטילרי לעבר חשודים שהתקרבו לכפר תבנית בדרום לבנון",
         "summary_hebrew": "חילופי אש וירי ארטילרי נרשמו בסמוך לקו העימות בדרום לבנון בעקבות תנועות חשודות בגזרה.",
         "sentiment": "צבאי וביטחוני",
         "sentiment_score": 1.0,
         "mentioned_countries": "לבנון, ישראל"
     },
     {
-        "url": "https://english.alarabiya.net/news/2026/red-sea-air-defense-drone",
+        "url": "https://english.alarabiya.net/News/middle-east",
         "source_name": "Al Arabiya",
         "country": "סעודיה",
         "title_original": "Naval coalition forces intercept suspicious drone wave in Red Sea",
@@ -346,7 +321,7 @@ DEFAULT_ARTICLES = [
         "mentioned_countries": "ישראל, ארה\"ב, איראן"
     },
     {
-        "url": "https://wafa.ps/ar/news/2026/westbank-security-idf-sweep",
+        "url": "https://wafa.ps/ar",
         "source_name": "Wafa",
         "country": "איו\"ש",
         "title_original": "Palestinian man injured in Israeli gunfire, two detained in West Bank",
@@ -360,7 +335,7 @@ DEFAULT_ARTICLES = [
         "mentioned_countries": "איו\"ש, ישראל"
     },
     {
-        "url": "https://www.tehrantimes.com/news/2026/iran-air-defense-grid",
+        "url": "https://www.tehrantimes.com",
         "source_name": "Tehran Times",
         "country": "איראן",
         "title_original": "IRGC Aerospace forces integrate early warning radar systems",
@@ -374,7 +349,7 @@ DEFAULT_ARTICLES = [
         "mentioned_countries": "איראן, ישראל, ארה\"ב"
     },
     {
-        "url": "https://www.bbc.com/news/world-middle-east-2026-lebanon-diplomacy",
+        "url": "https://www.bbc.com/news/world/middle_east",
         "source_name": "BBC News",
         "country": "בריטניה",
         "title_original": "Cross-border strikes reported across southern Lebanon as diplomatic talks continue",
@@ -388,7 +363,7 @@ DEFAULT_ARTICLES = [
         "mentioned_countries": "לבנון, ישראל"
     },
     {
-        "url": "https://www.aljazeera.com/news/2026/mideast-diplomatic-cairo",
+        "url": "https://www.aljazeera.com/middle-east",
         "source_name": "Al Jazeera",
         "country": "קטר",
         "title_original": "Regional mediators convene in Cairo to discuss border protocols and humanitarian channels",
@@ -400,45 +375,12 @@ DEFAULT_ARTICLES = [
         "sentiment": "מדיני ודיפלומטי",
         "sentiment_score": 0.0,
         "mentioned_countries": "ישראל, ארה\"ב, קטר"
-    },
-    {
-        "url": "https://www.france24.com/en/middle-east/2026/gaza-security-eu",
-        "source_name": "France 24",
-        "country": "צרפת",
-        "title_original": "International observers review corridor mechanisms in Gaza",
-        "content_original": "Logistical frameworks analyzed by European diplomats regarding civilian supplies and secure access zones.",
-        "published_at": "08:50 2026-09-14",
-        "image_url": TOPIC_IMAGE_POOLS["diplomacy"][1],
-        "title_hebrew": "אירופה בוחנת מנגנון פיקוח בינלאומי על צירי האספקה בעזה",
-        "summary_hebrew": "בכירים בצרפת ובאיחוד האירופי מגבשים הצעה להצבת משקיפים ניטרליים לאורך המעברים.",
-        "sentiment": "מדיני ודיפלומטי",
-        "sentiment_score": 0.0,
-        "mentioned_countries": "רצועת עזה, ישראל"
-    },
-    {
-        "url": "https://feeds.washingtonpost.com/world/2026/us-regional-mediterranean",
-        "source_name": "Washington Post",
-        "country": "ארה\"ב",
-        "title_original": "Pentagon reaffirms defensive deployment commitments in the Eastern Mediterranean",
-        "content_original": "US carrier strike groups maintain active patrol routes to deter proxy aggression.",
-        "published_at": "06:15 2026-09-14",
-        "image_url": TOPIC_IMAGE_POOLS["soldiers"][1],
-        "title_hebrew": "הפנטגון מחדש את מחויבותו להגנת נתיבי השיט וההרתעה האזורית",
-        "summary_hebrew": "קבוצות קרב אמריקאיות מתמרנות במזרח הים התיכון לשמירה על חופש השיט ומניעת הרחבת הלחימה.",
-        "sentiment": "צבאי וביטחוני",
-        "sentiment_score": 1.0,
-        "mentioned_countries": "ארה\"ב, ישראל, איראן"
     }
 ]
 
 def load_data():
     try:
         conn = get_connection()
-        # החלפת תמונות לא רלוונטיות במסד הנתונים
-        cursor = conn.cursor()
-        for bad_id in BAD_IMAGE_URLS:
-            cursor.execute("UPDATE articles SET image_url = ? WHERE image_url LIKE ?", (TOPIC_IMAGE_POOLS["artillery_missiles"][0], f"%{bad_id}%"))
-        conn.commit()
         db_df = pd.read_sql_query("SELECT * FROM articles ORDER BY id DESC", conn)
         conn.close()
         if not db_df.empty and len(db_df) >= 3:
@@ -453,11 +395,14 @@ def background_worker():
             arts = fetch_relevant_articles()
             for a in arts:
                 if not is_article_exists(a['url']):
-                    heb_title = fast_fallback_translation(a['title_original'])
+                    # תרגום מלא של כל המשפט לעברית רהוטה
+                    heb_title = translate_to_hebrew_fast(a['title_original'])
+                    heb_summary = translate_to_hebrew_fast(a['content_original'][:200]) if a.get('content_original') else heb_title
+                    
                     a.update({
                         'title_hebrew': heb_title,
-                        'summary_hebrew': a['content_original'][:160] if is_hebrew(a['content_original']) else heb_title,
-                        'sentiment': 'צבאי וביטחוני' if any(w in a['title_original'].lower() for w in ['strike', 'fire', 'idf', 'missile', 'gunfire', 'forces', 'detained', 'shells']) else 'שוטף',
+                        'summary_hebrew': heb_summary,
+                        'sentiment': 'צבאי וביטחוני' if any(w in a['title_original'].lower() for w in ['strike', 'fire', 'idf', 'missile', 'gunfire', 'forces', 'detained', 'shells', 'killed']) else 'שוטף',
                         'sentiment_score': 0.0,
                         'mentioned_countries': 'ישראל'
                     })
@@ -568,12 +513,13 @@ with col_main:
     hero_img = get_unique_smart_image(main_art['title_original'], main_art['content_original'], used_page_images)
     cat = str(main_art.get('sentiment', 'כללי'))
     
-    t_display = main_art.get('title_hebrew')
-    if not is_hebrew(t_display):
-        t_display = fast_fallback_translation(main_art.get('title_original', ''))
+    # תרגום נקי לעברית - אם עדיין מעורבב עם אנגלית, מתרגם מיד
+    t_display = main_art.get('title_hebrew', '')
+    if not is_fully_hebrew(t_display):
+        t_display = translate_to_hebrew_fast(main_art.get('title_original', ''))
         
     s_display = str(main_art.get('summary_hebrew', ''))[:220]
-    if not is_hebrew(s_display):
+    if not is_fully_hebrew(s_display):
         s_display = t_display
         
     time_str = str(main_art.get('published_at', 'שעות אחרונות'))[:16]
@@ -606,9 +552,9 @@ with col_side:
         for _, s_row in side_arts.iterrows():
             s_img = get_unique_smart_image(s_row['title_original'], s_row['content_original'], used_page_images)
             
-            s_title = s_row.get('title_hebrew')
-            if not is_hebrew(s_title):
-                s_title = fast_fallback_translation(s_row.get('title_original', ''))
+            s_title = s_row.get('title_hebrew', '')
+            if not is_fully_hebrew(s_title):
+                s_title = translate_to_hebrew_fast(s_row.get('title_original', ''))
                 
             s_src = s_row.get('source_name', '')
             s_time = str(s_row.get('published_at', ''))[:16]
@@ -640,12 +586,12 @@ if not rem_arts.empty:
         with cols[idx % 3]:
             r_img = get_unique_smart_image(r_art['title_original'], r_art['content_original'], used_page_images)
             
-            r_title = r_art.get('title_hebrew')
-            if not is_hebrew(r_title):
-                r_title = fast_fallback_translation(r_art.get('title_original', ''))
+            r_title = r_art.get('title_hebrew', '')
+            if not is_fully_hebrew(r_title):
+                r_title = translate_to_hebrew_fast(r_art.get('title_original', ''))
                 
             r_summary = str(r_art.get('summary_hebrew', ''))[:110]
-            if not is_hebrew(r_summary):
+            if not is_fully_hebrew(r_summary):
                 r_summary = r_title
                 
             r_cat = str(r_art.get('sentiment', 'כללי'))
