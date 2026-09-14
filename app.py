@@ -886,3 +886,18 @@ if not rem_arts.empty:
                 </div>
             </div>
             """, unsafe_allow_html=True)
+st.markdown("""
+<style>
+    /* הסרה מלאה של פס הכלים העליון של Streamlit (השלוש נקודות, GitHub, Share) */
+    header[data-testid="stHeader"] {
+        display: none !important;
+        visibility: hidden !important;
+        height: 0px !important;
+    }
+    
+    /* הסתרת כפתור הניהול בתחתית המסך */
+    [data-testid="stDecoration"] {
+        display: none !important;
+    }
+</style>
+""", unsafe_allow_html=True)
