@@ -14,7 +14,6 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# פונטים מודרניים - Assistant & Rubik ועיצוב פורטל ספורט כהה
 st.markdown("""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Assistant:wght@300;400;600;700;800&family=Rubik:wght@700;800;900&display=swap');
@@ -39,7 +38,7 @@ st.markdown("""
         display: none !important;
     }
 
-    /* שדות קלט עליונים */
+    /* שדות חיפוש עליונים */
     div[data-baseweb="input"] {
         background-color: #111827 !important;
         border: 1px solid #1f2937 !important;
@@ -56,41 +55,29 @@ st.markdown("""
         color: #f8fafc !important;
     }
 
-    /* עיצוב סרגל כפתורי המדינות (Navbar) כמו באתר ספורט */
-    div[data-testid="stRadio"] > div {
-        gap: 10px !important;
-        justify-content: flex-start !important;
-        flex-wrap: wrap !important;
-    }
-
-    /* הפיכת אפשרויות הרדיו לכרטיסי כפתור מודרניים ללא נקודות רדיו מכוערות */
-    div[data-testid="stRadio"] label {
+    /* כפתורי סרגל המדינות - עיצוב כפתורי ספורט מודרניים */
+    div[data-testid="stHorizontalBlock"] button {
         background-color: #111827 !important;
         border: 1px solid #1f2937 !important;
-        border-radius: 25px !important;
-        padding: 8px 18px !important;
-        cursor: pointer !important;
-        transition: all 0.2s ease !important;
-    }
-    div[data-testid="stRadio"] label:hover {
-        border-color: #0284c7 !important;
-        background-color: #1e293b !important;
-    }
-
-    /* הסתרת עיגול הרדיו */
-    div[data-testid="stRadio"] label > div:first-child {
-        display: none !important;
-    }
-
-    /* עיצוב הטקסט בתוך הכפתור - לבן, גדול ובולט */
-    div[data-testid="stRadio"] label p {
+        border-radius: 24px !important;
         color: #ffffff !important;
-        font-size: 1.05rem !important;
+        font-size: 1.02rem !important;
         font-weight: 700 !important;
-        margin: 0 !important;
-        display: flex;
-        align-items: center;
-        gap: 8px;
+        padding: 6px 14px !important;
+        transition: all 0.2s ease !important;
+        width: 100% !important;
+    }
+    div[data-testid="stHorizontalBlock"] button:hover {
+        background-color: #1e293b !important;
+        border-color: #0284c7 !important;
+        color: #38bdf8 !important;
+        transform: translateY(-2px);
+    }
+    div[data-testid="stHorizontalBlock"] button:active,
+    div[data-testid="stHorizontalBlock"] button:focus {
+        background-color: #0284c7 !important;
+        border-color: #38bdf8 !important;
+        color: #ffffff !important;
     }
 
     /* כרטיס ראשי בסגנון אתר ספורט */
@@ -344,49 +331,46 @@ def start_worker():
 
 start_worker()
 
-# --- 1. שורת סינון וחיפוש עליונה ---
+# 1. שורת סינון עליונה
 c_search, c_cat = st.columns([7, 3])
 with c_search:
     search_query = st.text_input("חיפוש", placeholder="🔎 חפש בידיעות: נתניהו, טילים, הפסקת אש, ביירות...", label_visibility="collapsed")
 with c_cat:
     cat_filter = st.selectbox("תחום", ["כל התחומים", "צבאי וביטחוני", "מדיני ודיפלומטי", "כלכלה וסנקציות"], label_visibility="collapsed")
 
-# --- 2. כותרת ראשית ---
+# 2. כותרת האתר
 st.markdown("<h1 style='margin: 10px 0 4px 0; font-size: 2.2rem; font-weight: 900; color: #ffffff;'>🌐 דסק מודיעין תקשורת עולמי</h1>", unsafe_allow_html=True)
 st.caption("ניטור נרטיבים ודיווחים בזמן אמת ממאגרי התקשורת המובילים בעולם")
 
-# --- 3. תפריט מדינות עם דגלים וכתב לבן מוגדל ללא נקודות רדיו ---
-COUNTRIES_NAV = [
-    "🌐 כל הדיווחים",
-    "🇮🇱 ישראל",
-    "🇺🇸 ארה\"ב",
-    "🇮🇷 איראן",
-    "🇱🇧 לבנון",
-    "🇵🇸 רצועת עזה",
-    "🛡️ איו\"ש"
+# 3. תפריט מדינות עם כפתורים ודגלים אמיתיים (ללא נקודות רדיו וללא תלות בפונט של ווינדוס)
+if "selected_country" not in st.session_state:
+    st.session_state["selected_country"] = "כל הדיווחים"
+
+# הגדרת כפתורי המדינות
+NAV_ITEMS = [
+    {"label": "כל הדיווחים", "val": "כל הדיווחים", "flag": "🌐"},
+    {"label": "ישראל", "val": "ישראל", "flag": "🇮🇱"},
+    {"label": "ארה\"ב", "val": "ארה\"ב", "flag": "🇺🇸"},
+    {"label": "איראן", "val": "איראן", "flag": "🇮🇷"},
+    {"label": "לבנון", "val": "לבנון", "flag": "🇱🇧"},
+    {"label": "רצועת עזה", "val": "רצועת עזה", "flag": "🇵🇸"},
+    {"label": "איו\"ש", "val": "איו\"ש", "flag": "🛡️"}
 ]
 
-selected_nav = st.radio(
-    "בחר מדינה",
-    COUNTRIES_NAV,
-    horizontal=True,
-    label_visibility="collapsed"
-)
+# תצוגת כפתורי ספורט בשורה אחת (7 עמודות)
+nav_cols = st.columns(len(NAV_ITEMS))
+for idx, item in enumerate(NAV_ITEMS):
+    with nav_cols[idx]:
+        is_active = st.session_state["selected_country"] == item["val"]
+        btn_label = f"{item['flag']} {item['label']}"
+        btn_type = "primary" if is_active else "secondary"
+        if st.button(btn_label, key=f"nav_{item['val']}", type=btn_type, use_container_width=True):
+            st.session_state["selected_country"] = item["val"]
+            st.rerun()
 
-# מיפוי הבחירה לשם המדינה לסינון נקי
-nav_to_clean = {
-    "🌐 כל הדיווחים": "כל הדיווחים",
-    "🇮🇱 ישראל": "ישראל",
-    "🇺🇸 ארה\"ב": "ארה\"ב",
-    "🇮🇷 איראן": "איראן",
-    "🇱🇧 לבנון": "לבנון",
-    "🇵🇸 רצועת עזה": "רצועת עזה",
-    "🛡️ איו\"ש": "איו\"ש"
-}
-selected_country = nav_to_clean.get(selected_nav, "כל הדיווחים")
+st.markdown("<hr style='border-color: #1f2937; margin: 14px 0 24px 0;'>", unsafe_allow_html=True)
 
-st.markdown("<hr style='border-color: #1f2937; margin: 12px 0 24px 0;'>", unsafe_allow_html=True)
-
+selected_country = st.session_state["selected_country"]
 filtered = df.copy()
 
 if selected_country != "כל הדיווחים":
@@ -418,7 +402,7 @@ if search_query:
         filtered['title_original'].astype(str).str.contains(p, case=False, na=False)
     ]
 
-# 4. מבנה דף הבית (Main Hero + Side Feed)
+# 4. פריסת דף הבית (Main Hero בימין ומבזקים משמאל)
 if filtered.empty:
     st.info(f"לא נמצאו דיווחים התואמים לקריטריון עבור '{selected_country}'.")
 else:
@@ -427,6 +411,7 @@ else:
 
     col_main, col_side = st.columns([7, 5])
 
+    # כתבה ראשית גדולה בימין
     with col_main:
         hero_img = get_smart_image(main_art['title_original'], main_art['content_original'], main_art.get('image_url'))
         cat = str(main_art.get('sentiment', 'כללי'))
@@ -455,6 +440,7 @@ else:
         </div>
         """, unsafe_allow_html=True)
 
+    # מבזקים חמים משמאל
     with col_side:
         st.markdown("<div style='font-size: 1.15rem; font-weight: 800; margin-bottom: 10px; color: #38bdf8;'>⚡ דיווחים חמים נוספים</div>", unsafe_allow_html=True)
         if not side_arts.empty:
@@ -482,6 +468,7 @@ else:
                 </a>
                 """, unsafe_allow_html=True)
 
+    # גריד כתבות תחתון
     rem_arts = filtered.iloc[4:] if len(filtered) > 4 else pd.DataFrame()
     if not rem_arts.empty:
         st.markdown("<h3 style='margin: 35px 0 15px 0; font-weight: 800;'>📰 כל הדיווחים והכתבות</h3>", unsafe_allow_html=True)
