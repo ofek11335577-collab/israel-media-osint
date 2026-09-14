@@ -187,85 +187,128 @@ st.markdown("""
 
 init_db()
 
-# מאגר תמונות ביטחוניות ומודיעיניות ממוקדות לפי תוכן הידיעה
-TOPIC_IMAGES = {
-    "radar": "https://images.unsplash.com/photo-1508614589041-895b88991e3e?w=1000",          # מכ"ם ואנטנות תקשורת צבאית
-    "missiles": "https://images.unsplash.com/photo-1517486808906-6ca8b3f04846?w=1000",       # טילים, יירוטים ואש
-    "drone": "https://images.unsplash.com/photo-1527977966376-1c8408f9f108?w=1000",          # כלי טיס בלתי מאויש / כטב"ם בשמיים
-    "military": "https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?w=1000",       # כוחות צבא ורכבים קרביים
-    "diplomacy": "https://images.unsplash.com/photo-1541872703-74c5e44368f9?w=1000",      # ועידות בינלאומיות ודיפלומטיה
-    "beirut": "https://images.unsplash.com/photo-1534447677768-be436bb09401?w=1000",         # לבנון וביירות
-    "tehran": "https://images.unsplash.com/photo-1584551246679-0daf3d275d0f?w=1000",         # איראן וטהראן
-    "intel_general": "https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=1000"   # גלובוס מודיעין לווייני כללי
+# מאגר תמונות עשיר ממוין לפי תחומים למניעת כפילויות
+TOPIC_IMAGE_POOLS = {
+    "soldiers": [
+        "https://images.unsplash.com/photo-1595590424283-b8f17842773f?w=1000", # לוחם עם אפוד קרבי ונשק
+        "https://images.unsplash.com/photo-1579783902614-a3fb3927b675?w=1000", # פעילות לוחמים מבצעית
+        "https://images.unsplash.com/photo-1578632767115-351597cf2477?w=1000"  # כוח צבאי בשטח
+    ],
+    "radar": [
+        "https://images.unsplash.com/photo-1508614589041-895b88991e3e?w=1000", # מכ"ם ואנטנות קשר צבאיות
+        "https://images.unsplash.com/photo-1516849841032-87cbac4d88f7?w=1000"  # מערכות קשר וטכנולוגיה
+    ],
+    "drone": [
+        "https://images.unsplash.com/photo-1527977966376-1c8408f9f108?w=1000", # כלי טיס בלתי מאויש
+        "https://images.unsplash.com/photo-1508614589041-895b88991e3e?w=1000"  # מעקב ואיסוף
+    ],
+    "missiles": [
+        "https://images.unsplash.com/photo-1517486808906-6ca8b3f04846?w=1000", # שובל שיגור ויירוט לילי
+        "https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=1000"  # זירה מבצעית
+    ],
+    "lebanon": [
+        "https://images.unsplash.com/photo-1534447677768-be436bb09401?w=1000", # גזרת לבנון וביירות
+        "https://images.unsplash.com/photo-1509316975850-ff9c5deb0cd9?w=1000"  # שטח הררי
+    ],
+    "iran": [
+        "https://images.unsplash.com/photo-1584551246679-0daf3d275d0f?w=1000", # טהראן ואיראן
+        "https://images.unsplash.com/photo-1579546929518-9e396f3cc809?w=1000"
+    ],
+    "diplomacy": [
+        "https://images.unsplash.com/photo-1541872703-74c5e44368f9?w=1000", # אולם דיונים דיפלומטי
+        "https://images.unsplash.com/photo-1585829365295-ab7cd400c167?w=1000"  # ועידה בינלאומית
+    ],
+    "general": [
+        "https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=1000",
+        "https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?w=1000",
+        "https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?w=1000"
+    ]
 }
 
-def get_smart_image(title: str, content: str, default_img: str = None) -> str:
+# בחירת תמונה חכמה עם הבטחה לאי-כפילות בעמוד
+def get_unique_smart_image(title: str, content: str, used_set: set) -> str:
     text = f"{title} {content}".lower()
     
-    # 1. מכ"מים, מערכות התרעה ולוחמה אלקטרונית
-    if any(w in text for w in ["radar", "warning", "surveillance", "air defense", "מכ\"ם", "התרעה", "גילוי", "הגנה אווירית"]):
-        return TOPIC_IMAGES["radar"]
-    
-    # 2. כטב"מים, רחפנים ויירוטי אוויר
-    if any(w in text for w in ["drone", "uav", "unmanned", "aerial", "כטב", "מל\"ט", "יירוט", "כלי טיס"]):
-        return TOPIC_IMAGES["drone"]
+    # 1. חיילים, צה"ל, איו"ש, מעצרים ופעילות ביטחונית
+    if any(w in text for w in ["soldier", "army", "idf", "tank", "troops", "military", "operation", "west bank", "jenin", "nablus", "צה\"ל", "צהל", "לוחמ", "חיילים", "סריקות", "איו\"ש", "מעצר", "שכם", "ג'נין"]):
+        pool = TOPIC_IMAGE_POOLS["soldiers"]
+    # 2. מכ"ם והתרעה
+    elif any(w in text for w in ["radar", "warning", "surveillance", "מכ\"ם", "מכם", "התרעה", "גילוי"]):
+        pool = TOPIC_IMAGE_POOLS["radar"]
+    # 3. כטב"מים ורחפנים
+    elif any(w in text for w in ["drone", "uav", "unmanned", "כטב", "מל\"ט"]):
+        pool = TOPIC_IMAGE_POOLS["drone"]
+    # 4. טילים ויירוטים
+    elif any(w in text for w in ["missile", "rocket", "strike", "blast", "attack", "טיל", "יירוט", "תקיפה"]):
+        pool = TOPIC_IMAGE_POOLS["missiles"]
+    # 5. לבנון
+    elif any(w in text for w in ["lebanon", "beirut", "hezbollah", "לבנון", "ביירות", "חיזבאללה"]):
+        pool = TOPIC_IMAGE_POOLS["lebanon"]
+    # 6. איראן
+    elif any(w in text for w in ["iran", "tehran", "איראן", "טהראן"]):
+        pool = TOPIC_IMAGE_POOLS["iran"]
+    # 7. דיפלומטיה
+    elif any(w in text for w in ["summit", "diplomacy", "minister", "מדיני", "פסגה", "הסכם"]):
+        pool = TOPIC_IMAGE_POOLS["diplomacy"]
+    else:
+        pool = TOPIC_IMAGE_POOLS["general"]
         
-    # 3. טילים, רקטות, תקיפות והפצצות
-    if any(w in text for w in ["missile", "rocket", "strike", "blast", "attack", "ballistic", "טיל", "בליסטי", "תקיפה", "פיצוץ"]):
-        return TOPIC_IMAGES["missiles"]
-        
-    # 4. כוחות צבא, חי\"ר, טנקים ומבצעים
-    if any(w in text for w in ["soldier", "army", "idf", "tank", "troops", "military", "operation", "צבא", "צה\"ל", "לוחמ", "מבצע"]):
-        return TOPIC_IMAGES["military"]
-        
-    # 5. איראן וטהראן
-    if any(w in text for w in ["iran", "tehran", "nuclear", "איראן", "טהראן", "משמרות המהפכה"]):
-        return TOPIC_IMAGES["tehran"]
-        
-    # 6. לבנון וביירות
-    if any(w in text for w in ["lebanon", "beirut", "hezbollah", "לבנון", "ביירות", "חיזבאללה"]):
-        return TOPIC_IMAGES["beirut"]
-        
-    # 7. דיפלומטיה ופסגות
-    if any(w in text for w in ["summit", "diplomacy", "minister", "biden", "sanctions", "מדיני", "פסגה", "סנקציות", "הסכם"]):
-        return TOPIC_IMAGES["diplomacy"]
-        
-    # תמונה מקורית מהעיתון רק אם היא תקינה ואינה תמונת סטודנטים/צבעים שגויה
-    if default_img and ("unsplash" not in default_img or "photo-1451187580459" in default_img) and "http" in default_img:
-        return default_img
-        
-    return TOPIC_IMAGES["intel_general"]
+    for img in pool:
+        if img not in used_set:
+            used_set.add(img)
+            return img
+            
+    for fallback_pool in TOPIC_IMAGE_POOLS.values():
+        for img in fallback_pool:
+            if img not in used_set:
+                used_set.add(img)
+                return img
+                
+    return pool[0]
 
-# ניקוי ועדכון נתוני האתחול עם תמונות מודיעיניות מדויקות
 now_str = datetime.now().strftime("%Y-%m-%d %H:%M")
 SEED_DATA = [
     {
-        "url": "https://www.aljazeera.com/news/liveblog/2026/mideast-security",
-        "source_name": "Al Jazeera",
-        "country": "קטר",
-        "title_original": "Regional security summits address border stabilization and maritime protocols",
-        "content_original": "Mediators assemble to coordinate ceasefire conditions and security mechanisms across frontiers.",
+        "url": "https://wafa.ps/ar/news/2026/west-bank-reports",
+        "source_name": "Wafa",
+        "country": "איו\"ש",
+        "title_original": "Security operations and military presence in northern sectors",
+        "content_original": "Field reports on Israeli troops operations and arrest activities in Jenin and Nablus.",
         "published_at": now_str,
-        "image_url": TOPIC_IMAGES["diplomacy"],
-        "title_hebrew": "מגעים בינלאומיים דחופים לגיבוש מתווה ביטחוני וייצוב קווי הגבול",
-        "summary_hebrew": "משלחות תיווך אזוריות מקיימות התייעצויות אינטנסיביות למניעת הסלמה ולהסדרת מנגנוני פיקוח הדדיים.",
-        "sentiment": "מדיני ודיפלומטי",
+        "image_url": TOPIC_IMAGE_POOLS["soldiers"][0],
+        "title_hebrew": "פעילות ביטחונית וסריקות צה\"ל במוקדי חיכוך באיו\"ש",
+        "summary_hebrew": "כוחות הביטחון פעלו הלילה בגזרות ג'נין ושכם לסיכול תשתיות טרור ולמעצר מבוקשים.",
+        "sentiment": "צבאי וביטחוני",
         "sentiment_score": 1.0,
-        "mentioned_countries": "ישראל, ארה\"ב, קטר"
+        "mentioned_countries": "איו\"ש, ישראל"
     },
     {
         "url": "https://english.alarabiya.net/news/2026/red-sea-defense",
         "source_name": "Al Arabiya",
         "country": "סעודיה",
-        "title_original": "Coalition naval forces engage aerial targets over international shipping routes",
-        "content_original": "Naval systems shoot down hostile drone salvos launched toward navigation corridors.",
+        "title_original": "Naval coalition forces engage drone strikes over Red Sea trade routes",
+        "content_original": "Interception systems shot down hostile unmanned aerial vehicles over sea lanes.",
         "published_at": now_str,
-        "image_url": TOPIC_IMAGES["drone"],
+        "image_url": TOPIC_IMAGE_POOLS["drone"][0],
         "title_hebrew": "יירוט נרחב של כטב\"מים עוינים מעל נתיבי השיט הבינלאומיים בים האדום",
         "summary_hebrew": "מערכי ההגנה של הקואליציה סיכלו מתקפה מכיוון תימן שנועדה לשבש את התנועה הימית לאילת.",
         "sentiment": "צבאי וביטחוני",
         "sentiment_score": 1.0,
         "mentioned_countries": "ישראל, ארה\"ב, איראן"
+    },
+    {
+        "url": "https://www.tehrantimes.com/news/2026/iran-tactical-aerospace",
+        "source_name": "Tehran Times",
+        "country": "איראן",
+        "title_original": "Tehran unveils integrated air surveillance radar network",
+        "content_original": "Commanders activate early-warning radar arrays and mobile deterrent defense batteries.",
+        "published_at": now_str,
+        "image_url": TOPIC_IMAGE_POOLS["radar"][0],
+        "title_hebrew": "איראן הודיעה על פריסת מערכות התרעה ומכ\"ם חדשות",
+        "summary_hebrew": "פיקוד ההגנה האווירית של משמרות המהפכה טוען לשדרוג יכולות היירוט מול כלי טיס בלתי מאוישים.",
+        "sentiment": "צבאי וביטחוני",
+        "sentiment_score": 0.0,
+        "mentioned_countries": "איראן, ישראל, ארה\"ב"
     },
     {
         "url": "https://www.bbc.com/news/world-middle-east-2026-lebanon",
@@ -274,7 +317,7 @@ SEED_DATA = [
         "title_original": "Northern border exchanges intensify amid diplomatic efforts in Beirut",
         "content_original": "Field intelligence reports track reciprocal fire and air defense responses across border communities.",
         "published_at": now_str,
-        "image_url": TOPIC_IMAGES["beirut"],
+        "image_url": TOPIC_IMAGE_POOLS["lebanon"][0],
         "title_hebrew": "הסלמה בחילופי האש לאורך קו העימות בלבנון לצד מאמץ תיווך צרפתי",
         "summary_hebrew": "סדרת תקיפות ממוקדות בדרום לבנון בעקבות שיגורים לעבר הגליל, במקביל למגעים דיפלומטיים בביירות.",
         "sentiment": "צבאי וביטחוני",
@@ -282,32 +325,18 @@ SEED_DATA = [
         "mentioned_countries": "לבנון, ישראל"
     },
     {
-        "url": "https://www.tehrantimes.com/news/2026/iran-tactical-aerospace",
-        "source_name": "Tehran Times",
-        "country": "איראן",
-        "title_original": "Tehran unveils integrated air surveillance grid",
-        "content_original": "Aerospace commanders declare activation of early-warning radar arrays and mobile deterrent batteries.",
+        "url": "https://www.aljazeera.com/news/liveblog/2026/mideast-security",
+        "source_name": "Al Jazeera",
+        "country": "קטר",
+        "title_original": "Regional security summits address border stabilization and maritime protocols",
+        "content_original": "Mediators assemble to coordinate ceasefire conditions and security mechanisms across frontiers.",
         "published_at": now_str,
-        "image_url": TOPIC_IMAGES["radar"],
-        "title_hebrew": "איראן הודיעה על פריסת מערכות התרעה ומכ\"ם חדשות",
-        "summary_hebrew": "פיקוד ההגנה האווירית של משמרות המהפכה טוען לשדרוג יכולות היירוט מול כלי טיס בלתי מאוישים.",
-        "sentiment": "צבאי וביטחוני",
-        "sentiment_score": 0.0,
-        "mentioned_countries": "איראן, ישראל, ארה\"ב"
-    },
-    {
-        "url": "https://wafa.ps/ar/news/2026/west-bank-reports",
-        "source_name": "Wafa",
-        "country": "איו\"ש",
-        "title_original": "Security operations and movement regulations across northern sectors",
-        "content_original": "Field reports on checkpoints and logistical routes around commercial hubs in Nablus and Jenin.",
-        "published_at": now_str,
-        "image_url": TOPIC_IMAGES["military"],
-        "title_hebrew": "פעילות ביטחונית וסריקות צה\"ל במוקדי חיכוך באיו\"ש",
-        "summary_hebrew": "כוחות הביטחון פעלו הלילה בגזרות ג'נין ושכם לסיכול תשתיות טרור ולמעצר מבוקשים.",
-        "sentiment": "צבאי וביטחוני",
-        "sentiment_score": 0.0,
-        "mentioned_countries": "איו\"ש, ישראל"
+        "image_url": TOPIC_IMAGE_POOLS["diplomacy"][0],
+        "title_hebrew": "מגעים בינלאומיים דחופים לגיבוש מתווה ביטחוני וייצוב קווי הגבול",
+        "summary_hebrew": "משלחות תיווך אזוריות מקיימות התייעצויות אינטנסיביות למניעת הסלמה ולהסדרת מנגנוני פיקוח הדדיים.",
+        "sentiment": "מדיני ודיפלומטי",
+        "sentiment_score": 1.0,
+        "mentioned_countries": "ישראל, ארה\"ב, קטר"
     }
 ]
 
@@ -317,12 +346,14 @@ def load_data():
     conn.close()
     return df
 
-# עדכון תמונות שגויות קיימות בבסיס הנתונים
+# איפוס תמונות האוטובוסים והתמונות החוזרות בבסיס הנתונים
 conn = get_connection()
 cursor = conn.cursor()
-cursor.execute("UPDATE articles SET image_url = ? WHERE title_original LIKE '%radar%' OR title_hebrew LIKE '%מכ\"ם%'", (TOPIC_IMAGES["radar"],))
-cursor.execute("UPDATE articles SET image_url = ? WHERE title_original LIKE '%drone%' OR title_hebrew LIKE '%כטב%'", (TOPIC_IMAGES["drone"],))
-cursor.execute("UPDATE articles SET image_url = ? WHERE image_url LIKE '%photo-1579546929518%' OR image_url LIKE '%photo-1541872703%'", (TOPIC_IMAGES["intel_general"],))
+cursor.execute("UPDATE articles SET image_url = ? WHERE title_hebrew LIKE '%איו\"ש%' OR title_hebrew LIKE '%צה\"ל%'", (TOPIC_IMAGE_POOLS["soldiers"][0],))
+cursor.execute("UPDATE articles SET image_url = ? WHERE title_hebrew LIKE '%מכ\"ם%'", (TOPIC_IMAGE_POOLS["radar"][0],))
+cursor.execute("UPDATE articles SET image_url = ? WHERE title_hebrew LIKE '%כטב\"ם%' OR title_hebrew LIKE '%כטבמים%'", (TOPIC_IMAGE_POOLS["drone"][0],))
+cursor.execute("UPDATE articles SET image_url = ? WHERE title_hebrew LIKE '%לבנון%'", (TOPIC_IMAGE_POOLS["lebanon"][0],))
+cursor.execute("UPDATE articles SET image_url = ? WHERE image_url LIKE '%photo-1544620347%'", (TOPIC_IMAGE_POOLS["soldiers"][0],))
 conn.commit()
 conn.close()
 
@@ -340,7 +371,8 @@ def background_worker():
                 if not is_article_exists(a['url']):
                     try:
                         res = analyze_article(a['title_original'], a['content_original'])
-                        smart_img = get_smart_image(a['title_original'], a['content_original'], a.get('image_url'))
+                        dummy_set = set()
+                        smart_img = get_unique_smart_image(a['title_original'], a['content_original'], dummy_set)
                         a.update({
                             'title_hebrew': res.get('title_hebrew'),
                             'summary_hebrew': res.get('summary_hebrew'),
@@ -350,13 +382,14 @@ def background_worker():
                             'image_url': smart_img
                         })
                     except Exception:
+                        dummy_set = set()
                         a.update({
                             'title_hebrew': a['title_original'],
                             'summary_hebrew': a['content_original'][:160],
                             'sentiment': 'שוטף',
                             'sentiment_score': 0.0,
                             'mentioned_countries': 'ישראל',
-                            'image_url': get_smart_image(a['title_original'], a['content_original'], a.get('image_url'))
+                            'image_url': get_unique_smart_image(a['title_original'], a['content_original'], dummy_set)
                         })
                     save_article(a)
                     time.sleep(4)
@@ -447,7 +480,9 @@ if search_query:
         filtered['title_original'].astype(str).str.contains(p, case=False, na=False)
     ]
 
-# 4. מבנה דף הבית (כתבה ראשית בימין ומבזקים משמאל)
+# 4. מבנה דף הבית ללא כפילות תמונות
+used_page_images = set()
+
 if filtered.empty:
     st.info(f"לא נמצאו דיווחים התואמים לקריטריון עבור '{selected_country}'.")
 else:
@@ -456,8 +491,9 @@ else:
 
     col_main, col_side = st.columns([7, 5])
 
+    # כתבה ראשית גדולה בימין
     with col_main:
-        hero_img = get_smart_image(main_art['title_original'], main_art['content_original'], main_art.get('image_url'))
+        hero_img = get_unique_smart_image(main_art['title_original'], main_art['content_original'], used_page_images)
         cat = str(main_art.get('sentiment', 'כללי'))
         t_heb = main_art.get('title_hebrew') or main_art.get('title_original')
         s_heb = str(main_art.get('summary_hebrew', ''))[:220]
@@ -484,11 +520,12 @@ else:
         </div>
         """, unsafe_allow_html=True)
 
+    # מבזקים חמים משמאל
     with col_side:
         st.markdown("<div style='font-size: 1.15rem; font-weight: 800; margin-bottom: 10px; color: #38bdf8;'>⚡ דיווחים חמים נוספים</div>", unsafe_allow_html=True)
         if not side_arts.empty:
             for _, s_row in side_arts.iterrows():
-                s_img = get_smart_image(s_row['title_original'], s_row['content_original'], s_row.get('image_url'))
+                s_img = get_unique_smart_image(s_row['title_original'], s_row['content_original'], used_page_images)
                 s_title = s_row.get('title_hebrew') or s_row.get('title_original')
                 s_src = s_row.get('source_name', '')
                 s_time = str(s_row.get('published_at', ''))[:16]
@@ -518,7 +555,7 @@ else:
         cols = st.columns(3)
         for idx, (_, r_art) in enumerate(rem_arts.iterrows()):
             with cols[idx % 3]:
-                r_img = get_smart_image(r_art['title_original'], r_art['content_original'], r_art.get('image_url'))
+                r_img = get_unique_smart_image(r_art['title_original'], r_art['content_original'], used_page_images)
                 r_title = r_art.get('title_hebrew') or r_art.get('title_original')
                 r_summary = str(r_art.get('summary_hebrew', ''))[:110]
                 r_cat = str(r_art.get('sentiment', 'כללי'))
