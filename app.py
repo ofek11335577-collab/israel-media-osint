@@ -14,6 +14,7 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
+# פונטים מודרניים - Assistant & Rubik ועיצוב פורטל ספורט כהה
 st.markdown("""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Assistant:wght@300;400;600;700;800&family=Rubik:wght@700;800;900&display=swap');
@@ -59,11 +60,11 @@ st.markdown("""
     div[data-testid="stHorizontalBlock"] button {
         background-color: #111827 !important;
         border: 1px solid #1f2937 !important;
-        border-radius: 24px !important;
+        border-radius: 18px !important;
         color: #ffffff !important;
         font-size: 1.02rem !important;
         font-weight: 700 !important;
-        padding: 6px 14px !important;
+        padding: 6px 10px !important;
         transition: all 0.2s ease !important;
         width: 100% !important;
     }
@@ -73,8 +74,7 @@ st.markdown("""
         color: #38bdf8 !important;
         transform: translateY(-2px);
     }
-    div[data-testid="stHorizontalBlock"] button:active,
-    div[data-testid="stHorizontalBlock"] button:focus {
+    div[data-testid="stHorizontalBlock"] button[kind="primary"] {
         background-color: #0284c7 !important;
         border-color: #38bdf8 !important;
         color: #ffffff !important;
@@ -331,40 +331,44 @@ def start_worker():
 
 start_worker()
 
-# 1. שורת סינון עליונה
+# --- 1. שורת סינון עליונה ---
 c_search, c_cat = st.columns([7, 3])
 with c_search:
     search_query = st.text_input("חיפוש", placeholder="🔎 חפש בידיעות: נתניהו, טילים, הפסקת אש, ביירות...", label_visibility="collapsed")
 with c_cat:
     cat_filter = st.selectbox("תחום", ["כל התחומים", "צבאי וביטחוני", "מדיני ודיפלומטי", "כלכלה וסנקציות"], label_visibility="collapsed")
 
-# 2. כותרת האתר
+# --- 2. כותרת האתר ---
 st.markdown("<h1 style='margin: 10px 0 4px 0; font-size: 2.2rem; font-weight: 900; color: #ffffff;'>🌐 דסק מודיעין תקשורת עולמי</h1>", unsafe_allow_html=True)
 st.caption("ניטור נרטיבים ודיווחים בזמן אמת ממאגרי התקשורת המובילים בעולם")
 
-# 3. תפריט מדינות עם כפתורים ודגלים אמיתיים (ללא נקודות רדיו וללא תלות בפונט של ווינדוס)
+# --- 3. סרגל מדינות עם דגלים גרפיים אמיתיים (FlagCDN) ---
 if "selected_country" not in st.session_state:
     st.session_state["selected_country"] = "כל הדיווחים"
 
-# הגדרת כפתורי המדינות
 NAV_ITEMS = [
-    {"label": "כל הדיווחים", "val": "כל הדיווחים", "flag": "🌐"},
-    {"label": "ישראל", "val": "ישראל", "flag": "🇮🇱"},
-    {"label": "ארה\"ב", "val": "ארה\"ב", "flag": "🇺🇸"},
-    {"label": "איראן", "val": "איראן", "flag": "🇮🇷"},
-    {"label": "לבנון", "val": "לבנון", "flag": "🇱🇧"},
-    {"label": "רצועת עזה", "val": "רצועת עזה", "flag": "🇵🇸"},
-    {"label": "איו\"ש", "val": "איו\"ש", "flag": "🛡️"}
+    {"label": "כל הדיווחים", "val": "כל הדיווחים", "flag_img": "https://flagcdn.com/w40/un.png"},
+    {"label": "ישראל", "val": "ישראל", "flag_img": "https://flagcdn.com/w40/il.png"},
+    {"label": "ארה\"ב", "val": "ארה\"ב", "flag_img": "https://flagcdn.com/w40/us.png"},
+    {"label": "איראן", "val": "איראן", "flag_img": "https://flagcdn.com/w40/ir.png"},
+    {"label": "לבנון", "val": "לבנון", "flag_img": "https://flagcdn.com/w40/lb.png"},
+    {"label": "רצועת עזה", "val": "רצועת עזה", "flag_img": "https://flagcdn.com/w40/ps.png"},
+    {"label": "איו\"ש", "val": "איו\"ש", "flag_img": "https://flagcdn.com/w40/ps.png"}
 ]
 
-# תצוגת כפתורי ספורט בשורה אחת (7 עמודות)
 nav_cols = st.columns(len(NAV_ITEMS))
 for idx, item in enumerate(NAV_ITEMS):
     with nav_cols[idx]:
-        is_active = st.session_state["selected_country"] == item["val"]
-        btn_label = f"{item['flag']} {item['label']}"
+        is_active = (st.session_state["selected_country"] == item["val"])
         btn_type = "primary" if is_active else "secondary"
-        if st.button(btn_label, key=f"nav_{item['val']}", type=btn_type, use_container_width=True):
+        
+        st.markdown(f"""
+        <div style="text-align: center; margin-bottom: 5px;">
+            <img src="{item['flag_img']}" width="28" style="border-radius: 4px; box-shadow: 0 2px 4px rgba(0,0,0,0.6);" />
+        </div>
+        """, unsafe_allow_html=True)
+        
+        if st.button(item["label"], key=f"btn_country_{item['val']}", type=btn_type, use_container_width=True):
             st.session_state["selected_country"] = item["val"]
             st.rerun()
 
@@ -402,7 +406,7 @@ if search_query:
         filtered['title_original'].astype(str).str.contains(p, case=False, na=False)
     ]
 
-# 4. פריסת דף הבית (Main Hero בימין ומבזקים משמאל)
+# 4. מבנה דף הבית (כתבה ראשית בימין ומבזקים משמאל)
 if filtered.empty:
     st.info(f"לא נמצאו דיווחים התואמים לקריטריון עבור '{selected_country}'.")
 else:
@@ -411,7 +415,6 @@ else:
 
     col_main, col_side = st.columns([7, 5])
 
-    # כתבה ראשית גדולה בימין
     with col_main:
         hero_img = get_smart_image(main_art['title_original'], main_art['content_original'], main_art.get('image_url'))
         cat = str(main_art.get('sentiment', 'כללי'))
@@ -440,7 +443,6 @@ else:
         </div>
         """, unsafe_allow_html=True)
 
-    # מבזקים חמים משמאל
     with col_side:
         st.markdown("<div style='font-size: 1.15rem; font-weight: 800; margin-bottom: 10px; color: #38bdf8;'>⚡ דיווחים חמים נוספים</div>", unsafe_allow_html=True)
         if not side_arts.empty:
