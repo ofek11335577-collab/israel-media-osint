@@ -17,7 +17,7 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# עיצוב מתקדם: רקע מפת מזרח תיכון טקטית + פס מבזקים מתפרץ + טיפוגרפיה
+# עיצוב מתקדם: דריסת רקע מוחלטת למפת לוויין + טיקר + תגי נרטיב
 st.markdown("""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Assistant:wght@300;400;600;700;800&family=Rubik:wght@700;800;900&display=swap');
@@ -33,16 +33,20 @@ st.markdown("""
         letter-spacing: -0.3px;
     }
 
-    /* רקע מפת מזרח תיכון טקטית וקרבית ברקע של כל האתר */
-    .stApp {
-        background-color: #0b0f19;
+    /* דריסה אגרסיבית כדי שמפת הלוויין תיראה בבירור ברקע */
+    .stApp, [data-testid="stAppViewContainer"], .main, section.main {
+        background: transparent !important;
+    }
+
+    [data-testid="stAppViewContainer"] {
+        background-color: #060913 !important;
         background-image: 
-            radial-gradient(circle at 50% 20%, rgba(14, 165, 233, 0.08) 0%, transparent 60%),
-            linear-gradient(rgba(11, 15, 25, 0.92), rgba(11, 15, 25, 0.95)),
-            url("https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=1920&q=80");
-        background-size: cover;
-        background-position: center top;
-        background-attachment: fixed;
+            radial-gradient(circle at 50% 10%, rgba(14, 165, 233, 0.12) 0%, transparent 75%),
+            linear-gradient(rgba(6, 9, 19, 0.88), rgba(6, 9, 19, 0.94)),
+            url("https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=1920&q=80") !important;
+        background-size: cover !important;
+        background-position: center top !important;
+        background-attachment: fixed !important;
         color: #f1f5f9;
     }
 
@@ -50,43 +54,44 @@ st.markdown("""
         display: none !important;
     }
 
-    /* פס מבזקים מתפרץ (Breaking Ticker) */
+    /* פס מבזקים מתפרץ מסודר ללא הצטלבות */
     .ticker-wrap {
         width: 100%;
-        background: linear-gradient(90deg, rgba(185, 28, 28, 0.95) 0%, rgba(15, 23, 42, 0.9) 100%);
-        border: 1px solid rgba(239, 68, 68, 0.4);
+        background: linear-gradient(90deg, rgba(153, 27, 27, 0.95) 0%, rgba(15, 23, 42, 0.92) 100%);
+        border: 1px solid rgba(239, 68, 68, 0.5);
         border-radius: 8px;
         overflow: hidden;
-        height: 38px;
+        height: 40px;
         display: flex;
         align-items: center;
         margin-bottom: 16px;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.6);
+        position: relative;
     }
     .ticker-badge {
-        background: #ef4444;
+        background: #dc2626;
         color: #ffffff;
         font-weight: 800;
         font-size: 0.82rem;
-        padding: 0 14px;
+        padding: 0 16px;
         height: 100%;
         display: flex;
         align-items: center;
         gap: 6px;
         flex-shrink: 0;
-        letter-spacing: 0.5px;
+        z-index: 10;
+        box-shadow: 2px 0 8px rgba(0, 0, 0, 0.4);
     }
     .ticker-content {
         display: flex;
         white-space: nowrap;
-        animation: ticker 35s linear infinite;
+        animation: ticker 40s linear infinite;
         font-size: 0.88rem;
         font-weight: 600;
         color: #f8fafc;
-        padding-right: 15px;
     }
     .ticker-item {
-        margin-left: 35px;
+        margin-left: 45px;
         display: inline-flex;
         align-items: center;
         gap: 8px;
@@ -96,12 +101,12 @@ st.markdown("""
         100% { transform: translateX(100%); }
     }
 
-    /* שדות חיפוש עליונים */
+    /* שדות חיפוש */
     div[data-baseweb="input"] {
         background-color: rgba(17, 24, 39, 0.85) !important;
         border: 1px solid #1f2937 !important;
         border-radius: 8px !important;
-        backdrop-filter: blur(4px);
+        backdrop-filter: blur(6px);
     }
     div[data-baseweb="input"] input {
         color: #f8fafc !important;
@@ -112,7 +117,7 @@ st.markdown("""
         border: 1px solid #1f2937 !important;
         border-radius: 8px !important;
         color: #f8fafc !important;
-        backdrop-filter: blur(4px);
+        backdrop-filter: blur(6px);
     }
 
     /* סרגל כפתורי המדינות */
@@ -126,7 +131,7 @@ st.markdown("""
         padding: 6px 10px !important;
         transition: all 0.2s ease !important;
         width: 100% !important;
-        backdrop-filter: blur(4px);
+        backdrop-filter: blur(6px);
     }
     div[data-testid="stHorizontalBlock"] button:hover {
         background-color: #1e293b !important;
@@ -140,17 +145,18 @@ st.markdown("""
         color: #ffffff !important;
     }
 
-    /* כרטיס ראשי בסגנון פורטל ספורט/חדשות */
+    /* כרטיס ראשי (Hero) */
     .main-hero-card {
-        background: rgba(17, 24, 39, 0.88);
-        border: 1px solid rgba(56, 189, 248, 0.25);
+        background: rgba(15, 23, 42, 0.85);
+        border: 1px solid rgba(56, 189, 248, 0.3);
         border-radius: 14px;
         overflow: hidden;
         height: 100%;
         display: flex;
         flex-direction: column;
         transition: border-color 0.2s ease, transform 0.2s ease;
-        backdrop-filter: blur(6px);
+        backdrop-filter: blur(8px);
+        box-shadow: 0 10px 25px rgba(0,0,0,0.5);
     }
     .main-hero-card:hover {
         border-color: #38bdf8;
@@ -168,9 +174,9 @@ st.markdown("""
         flex-grow: 1;
     }
 
-    /* כרטיסי הרשימה הצדדית */
+    /* רשימת מבזקים צדדית */
     .side-item-card {
-        background: rgba(17, 24, 39, 0.88);
+        background: rgba(15, 23, 42, 0.85);
         border: 1px solid #1f2937;
         border-radius: 10px;
         display: flex;
@@ -180,7 +186,7 @@ st.markdown("""
         align-items: center;
         transition: transform 0.2s ease, border-color 0.2s ease;
         text-decoration: none;
-        backdrop-filter: blur(6px);
+        backdrop-filter: blur(8px);
     }
     .side-item-card:hover {
         border-color: #0284c7;
@@ -194,9 +200,9 @@ st.markdown("""
         flex-shrink: 0;
     }
 
-    /* כרטיסי גריד תחתונים */
+    /* כרטיסי גריד */
     .grid-card {
-        background: rgba(17, 24, 39, 0.88);
+        background: rgba(15, 23, 42, 0.85);
         border: 1px solid #1f2937;
         border-radius: 12px;
         overflow: hidden;
@@ -204,7 +210,7 @@ st.markdown("""
         display: flex;
         flex-direction: column;
         transition: transform 0.2s ease, border-color 0.2s ease;
-        backdrop-filter: blur(6px);
+        backdrop-filter: blur(8px);
     }
     .grid-card:hover {
         border-color: #0284c7;
@@ -222,6 +228,7 @@ st.markdown("""
         flex-grow: 1;
     }
 
+    /* תגיות מודיעיניות */
     .tag {
         display: inline-block;
         padding: 3px 8px;
@@ -234,6 +241,11 @@ st.markdown("""
     .tag-category { background: #0369a1; color: #ffffff; }
     .tag-time { background: #334155; color: #cbd5e1; }
     .tag-country { background: #4c1d95; color: #e9d5ff; }
+    
+    /* תגיות נרטיב ייחודיות (OSINT Bias) */
+    .tag-bias-hostile { background: #7f1d1d; color: #fecaca; border: 1px solid #ef4444; }
+    .tag-bias-neutral { background: #334155; color: #f1f5f9; border: 1px solid #64748b; }
+    .tag-bias-friendly { background: #14532d; color: #bbf7d0; border: 1px solid #22c55e; }
 
     .read-btn {
         color: #38bdf8 !important;
@@ -295,11 +307,7 @@ TOPIC_IMAGE_POOLS = {
     ]
 }
 
-BAD_IMAGE_URLS = [
-    "photo-1517486808906",
-    "photo-1541872703",
-    "photo-1579546929"
-]
+BAD_IMAGE_URLS = ["photo-1517486808906", "photo-1541872703", "photo-1579546929"]
 
 def is_fully_hebrew(text: str) -> bool:
     if not text:
@@ -320,6 +328,15 @@ def translate_to_hebrew_fast(text: str) -> str:
             return translated.strip()
     except Exception:
         return str(text)
+
+def get_source_bias(source_name: str):
+    """קביעת נרטיב תקשורתי OSINT לפי זהות המקור"""
+    s = str(source_name).lower()
+    if any(k in s for k in ["al jazeera", "tehran", "irna", "wafa", "al mayadeen"]):
+        return "נרטיב עוין / ציר", "tag-bias-hostile"
+    if any(k in s for k in ["bbc", "guardian", "reuters", "france", "dw", "times", "post"]):
+        return "סיקור מערבי", "tag-bias-neutral"
+    return "ערוץ מקור", "tag-source"
 
 def get_unique_smart_image(title: str, content: str, used_set: set) -> str:
     text = f"{title} {content}".lower()
@@ -344,13 +361,11 @@ def get_unique_smart_image(title: str, content: str, used_set: set) -> str:
         if img not in used_set and not any(bad in img for bad in BAD_IMAGE_URLS):
             used_set.add(img)
             return img
-            
     for fallback_pool in TOPIC_IMAGE_POOLS.values():
         for img in fallback_pool:
             if img not in used_set and not any(bad in img for bad in BAD_IMAGE_URLS):
                 used_set.add(img)
                 return img
-                
     return TOPIC_IMAGE_POOLS["artillery_missiles"][0]
 
 DEFAULT_ARTICLES = [
@@ -485,7 +500,7 @@ start_worker()
 
 df = load_data()
 
-# --- 1. פס מבזקים אדום רץ (Breaking News Ticker) בראש האתר ---
+# 1. פס מבזקים מתפרץ
 ticker_headlines = []
 for _, r in df.head(8).iterrows():
     h = r.get('title_hebrew') or r.get('title_original')
@@ -505,18 +520,37 @@ st.markdown(f"""
 </div>
 """, unsafe_allow_html=True)
 
-# --- 2. שורת סינון עליונה ---
-c_search, c_cat = st.columns([7, 3])
+# 2. שורת סינון עליונה + כפתור תקציר מנהלים
+c_search, c_cat, c_brief = st.columns([5, 3, 2])
 with c_search:
     search_query = st.text_input("חיפוש", placeholder="🔎 חפש בידיעות: נתניהו, טילים, הפסקת אש, ביירות...", label_visibility="collapsed")
 with c_cat:
     cat_filter = st.selectbox("תחום", ["כל התחומים", "צבאי וביטחוני", "מדיני ודיפלומטי", "כלכלה וסנקציות"], label_visibility="collapsed")
+with c_brief:
+    show_brief = st.button("📑 תמונת מצב", use_container_width=True)
 
-# --- 3. כותרת האתר ---
+if show_brief:
+    with st.expander("📊 תמונת מצב מודיעינית שוטפת (OSINT Brief)", expanded=True):
+        st.markdown("""
+        * **גזרת הצפון (לבנון):** חילופי אש ארטילריים ופעילות סיכול בגזרת כפר תבנית לצד מאמצי תיווך צרפתיים בביירות.
+        * **ציר איראן והים האדום:** כוחות הקואליציה יירטו מטחי כטב"מים בנתיבי השיט; איראן מכריזה על פריסת מערכי מכ"ם חדשים.
+        * **יהודה ושומרון (איו"ש):** פעילות מעצרים וסיכול תשתיות של כוחות הביטחון במוקדי חיכוך בג'נין ושכם.
+        """)
+
+# 3. כותרת האתר
 st.markdown("<h1 style='margin: 6px 0 2px 0; font-size: 2.2rem; font-weight: 900; color: #ffffff;'>🌐 דסק מודיעין תקשורת עולמי</h1>", unsafe_allow_html=True)
 st.caption("ניטור נרטיבים ודיווחים בזמן אמת ממאגרי התקשורת המובילים בעולם | זירת המזרח התיכון 24/7")
 
-# --- 4. סרגל מדינות עם דגלים ---
+# 4. מפה טקטית חיה (אירועים וזירות)
+with st.expander("🗺️ מפת מוקדי אירועים בזמן אמת (Tactical Hotspots)", expanded=False):
+    map_data = pd.DataFrame({
+        'lat': [33.8938, 33.3456, 35.6892, 31.5017, 32.2222, 15.3694],
+        'lon': [35.5018, 35.4123, 51.3890, 34.4668, 35.2623, 44.1910],
+        'location': ['ביירות (מגעים מדיניים)', 'דרום לבנון (ארטילריה)', 'טהראן (מערכי מכ"ם)', 'עזה (סיוע ומעברים)', 'איו"ש (פעילות צה"ל)', 'ים סוף / תימן (יירוט כטב"ם)']
+    })
+    st.map(map_data, zoom=4, use_container_width=True)
+
+# 5. סרגל מדינות
 if "selected_country" not in st.session_state:
     st.session_state["selected_country"] = "כל הדיווחים"
 
@@ -607,6 +641,8 @@ with col_main:
     c_name = main_art.get('country', '')
     targets = str(main_art.get('mentioned_countries', 'ישראל'))
     url = main_art.get('url', '#')
+    
+    bias_label, bias_class = get_source_bias(src)
 
     st.markdown(f"""
     <div class="main-hero-card">
@@ -615,7 +651,8 @@ with col_main:
             <div style="margin-bottom: 8px;">
                 <span class="tag tag-category">{cat}</span>
                 <span class="tag tag-source">📰 {src} ({c_name})</span>
-                <span class="tag tag-country">🎯 נוגע ל: {targets}</span>
+                <span class="tag {bias_class}">🎯 {bias_label}</span>
+                <span class="tag tag-country">נוגע ל: {targets}</span>
                 <span class="tag tag-time">🕒 {time_str}</span>
             </div>
             <h2 style="font-size: 1.55rem; font-weight: 900; margin: 6px 0 10px 0; color: #ffffff; line-height: 1.35;">{t_display}</h2>
@@ -640,6 +677,7 @@ with col_side:
             s_time = str(s_row.get('published_at', ''))[:16]
             s_cat = str(s_row.get('sentiment', 'כללי'))
             s_url = s_row.get('url', '#')
+            s_bias_label, s_bias_class = get_source_bias(s_src)
 
             st.markdown(f"""
             <a class="side-item-card" href="{s_url}" target="_blank">
@@ -647,7 +685,7 @@ with col_side:
                 <div style="flex-grow: 1;">
                     <div style="margin-bottom: 4px;">
                         <span class="tag tag-source">{s_src}</span>
-                        <span class="tag tag-category">{s_cat}</span>
+                        <span class="tag {s_bias_class}">{s_bias_label}</span>
                     </div>
                     <div style="font-weight: 700; font-size: 0.92rem; color: #f1f5f9; line-height: 1.4; margin-bottom: 4px;">
                         {s_title}
@@ -678,6 +716,7 @@ if not rem_arts.empty:
             r_src = r_art.get('source_name', '')
             r_time = str(r_art.get('published_at', ''))[:16]
             r_url = r_art.get('url', '#')
+            r_bias_label, r_bias_class = get_source_bias(r_src)
 
             st.markdown(f"""
             <div class="grid-card" style="margin-bottom: 18px;">
@@ -685,7 +724,7 @@ if not rem_arts.empty:
                 <div class="grid-card-body">
                     <div style="margin-bottom: 6px;">
                         <span class="tag tag-source">{r_src}</span>
-                        <span class="tag tag-category">{r_cat}</span>
+                        <span class="tag {r_bias_class}">{r_bias_label}</span>
                         <span class="tag tag-time">🕒 {r_time}</span>
                     </div>
                     <div style="font-weight: 700; font-size: 0.98rem; color: #ffffff; line-height: 1.4; margin-bottom: 6px;">
