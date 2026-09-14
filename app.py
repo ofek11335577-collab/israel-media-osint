@@ -41,6 +41,11 @@ st.markdown("""
         background-size: cover;
         background-position: center;
         margin-bottom: 24px;
+        transition: transform 0.2s ease, border-color 0.2s ease;
+    }
+    .hero-card:hover {
+        transform: scale(1.01);
+        border-color: #38bdf8;
     }
     .hero-overlay {
         position: absolute;
@@ -121,166 +126,145 @@ st.markdown("""
 
 init_db()
 
+# --- מנוע סריקה שקט ברקע (אינו מעכב את האתר כלל) ---
+def background_worker():
+    while True:
+        try:
+            arts = fetch_relevant_articles()
+            for a in arts:
+                if not is_article_exists(a['url']):
+                    try:
+                        res = analyze_article(a['title_original'], a['content_original'])
+                        a.update({
+                            'title_hebrew': res.get('title_hebrew'),
+                            'summary_hebrew': res.get('summary_hebrew'),
+                            'sentiment': res.get('category'),
+                            'sentiment_score': 1.0 if res.get('urgency') == 'מתפרצת' else 0.0
+                        })
+                    except Exception:
+                        a.update({
+                            'title_hebrew': a['title_original'],
+                            'summary_hebrew': a['content_original'][:160],
+                            'sentiment': 'כללי',
+                            'sentiment_score': 0.0
+                        })
+                    save_article(a)
+                    time.sleep(5)
+        except Exception as e:
+            print(f"Background worker error: {e}")
+        time.sleep(600)  # ישן 10 דקות בין סריקה לסריקה
+
+@st.cache_resource
+def start_worker():
+    t = threading.Thread(target=background_worker, daemon=True)
+    t.start()
+    return True
+
+start_worker()
+
 def load_data():
     conn = get_connection()
     df = pd.read_sql_query("SELECT * FROM articles ORDER BY id DESC", conn)
     conn.close()
     return df
 
-def scan_once():
-    arts = fetch_relevant_articles()
-    new_c = 0
-    for a in arts:
-        if not is_article_exists(a['url']):
-            try:
-                res = analyze_article(a['title_original'], a['content_original'])
-                a.update({
-                    'title_hebrew': res.get('title_hebrew'),
-                    'summary_hebrew': res.get('summary_hebrew'),
-                    'sentiment': res.get('category'),
-                    'sentiment_score': 1.0 if res.get('urgency') == 'מתפרצת' else 0.0
-                })
-            except Exception:
-                a.update({
-                    'title_hebrew': a['title_original'],
-                    'summary_hebrew': a['content_original'][:160],
-                    'sentiment': 'שוטף',
-                    'sentiment_score': 0.0
-                })
-            save_article(a)
-            new_c += 1
-            if new_c >= 8:  # במחזור ראשון טוען במהירות את הראשונות כדי שהדף ייפתח מיד
-                break
-            time.sleep(2)
-    return new_c
-
-def background_loop():
-    while True:
-        try:
-            time.sleep(600)  # ריצה כל 10 דקות
-            arts = fetch_relevant_articles()
-            for a in arts:
-                if not is_article_exists(a['url']):
-                    res = analyze_article(a['title_original'], a['content_original'])
-                    a.update({
-                        'title_hebrew': res.get('title_hebrew'),
-                        'summary_hebrew': res.get('summary_hebrew'),
-                        'sentiment': res.get('category'),
-                        'sentiment_score': 1.0 if res.get('urgency') == 'מתפרצת' else 0.0
-                    })
-                    save_article(a)
-                    time.sleep(5)
-        except Exception as e:
-            print(f"Background worker error: {e}")
-
-@st.cache_resource
-def start_worker():
-    t = threading.Thread(target=background_loop, daemon=True)
-    t.start()
-    return True
-
-start_worker()
-
 df = load_data()
-
-# אם המאגר עדיין ריק, מבצע איסוף מיידי ראשוני
-if df.empty:
-    with st.spinner("📡 מבצע סנכרון ראשוני עם סוכנויות הידיעות..."):
-        scan_once()
-        st.rerun()
 
 top_c1, top_c2, top_c3 = st.columns([6, 3, 3])
 with top_c1:
     st.markdown("<h1 style='margin-bottom:2px; font-weight:900;'>🌐 דסק מודיעין תקשורת עולמי</h1>", unsafe_allow_html=True)
     st.caption("איסוף שוטף 24/7 ממאגרי תקשורת בינלאומיים | עדכון שקט כל 10 דקות")
 with top_c2:
-    st.metric("סה\"כ ידיעות במאגר", len(df))
+    st.metric("סה\"כ ידיעות במאגר", len(df) if not df.empty else 0)
 with top_c3:
-    military_cnt = len(df[df['sentiment'].astype(str).str.contains('צבאי', na=False)])
+    military_cnt = len(df[df['sentiment'].astype(str).str.contains('צבאי', na=False)]) if not df.empty else 0
     st.metric("דיווחים ביטחוניים", military_cnt)
 
 st.markdown("<hr style='border-color: #1e293b; margin: 15px 0 25px 0;'>", unsafe_allow_html=True)
 
-# דיווחי מוקד (Hero)
-st.markdown("### 🔥 דיווחים במוקד")
-hero_df = df.head(2)
-h_col1, h_col2 = st.columns(2)
+if df.empty:
+    st.info("📡 מנוע הרקע סורק כעת מקורות ראשונים. רענן את הדף בעוד דקה.")
+else:
+    # דיווחי מוקד (Hero)
+    st.markdown("### 🔥 דיווחים במוקד")
+    hero_df = df.head(2)
+    h_col1, h_col2 = st.columns(2)
 
-for col, (_, row) in zip([h_col1, h_col2], hero_df.iterrows()):
-    with col:
-        cat = str(row.get('sentiment', 'כללי'))
-        is_urgent = row.get('sentiment_score', 0.0) == 1.0
-        urgency_badge = '<span class="badge badge-urgent">מתפרצת</span>' if is_urgent else ''
-        img_url = row.get('image_url') if ('image_url' in row and pd.notna(row['image_url']) and row['image_url']) else "https://images.unsplash.com/photo-1504711434969-e33886168f5c?w=1000"
-        
-        st.markdown(f"""
-        <div class="hero-card" style="background-image: url('{img_url}');">
-            <div class="hero-overlay"></div>
-            <div class="hero-content">
-                <div style="margin-bottom: 8px;">
-                    <span class="badge badge-src">📰 {row.get('source_name', '')}</span>
-                    <span class="badge badge-src">🌍 {row.get('country', '')}</span>
-                    <span class="badge badge-cat">{cat}</span>
-                    {urgency_badge}
-                </div>
-                <h3 style="color:#ffffff; margin:0 0 8px 0; font-size:1.35rem; font-weight:800; line-height:1.3;">
-                    {row.get('title_hebrew') or row.get('title_original')}
-                </h3>
-                <p style="color:#cbd5e1; font-size:0.9rem; line-height:1.5; margin-bottom:12px;">
-                    {str(row.get('summary_hebrew', ''))[:160]}...
-                </p>
-                <a class="read-more" href="{row.get('url', '#')}" target="_blank">לקריאת המקור בערוץ ←</a>
-            </div>
-        </div>
-        """, unsafe_allow_html=True)
-
-# גזרות
-SECTORS = [
-    {"title": "איראן והציר האזורי", "flag": "🇮🇷", "keys": ["iran", "tehran", "איראן", "טהראן", "Houthi", "תימן"]},
-    {"title": "לבנון וחיזבאללה", "flag": "🇱🇧", "keys": ["lebanon", "hezbollah", "beirut", "לבנון", "חיזבאללה"]},
-    {"title": "רצועת עזה והעולם הערבי", "flag": "🇵🇸", "keys": ["gaza", "hamas", "עזה", "חמאס", "Al Jazeera", "Maan"]},
-    {"title": "יהודה ושומרון", "flag": "🛡️", "keys": ["west bank", "settler", "jenin", "איו\"ש", "גדה", "wafa"]},
-    {"title": "ארה\"ב וזירה בינלאומית", "flag": "🌐", "keys": ["United States", "United Kingdom", "France", "Spain", "Turkey"]}
-]
-
-for sec in SECTORS:
-    pattern = "|".join(sec["keys"])
-    sec_df = df[
-        df['country'].astype(str).str.contains(pattern, case=False, na=False) |
-        df['title_original'].astype(str).str.contains(pattern, case=False, na=False) |
-        df['title_hebrew'].astype(str).str.contains(pattern, case=False, na=False) |
-        df['summary_hebrew'].astype(str).str.contains(pattern, case=False, na=False)
-    ].head(3)
-
-    if not sec_df.empty:
-        st.markdown(f"""
-        <div class="sector-header">
-            <span style="font-size: 1.8rem;">{sec['flag']}</span>
-            <span class="sector-title">{sec['title']}</span>
-        </div>
-        """, unsafe_allow_html=True)
-
-        cols = st.columns(3)
-        for c_idx, (_, row) in enumerate(sec_df.iterrows()):
-            with cols[c_idx]:
-                cat = str(row.get('sentiment', 'כללי'))
-                img_src = row.get('image_url') if ('image_url' in row and pd.notna(row['image_url']) and row['image_url']) else "https://images.unsplash.com/photo-1504711434969-e33886168f5c?w=800"
-
-                st.markdown(f"""
-                <div class="news-card">
-                    <img class="news-card-img" src="{img_src}" />
-                    <div class="news-card-body">
-                        <div style="margin-bottom: 8px;">
-                            <span class="badge badge-src">📰 {row.get('source_name', '')}</span>
-                            <span class="badge badge-cat">{cat}</span>
-                        </div>
-                        <div style="font-weight:700; color:#fff; font-size:1.02rem; margin-bottom:6px; line-height:1.4;">
-                            {row.get('title_hebrew') or row.get('title_original')}
-                        </div>
-                        <div style="font-size:0.85rem; color:#94a3b8; line-height:1.5; margin-bottom:12px;">
-                            {str(row.get('summary_hebrew', ''))[:120]}...
-                        </div>
-                        <a class="read-more" href="{row.get('url', '#')}" target="_blank">לכתבה המקורית ←</a>
+    for col, (_, row) in zip([h_col1, h_col2], hero_df.iterrows()):
+        with col:
+            cat = str(row.get('sentiment', 'כללי'))
+            is_urgent = row.get('sentiment_score', 0.0) == 1.0
+            urgency_badge = '<span class="badge badge-urgent">מתפרצת</span>' if is_urgent else ''
+            img_url = row.get('image_url') if ('image_url' in row and pd.notna(row['image_url']) and row['image_url']) else "https://images.unsplash.com/photo-1504711434969-e33886168f5c?w=1000"
+            
+            st.markdown(f"""
+            <div class="hero-card" style="background-image: url('{img_url}');">
+                <div class="hero-overlay"></div>
+                <div class="hero-content">
+                    <div style="margin-bottom: 8px;">
+                        <span class="badge badge-src">📰 {row.get('source_name', '')}</span>
+                        <span class="badge badge-src">🌍 {row.get('country', '')}</span>
+                        <span class="badge badge-cat">{cat}</span>
+                        {urgency_badge}
                     </div>
+                    <h3 style="color:#ffffff; margin:0 0 8px 0; font-size:1.35rem; font-weight:800; line-height:1.3;">
+                        {row.get('title_hebrew') or row.get('title_original')}
+                    </h3>
+                    <p style="color:#cbd5e1; font-size:0.9rem; line-height:1.5; margin-bottom:12px;">
+                        {str(row.get('summary_hebrew', ''))[:160]}...
+                    </p>
+                    <a class="read-more" href="{row.get('url', '#')}" target="_blank">לקריאת המקור בערוץ ←</a>
                 </div>
-                """, unsafe_allow_html=True)
+            </div>
+            """, unsafe_allow_html=True)
+
+    # חלוקה לגזרות
+    SECTORS = [
+        {"title": "איראן והציר האזורי", "flag": "🇮🇷", "keys": ["iran", "tehran", "איראן", "טהראן", "Houthi", "תימן"]},
+        {"title": "לבנון וחיזבאללה", "flag": "🇱🇧", "keys": ["lebanon", "hezbollah", "beirut", "לבנון", "חיזבאללה"]},
+        {"title": "רצועת עזה והעולם הערבי", "flag": "🇵🇸", "keys": ["gaza", "hamas", "עזה", "חמאס", "Al Jazeera", "Maan"]},
+        {"title": "יהודה ושומרון", "flag": "🛡️", "keys": ["west bank", "settler", "jenin", "איו\"ש", "גדה", "wafa"]},
+        {"title": "ארה\"ב וזירה בינלאומית", "flag": "🌐", "keys": ["United States", "United Kingdom", "France", "Spain", "Turkey"]}
+    ]
+
+    for sec in SECTORS:
+        pattern = "|".join(sec["keys"])
+        sec_df = df[
+            df['country'].astype(str).str.contains(pattern, case=False, na=False) |
+            df['title_original'].astype(str).str.contains(pattern, case=False, na=False) |
+            df['title_hebrew'].astype(str).str.contains(pattern, case=False, na=False) |
+            df['summary_hebrew'].astype(str).str.contains(pattern, case=False, na=False)
+        ].head(3)
+
+        if not sec_df.empty:
+            st.markdown(f"""
+            <div class="sector-header">
+                <span style="font-size: 1.8rem;">{sec['flag']}</span>
+                <span class="sector-title">{sec['title']}</span>
+            </div>
+            """, unsafe_allow_html=True)
+
+            cols = st.columns(3)
+            for c_idx, (_, row) in enumerate(sec_df.iterrows()):
+                with cols[c_idx]:
+                    cat = str(row.get('sentiment', 'כללי'))
+                    img_src = row.get('image_url') if ('image_url' in row and pd.notna(row['image_url']) and row['image_url']) else "https://images.unsplash.com/photo-1504711434969-e33886168f5c?w=800"
+
+                    st.markdown(f"""
+                    <div class="news-card">
+                        <img class="news-card-img" src="{img_src}" />
+                        <div class="news-card-body">
+                            <div style="margin-bottom: 8px;">
+                                <span class="badge badge-src">📰 {row.get('source_name', '')}</span>
+                                <span class="badge badge-cat">{cat}</span>
+                            </div>
+                            <div style="font-weight:700; color:#fff; font-size:1.02rem; margin-bottom:6px; line-height:1.4;">
+                                {row.get('title_hebrew') or row.get('title_original')}
+                            </div>
+                            <div style="font-size:0.85rem; color:#94a3b8; line-height:1.5; margin-bottom:12px;">
+                                {str(row.get('summary_hebrew', ''))[:120]}...
+                            </div>
+                            <a class="read-more" href="{row.get('url', '#')}" target="_blank">לכתבה המקורית ←</a>
+                        </div>
+                    </div>
+                    """, unsafe_allow_html=True)
