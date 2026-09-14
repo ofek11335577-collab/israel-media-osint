@@ -56,7 +56,7 @@ st.markdown("""
         color: #f8fafc !important;
     }
 
-    /* כפתורי סרגל המדינות - עיצוב כפתורי ספורט מודרניים */
+    /* כפתורי סרגל המדינות */
     div[data-testid="stHorizontalBlock"] button {
         background-color: #111827 !important;
         border: 1px solid #1f2937 !important;
@@ -187,24 +187,56 @@ st.markdown("""
 
 init_db()
 
-def get_smart_image(title: str, content: str, default_img: str) -> str:
-    text = f"{title} {content}".lower()
-    if any(w in text for w in ["missile", "rocket", "strike", "drone", "blast", "attack", "טיל", "יירוט", "תקיפה", "כטב", "פיצוץ"]):
-        return "https://images.unsplash.com/photo-1517486808906-6ca8b3f04846?w=1000"
-    if any(w in text for w in ["soldier", "army", "idf", "tank", "troops", "military", "צבא", "צהל", "לוחמ"]):
-        return "https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?w=1000"
-    if any(w in text for w in ["iran", "tehran", "nuclear", "איראן", "טהראן", "גרעין"]):
-        return "https://images.unsplash.com/photo-1579546929518-9e396f3cc809?w=1000"
-    if any(w in text for w in ["lebanon", "beirut", "hezbollah", "לבנון", "ביירות", "חיזבאללה"]):
-        return "https://images.unsplash.com/photo-1534447677768-be436bb09401?w=1000"
-    if any(w in text for w in ["gaza", "hamas", "עזה", "חמאס", "רפיח"]):
-        return "https://images.unsplash.com/photo-1541872703-74c5e44368f9?w=1000"
-    if any(w in text for w in ["summit", "biden", "white house", "diplomacy", "minister", "מדיני", "ארה\"ב", "פסגה", "בלינקן"]):
-        return "https://images.unsplash.com/photo-1541872703-74c5e44368f9?w=1000"
-    if default_img and "unsplash" not in default_img and "http" in default_img:
-        return default_img
-    return "https://images.unsplash.com/photo-1504711434969-e33886168f5c?w=1000"
+# מאגר תמונות ביטחוניות ומודיעיניות ממוקדות לפי תוכן הידיעה
+TOPIC_IMAGES = {
+    "radar": "https://images.unsplash.com/photo-1508614589041-895b88991e3e?w=1000",          # מכ"ם ואנטנות תקשורת צבאית
+    "missiles": "https://images.unsplash.com/photo-1517486808906-6ca8b3f04846?w=1000",       # טילים, יירוטים ואש
+    "drone": "https://images.unsplash.com/photo-1527977966376-1c8408f9f108?w=1000",          # כלי טיס בלתי מאויש / כטב"ם בשמיים
+    "military": "https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?w=1000",       # כוחות צבא ורכבים קרביים
+    "diplomacy": "https://images.unsplash.com/photo-1541872703-74c5e44368f9?w=1000",      # ועידות בינלאומיות ודיפלומטיה
+    "beirut": "https://images.unsplash.com/photo-1534447677768-be436bb09401?w=1000",         # לבנון וביירות
+    "tehran": "https://images.unsplash.com/photo-1584551246679-0daf3d275d0f?w=1000",         # איראן וטהראן
+    "intel_general": "https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=1000"   # גלובוס מודיעין לווייני כללי
+}
 
+def get_smart_image(title: str, content: str, default_img: str = None) -> str:
+    text = f"{title} {content}".lower()
+    
+    # 1. מכ"מים, מערכות התרעה ולוחמה אלקטרונית
+    if any(w in text for w in ["radar", "warning", "surveillance", "air defense", "מכ\"ם", "התרעה", "גילוי", "הגנה אווירית"]):
+        return TOPIC_IMAGES["radar"]
+    
+    # 2. כטב"מים, רחפנים ויירוטי אוויר
+    if any(w in text for w in ["drone", "uav", "unmanned", "aerial", "כטב", "מל\"ט", "יירוט", "כלי טיס"]):
+        return TOPIC_IMAGES["drone"]
+        
+    # 3. טילים, רקטות, תקיפות והפצצות
+    if any(w in text for w in ["missile", "rocket", "strike", "blast", "attack", "ballistic", "טיל", "בליסטי", "תקיפה", "פיצוץ"]):
+        return TOPIC_IMAGES["missiles"]
+        
+    # 4. כוחות צבא, חי\"ר, טנקים ומבצעים
+    if any(w in text for w in ["soldier", "army", "idf", "tank", "troops", "military", "operation", "צבא", "צה\"ל", "לוחמ", "מבצע"]):
+        return TOPIC_IMAGES["military"]
+        
+    # 5. איראן וטהראן
+    if any(w in text for w in ["iran", "tehran", "nuclear", "איראן", "טהראן", "משמרות המהפכה"]):
+        return TOPIC_IMAGES["tehran"]
+        
+    # 6. לבנון וביירות
+    if any(w in text for w in ["lebanon", "beirut", "hezbollah", "לבנון", "ביירות", "חיזבאללה"]):
+        return TOPIC_IMAGES["beirut"]
+        
+    # 7. דיפלומטיה ופסגות
+    if any(w in text for w in ["summit", "diplomacy", "minister", "biden", "sanctions", "מדיני", "פסגה", "סנקציות", "הסכם"]):
+        return TOPIC_IMAGES["diplomacy"]
+        
+    # תמונה מקורית מהעיתון רק אם היא תקינה ואינה תמונת סטודנטים/צבעים שגויה
+    if default_img and ("unsplash" not in default_img or "photo-1451187580459" in default_img) and "http" in default_img:
+        return default_img
+        
+    return TOPIC_IMAGES["intel_general"]
+
+# ניקוי ועדכון נתוני האתחול עם תמונות מודיעיניות מדויקות
 now_str = datetime.now().strftime("%Y-%m-%d %H:%M")
 SEED_DATA = [
     {
@@ -214,7 +246,7 @@ SEED_DATA = [
         "title_original": "Regional security summits address border stabilization and maritime protocols",
         "content_original": "Mediators assemble to coordinate ceasefire conditions and security mechanisms across frontiers.",
         "published_at": now_str,
-        "image_url": "https://images.unsplash.com/photo-1541872703-74c5e44368f9?w=1000",
+        "image_url": TOPIC_IMAGES["diplomacy"],
         "title_hebrew": "מגעים בינלאומיים דחופים לגיבוש מתווה ביטחוני וייצוב קווי הגבול",
         "summary_hebrew": "משלחות תיווך אזוריות מקיימות התייעצויות אינטנסיביות למניעת הסלמה ולהסדרת מנגנוני פיקוח הדדיים.",
         "sentiment": "מדיני ודיפלומטי",
@@ -228,7 +260,7 @@ SEED_DATA = [
         "title_original": "Coalition naval forces engage aerial targets over international shipping routes",
         "content_original": "Naval systems shoot down hostile drone salvos launched toward navigation corridors.",
         "published_at": now_str,
-        "image_url": "https://images.unsplash.com/photo-1517486808906-6ca8b3f04846?w=1000",
+        "image_url": TOPIC_IMAGES["drone"],
         "title_hebrew": "יירוט נרחב של כטב\"מים עוינים מעל נתיבי השיט הבינלאומיים בים האדום",
         "summary_hebrew": "מערכי ההגנה של הקואליציה סיכלו מתקפה מכיוון תימן שנועדה לשבש את התנועה הימית לאילת.",
         "sentiment": "צבאי וביטחוני",
@@ -242,7 +274,7 @@ SEED_DATA = [
         "title_original": "Northern border exchanges intensify amid diplomatic efforts in Beirut",
         "content_original": "Field intelligence reports track reciprocal fire and air defense responses across border communities.",
         "published_at": now_str,
-        "image_url": "https://images.unsplash.com/photo-1534447677768-be436bb09401?w=1000",
+        "image_url": TOPIC_IMAGES["beirut"],
         "title_hebrew": "הסלמה בחילופי האש לאורך קו העימות בלבנון לצד מאמץ תיווך צרפתי",
         "summary_hebrew": "סדרת תקיפות ממוקדות בדרום לבנון בעקבות שיגורים לעבר הגליל, במקביל למגעים דיפלומטיים בביירות.",
         "sentiment": "צבאי וביטחוני",
@@ -256,7 +288,7 @@ SEED_DATA = [
         "title_original": "Tehran unveils integrated air surveillance grid",
         "content_original": "Aerospace commanders declare activation of early-warning radar arrays and mobile deterrent batteries.",
         "published_at": now_str,
-        "image_url": "https://images.unsplash.com/photo-1579546929518-9e396f3cc809?w=1000",
+        "image_url": TOPIC_IMAGES["radar"],
         "title_hebrew": "איראן הודיעה על פריסת מערכות התרעה ומכ\"ם חדשות",
         "summary_hebrew": "פיקוד ההגנה האווירית של משמרות המהפכה טוען לשדרוג יכולות היירוט מול כלי טיס בלתי מאוישים.",
         "sentiment": "צבאי וביטחוני",
@@ -270,7 +302,7 @@ SEED_DATA = [
         "title_original": "Security operations and movement regulations across northern sectors",
         "content_original": "Field reports on checkpoints and logistical routes around commercial hubs in Nablus and Jenin.",
         "published_at": now_str,
-        "image_url": "https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?w=1000",
+        "image_url": TOPIC_IMAGES["military"],
         "title_hebrew": "פעילות ביטחונית וסריקות צה\"ל במוקדי חיכוך באיו\"ש",
         "summary_hebrew": "כוחות הביטחון פעלו הלילה בגזרות ג'נין ושכם לסיכול תשתיות טרור ולמעצר מבוקשים.",
         "sentiment": "צבאי וביטחוני",
@@ -284,6 +316,15 @@ def load_data():
     df = pd.read_sql_query("SELECT * FROM articles ORDER BY id DESC", conn)
     conn.close()
     return df
+
+# עדכון תמונות שגויות קיימות בבסיס הנתונים
+conn = get_connection()
+cursor = conn.cursor()
+cursor.execute("UPDATE articles SET image_url = ? WHERE title_original LIKE '%radar%' OR title_hebrew LIKE '%מכ\"ם%'", (TOPIC_IMAGES["radar"],))
+cursor.execute("UPDATE articles SET image_url = ? WHERE title_original LIKE '%drone%' OR title_hebrew LIKE '%כטב%'", (TOPIC_IMAGES["drone"],))
+cursor.execute("UPDATE articles SET image_url = ? WHERE image_url LIKE '%photo-1579546929518%' OR image_url LIKE '%photo-1541872703%'", (TOPIC_IMAGES["intel_general"],))
+conn.commit()
+conn.close()
 
 df = load_data()
 if df.empty:
@@ -342,7 +383,7 @@ with c_cat:
 st.markdown("<h1 style='margin: 10px 0 4px 0; font-size: 2.2rem; font-weight: 900; color: #ffffff;'>🌐 דסק מודיעין תקשורת עולמי</h1>", unsafe_allow_html=True)
 st.caption("ניטור נרטיבים ודיווחים בזמן אמת ממאגרי התקשורת המובילים בעולם")
 
-# --- 3. סרגל מדינות עם דגלים גרפיים אמיתיים (FlagCDN) ---
+# --- 3. סרגל מדינות עם דגלים גרפיים אמיתיים ---
 if "selected_country" not in st.session_state:
     st.session_state["selected_country"] = "כל הדיווחים"
 
