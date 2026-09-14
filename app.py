@@ -17,6 +17,7 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
+# עיצוב מתקדם: רקע מפת מזרח תיכון טקטית + פס מבזקים מתפרץ + טיפוגרפיה
 st.markdown("""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Assistant:wght@300;400;600;700;800&family=Rubik:wght@700;800;900&display=swap');
@@ -32,8 +33,16 @@ st.markdown("""
         letter-spacing: -0.3px;
     }
 
+    /* רקע מפת מזרח תיכון טקטית וקרבית ברקע של כל האתר */
     .stApp {
         background-color: #0b0f19;
+        background-image: 
+            radial-gradient(circle at 50% 20%, rgba(14, 165, 233, 0.08) 0%, transparent 60%),
+            linear-gradient(rgba(11, 15, 25, 0.92), rgba(11, 15, 25, 0.95)),
+            url("https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=1920&q=80");
+        background-size: cover;
+        background-position: center top;
+        background-attachment: fixed;
         color: #f1f5f9;
     }
 
@@ -41,24 +50,74 @@ st.markdown("""
         display: none !important;
     }
 
+    /* פס מבזקים מתפרץ (Breaking Ticker) */
+    .ticker-wrap {
+        width: 100%;
+        background: linear-gradient(90deg, rgba(185, 28, 28, 0.95) 0%, rgba(15, 23, 42, 0.9) 100%);
+        border: 1px solid rgba(239, 68, 68, 0.4);
+        border-radius: 8px;
+        overflow: hidden;
+        height: 38px;
+        display: flex;
+        align-items: center;
+        margin-bottom: 16px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+    }
+    .ticker-badge {
+        background: #ef4444;
+        color: #ffffff;
+        font-weight: 800;
+        font-size: 0.82rem;
+        padding: 0 14px;
+        height: 100%;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        flex-shrink: 0;
+        letter-spacing: 0.5px;
+    }
+    .ticker-content {
+        display: flex;
+        white-space: nowrap;
+        animation: ticker 35s linear infinite;
+        font-size: 0.88rem;
+        font-weight: 600;
+        color: #f8fafc;
+        padding-right: 15px;
+    }
+    .ticker-item {
+        margin-left: 35px;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+    }
+    @keyframes ticker {
+        0% { transform: translateX(0); }
+        100% { transform: translateX(100%); }
+    }
+
+    /* שדות חיפוש עליונים */
     div[data-baseweb="input"] {
-        background-color: #111827 !important;
+        background-color: rgba(17, 24, 39, 0.85) !important;
         border: 1px solid #1f2937 !important;
         border-radius: 8px !important;
+        backdrop-filter: blur(4px);
     }
     div[data-baseweb="input"] input {
         color: #f8fafc !important;
         font-size: 0.95rem !important;
     }
     div[data-baseweb="select"] > div {
-        background-color: #111827 !important;
+        background-color: rgba(17, 24, 39, 0.85) !important;
         border: 1px solid #1f2937 !important;
         border-radius: 8px !important;
         color: #f8fafc !important;
+        backdrop-filter: blur(4px);
     }
 
+    /* סרגל כפתורי המדינות */
     div[data-testid="stHorizontalBlock"] button {
-        background-color: #111827 !important;
+        background-color: rgba(17, 24, 39, 0.85) !important;
         border: 1px solid #1f2937 !important;
         border-radius: 18px !important;
         color: #ffffff !important;
@@ -67,6 +126,7 @@ st.markdown("""
         padding: 6px 10px !important;
         transition: all 0.2s ease !important;
         width: 100% !important;
+        backdrop-filter: blur(4px);
     }
     div[data-testid="stHorizontalBlock"] button:hover {
         background-color: #1e293b !important;
@@ -80,15 +140,17 @@ st.markdown("""
         color: #ffffff !important;
     }
 
+    /* כרטיס ראשי בסגנון פורטל ספורט/חדשות */
     .main-hero-card {
-        background: #111827;
-        border: 1px solid #1f2937;
+        background: rgba(17, 24, 39, 0.88);
+        border: 1px solid rgba(56, 189, 248, 0.25);
         border-radius: 14px;
         overflow: hidden;
         height: 100%;
         display: flex;
         flex-direction: column;
         transition: border-color 0.2s ease, transform 0.2s ease;
+        backdrop-filter: blur(6px);
     }
     .main-hero-card:hover {
         border-color: #38bdf8;
@@ -106,8 +168,9 @@ st.markdown("""
         flex-grow: 1;
     }
 
+    /* כרטיסי הרשימה הצדדית */
     .side-item-card {
-        background: #111827;
+        background: rgba(17, 24, 39, 0.88);
         border: 1px solid #1f2937;
         border-radius: 10px;
         display: flex;
@@ -117,6 +180,7 @@ st.markdown("""
         align-items: center;
         transition: transform 0.2s ease, border-color 0.2s ease;
         text-decoration: none;
+        backdrop-filter: blur(6px);
     }
     .side-item-card:hover {
         border-color: #0284c7;
@@ -130,8 +194,9 @@ st.markdown("""
         flex-shrink: 0;
     }
 
+    /* כרטיסי גריד תחתונים */
     .grid-card {
-        background: #111827;
+        background: rgba(17, 24, 39, 0.88);
         border: 1px solid #1f2937;
         border-radius: 12px;
         overflow: hidden;
@@ -139,6 +204,7 @@ st.markdown("""
         display: flex;
         flex-direction: column;
         transition: transform 0.2s ease, border-color 0.2s ease;
+        backdrop-filter: blur(6px);
     }
     .grid-card:hover {
         border-color: #0284c7;
@@ -236,17 +302,13 @@ BAD_IMAGE_URLS = [
 ]
 
 def is_fully_hebrew(text: str) -> bool:
-    """בודק אם הטקסט מתורגם כראוי ואינו בליל של אנגלית ועברית"""
     if not text:
         return False
-    # בדיקה שאין רצף של מילים באנגלית
     words = str(text).split()
     english_words = [w for w in words if any('a' <= c.lower() <= 'z' for c in w)]
-    # אם יש יותר מ-2 מילים באנגלית, זה לא תרגום מלא
     return len(english_words) <= 1
 
 def translate_to_hebrew_fast(text: str) -> str:
-    """תרגום משפט מלא לעברית נקייה באמצעות שירות תרגום ישיר"""
     if not text:
         return ""
     try:
@@ -395,7 +457,6 @@ def background_worker():
             arts = fetch_relevant_articles()
             for a in arts:
                 if not is_article_exists(a['url']):
-                    # תרגום מלא של כל המשפט לעברית רהוטה
                     heb_title = translate_to_hebrew_fast(a['title_original'])
                     heb_summary = translate_to_hebrew_fast(a['content_original'][:200]) if a.get('content_original') else heb_title
                     
@@ -424,18 +485,38 @@ start_worker()
 
 df = load_data()
 
-# שורת סינון עליונה
+# --- 1. פס מבזקים אדום רץ (Breaking News Ticker) בראש האתר ---
+ticker_headlines = []
+for _, r in df.head(8).iterrows():
+    h = r.get('title_hebrew') or r.get('title_original')
+    if not is_fully_hebrew(h):
+        h = translate_to_hebrew_fast(r.get('title_original', ''))
+    src = r.get('source_name', 'דיווח')
+    ticker_headlines.append(f"⚡ [{src}] {h}")
+
+ticker_html = "".join([f"<span class='ticker-item'>{item}</span>" for item in ticker_headlines])
+
+st.markdown(f"""
+<div class="ticker-wrap">
+    <div class="ticker-badge">🔴 מבזק חי</div>
+    <div class="ticker-content">
+        {ticker_html}
+    </div>
+</div>
+""", unsafe_allow_html=True)
+
+# --- 2. שורת סינון עליונה ---
 c_search, c_cat = st.columns([7, 3])
 with c_search:
     search_query = st.text_input("חיפוש", placeholder="🔎 חפש בידיעות: נתניהו, טילים, הפסקת אש, ביירות...", label_visibility="collapsed")
 with c_cat:
     cat_filter = st.selectbox("תחום", ["כל התחומים", "צבאי וביטחוני", "מדיני ודיפלומטי", "כלכלה וסנקציות"], label_visibility="collapsed")
 
-# כותרת האתר
-st.markdown("<h1 style='margin: 10px 0 4px 0; font-size: 2.2rem; font-weight: 900; color: #ffffff;'>🌐 דסק מודיעין תקשורת עולמי</h1>", unsafe_allow_html=True)
-st.caption("ניטור נרטיבים ודיווחים בזמן אמת ממאגרי התקשורת המובילים בעולם | מתעדכן אוטומטית בעברית 24/7")
+# --- 3. כותרת האתר ---
+st.markdown("<h1 style='margin: 6px 0 2px 0; font-size: 2.2rem; font-weight: 900; color: #ffffff;'>🌐 דסק מודיעין תקשורת עולמי</h1>", unsafe_allow_html=True)
+st.caption("ניטור נרטיבים ודיווחים בזמן אמת ממאגרי התקשורת המובילים בעולם | זירת המזרח התיכון 24/7")
 
-# סרגל מדינות
+# --- 4. סרגל מדינות עם דגלים ---
 if "selected_country" not in st.session_state:
     st.session_state["selected_country"] = "כל הדיווחים"
 
@@ -465,7 +546,7 @@ for idx, item in enumerate(NAV_ITEMS):
             st.session_state["selected_country"] = item["val"]
             st.rerun()
 
-st.markdown("<hr style='border-color: #1f2937; margin: 14px 0 24px 0;'>", unsafe_allow_html=True)
+st.markdown("<hr style='border-color: rgba(31, 41, 55, 0.7); margin: 14px 0 24px 0;'>", unsafe_allow_html=True)
 
 selected_country = st.session_state["selected_country"]
 filtered = df.copy()
@@ -513,7 +594,6 @@ with col_main:
     hero_img = get_unique_smart_image(main_art['title_original'], main_art['content_original'], used_page_images)
     cat = str(main_art.get('sentiment', 'כללי'))
     
-    # תרגום נקי לעברית - אם עדיין מעורבב עם אנגלית, מתרגם מיד
     t_display = main_art.get('title_hebrew', '')
     if not is_fully_hebrew(t_display):
         t_display = translate_to_hebrew_fast(main_art.get('title_original', ''))
