@@ -14,7 +14,6 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# פונטים ועיצוב פורטל ספורט כהה
 st.markdown("""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Assistant:wght@300;400;600;700;800&family=Rubik:wght@700;800;900&display=swap');
@@ -214,8 +213,7 @@ TOPIC_IMAGE_POOLS = {
     ],
     "general": [
         "https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=1000",
-        "https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?w=1000",
-        "https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?w=1000"
+        "https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?w=1000"
     ]
 }
 
@@ -255,54 +253,37 @@ def load_data():
     conn.close()
     return df
 
-# פונקציית איסוף מסיבית שרצה באופן מיידי
-def process_incoming_articles(limit_ai=30):
-    arts = fetch_relevant_articles()
-    processed_count = 0
-    for a in arts:
-        if not is_article_exists(a['url']):
-            try:
-                # ניתוח AI מהיר אם לא חרגנו מהמגבלה של הריצה
-                if processed_count < limit_ai:
-                    res = analyze_article(a['title_original'], a['content_original'])
-                    a.update({
-                        'title_hebrew': res.get('title_hebrew'),
-                        'summary_hebrew': res.get('summary_hebrew'),
-                        'sentiment': res.get('category'),
-                        'sentiment_score': 1.0 if res.get('urgency') == 'מתפרצת' else 0.0,
-                        'mentioned_countries': res.get('mentioned_countries_str', 'ישראל')
-                    })
-                    time.sleep(1.5)
-                else:
-                    a.update({
-                        'title_hebrew': a['title_original'],
-                        'summary_hebrew': a['content_original'][:160],
-                        'sentiment': 'צבאי וביטחוני' if any(w in a['title_original'].lower() for w in ['strike', 'war', 'idf', 'missile']) else 'שוטף',
-                        'sentiment_score': 0.0,
-                        'mentioned_countries': 'ישראל'
-                    })
-            except Exception:
-                a.update({
-                    'title_hebrew': a['title_original'],
-                    'summary_hebrew': a['content_original'][:160],
-                    'sentiment': 'שוטף',
-                    'sentiment_score': 0.0,
-                    'mentioned_countries': 'ישראל'
-                })
-            dummy_set = set()
-            a['image_url'] = get_unique_smart_image(a['title_original'], a['content_original'], dummy_set)
-            save_article(a)
-            processed_count += 1
-
+# מנוע איסוף רקע בלתי תלוי - סורק ללא חסימת הדפדפן
 def background_worker():
-    # ריצה ראשונה מיידית בלי לחכות!
-    process_incoming_articles(limit_ai=20)
     while True:
         try:
-            time.sleep(300) # סריקה שוטפת כל 5 דקות
-            process_incoming_articles(limit_ai=10)
+            arts = fetch_relevant_articles()
+            for a in arts:
+                if not is_article_exists(a['url']):
+                    try:
+                        res = analyze_article(a['title_original'], a['content_original'])
+                        a.update({
+                            'title_hebrew': res.get('title_hebrew'),
+                            'summary_hebrew': res.get('summary_hebrew'),
+                            'sentiment': res.get('category'),
+                            'sentiment_score': 1.0 if res.get('urgency') == 'מתפרצת' else 0.0,
+                            'mentioned_countries': res.get('mentioned_countries_str', 'ישראל')
+                        })
+                    except Exception:
+                        a.update({
+                            'title_hebrew': a['title_original'],
+                            'summary_hebrew': a['content_original'][:160],
+                            'sentiment': 'צבאי וביטחוני' if any(w in a['title_original'].lower() for w in ['strike', 'war', 'idf', 'missile']) else 'שוטף',
+                            'sentiment_score': 0.0,
+                            'mentioned_countries': 'ישראל'
+                        })
+                    dummy_set = set()
+                    a['image_url'] = get_unique_smart_image(a['title_original'], a['content_original'], dummy_set)
+                    save_article(a)
+                    time.sleep(2)
         except Exception as e:
             print(f"Worker background error: {e}")
+        time.sleep(300)
 
 @st.cache_resource
 def start_worker():
@@ -312,31 +293,21 @@ def start_worker():
 
 start_worker()
 
+# טעינת נתונים מהירה מיידית
 df = load_data()
 
-# אם המאגר עדיין קטן, מבצעים שאיבה מיידית ישירה
-if len(df) <= 5:
-    with st.spinner("🚀 סורק ומייבא עשרות כתבות חמות מהעולם כעת..."):
-        process_incoming_articles(limit_ai=15)
-        df = load_data()
-
 # --- 1. שורת סינון עליונה ---
-c_search, c_cat, c_refresh = st.columns([6, 3, 2])
+c_search, c_cat = st.columns([7, 3])
 with c_search:
     search_query = st.text_input("חיפוש", placeholder="🔎 חפש בידיעות: נתניהו, טילים, הפסקת אש, ביירות...", label_visibility="collapsed")
 with c_cat:
     cat_filter = st.selectbox("תחום", ["כל התחומים", "צבאי וביטחוני", "מדיני ודיפלומטי", "כלכלה וסנקציות"], label_visibility="collapsed")
-with c_refresh:
-    if st.button("🔄 עדכן עכשיו"):
-        with st.spinner("שואב כתבות..."):
-            process_incoming_articles(limit_ai=10)
-            st.rerun()
 
 # --- 2. כותרת האתר ---
 st.markdown("<h1 style='margin: 10px 0 4px 0; font-size: 2.2rem; font-weight: 900; color: #ffffff;'>🌐 דסק מודיעין תקשורת עולמי</h1>", unsafe_allow_html=True)
-st.caption("ניטור נרטיבים ודיווחים בזמן אמת ממאגרי התקשורת המובילים בעולם")
+st.caption("ניטור נרטיבים ודיווחים בזמן אמת ממאגרי התקשורת המובילים בעולם | מתעדכן אוטומטית ברקע")
 
-# --- 3. סרגל מדינות עם דגלים גרפיים אמיתיים ---
+# --- 3. סרגל מדינות עם דגלים גרפיים ---
 if "selected_country" not in st.session_state:
     st.session_state["selected_country"] = "כל הדיווחים"
 
@@ -404,14 +375,13 @@ if search_query:
 used_page_images = set()
 
 if filtered.empty:
-    st.info(f"לא נמצאו דיווחים התואמים לקריטריון עבור '{selected_country}'. נסה לבחור לשונית אחרת או לחץ על 'עדכן עכשיו'.")
+    st.info(f"לא נמצאו דיווחים התואמים לקריטריון עבור '{selected_country}'. המערכת ממשיכה לסרוק ברקע.")
 else:
     main_art = filtered.iloc[0]
     side_arts = filtered.iloc[1:4] if len(filtered) > 1 else pd.DataFrame()
 
     col_main, col_side = st.columns([7, 5])
 
-    # כתבה ראשית גדולה בימין
     with col_main:
         hero_img = get_unique_smart_image(main_art['title_original'], main_art['content_original'], used_page_images)
         cat = str(main_art.get('sentiment', 'כללי'))
@@ -440,7 +410,6 @@ else:
         </div>
         """, unsafe_allow_html=True)
 
-    # מבזקים חמים משמאל
     with col_side:
         st.markdown("<div style='font-size: 1.15rem; font-weight: 800; margin-bottom: 10px; color: #38bdf8;'>⚡ דיווחים חמים נוספים</div>", unsafe_allow_html=True)
         if not side_arts.empty:
@@ -468,7 +437,6 @@ else:
                 </a>
                 """, unsafe_allow_html=True)
 
-    # גריד כתבות תחתון מרובה (מציג את כל עשרות הכתבות ב-3 טורים)
     rem_arts = filtered.iloc[4:] if len(filtered) > 4 else pd.DataFrame()
     if not rem_arts.empty:
         st.markdown("<h3 style='margin: 35px 0 15px 0; font-weight: 800;'>📰 כל הדיווחים והכתבות מהעולם</h3>", unsafe_allow_html=True)
