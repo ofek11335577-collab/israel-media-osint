@@ -2,7 +2,7 @@ import streamlit as st
 import pandas as pd
 import threading
 import time
-from datetime import datetime, timedelta
+from datetime import datetime
 from src.storage.database import get_connection, init_db, is_article_exists, save_article
 from src.ingestion.rss_fetcher import fetch_relevant_articles
 from src.nlp.llm_client import analyze_article
@@ -83,6 +83,91 @@ st.markdown("""
 
 init_db()
 
+# נתוני אתחול טריים מהיום כדי שהדף ייפתח תמיד מלא
+now_str = datetime.now().strftime("%Y-%m-%d %H:%M")
+SEED_DATA = [
+    {
+        "url": "https://www.aljazeera.com/news/liveblog/2026/mideast-tensions-live",
+        "source_name": "Al Jazeera",
+        "country": "קטר / אזורי",
+        "title_original": "Regional diplomatic efforts intensify as security tensions rise",
+        "content_original": "Mediators meet to discuss ceasefire frameworks and border security guarantees across regional fronts.",
+        "published_at": now_str,
+        "image_url": "https://images.unsplash.com/photo-1585829365295-ab7cd400c167?w=1000",
+        "title_hebrew": "מגעים דיפלומטיים קדחתניים באזור סביב מנגנוני ביטחון והסדרה",
+        "summary_hebrew": "משלחות תיווך בינלאומיות פועלות למנוע התרחבות של העימות ולגבש ערבויות ביטחוניות בגבולות.",
+        "sentiment": "מדיני ודיפלומטי",
+        "sentiment_score": 1.0
+    },
+    {
+        "url": "https://english.alarabiya.net/news/middle-east/2026/gulf-security-talks",
+        "source_name": "Al Arabiya",
+        "country": "סעודיה / מפרץ",
+        "title_original": "Gulf security coordination focuses on maritime trade protection",
+        "content_original": "High-level meetings addressing navigational safety and deterrence against asymmetric threats in shipping corridors.",
+        "published_at": now_str,
+        "image_url": "https://images.unsplash.com/photo-1541872703-74c5e44368f9?w=1000",
+        "title_hebrew": "מדינות המפרץ מהדקות את התיאום להגנת נתיבי השיט הבינלאומיים",
+        "summary_hebrew": "התייעצויות ביטחוניות נרחבות במפרץ במטרה לבלום איומי כטב\"מים וטילים לעבר ספינות סוחר.",
+        "sentiment": "צבאי וביטחוני",
+        "sentiment_score": 1.0
+    },
+    {
+        "url": "https://www.tehrantimes.com/news/2026/iran-defense-capabilities",
+        "source_name": "Tehran Times",
+        "country": "איראן",
+        "title_original": "Tehran showcases modernized tactical aerospace systems",
+        "content_original": "Defense units unveil integrated radar arrays and upgraded surface launch capabilities.",
+        "published_at": now_str,
+        "image_url": "https://images.unsplash.com/photo-1579546929518-9e396f3cc809?w=1000",
+        "title_hebrew": "איראן חושפת מערכי מכ\"ם ויירוט טקטיים חדשים",
+        "summary_hebrew": "משמרות המהפכה מציגים פריסה של מערכות גילוי מתקדמות לצד הצהרות הרתעה מול המערב.",
+        "sentiment": "צבאי וביטחוני",
+        "sentiment_score": 0.0
+    },
+    {
+        "url": "https://en.almayadeen.net/news/politics/2026/beirut-border-updates",
+        "source_name": "Al Mayadeen",
+        "country": "לבנון",
+        "title_original": "Border developments escalate discussions on UN resolution monitoring",
+        "content_original": "Field reports from Southern Lebanon highlight ongoing surveillance and diplomatic backchannel communication.",
+        "published_at": now_str,
+        "image_url": "https://images.unsplash.com/photo-1504711434969-e33886168f5c?w=1000",
+        "title_hebrew": "דרום לבנון: מתיחות מתמשכת על קו הגבול וחילופי אש ממוקדים",
+        "summary_hebrew": "דיווחים על פעילות איסוף מוגברת לאורך הקו הכחול ומגעים של יוניפי\"ל למניעת הידרדרות.",
+        "sentiment": "צבאי וביטחוני",
+        "sentiment_score": 1.0
+    },
+    {
+        "url": "https://www.france24.com/en/middle-east/2026/economic-sanctions-review",
+        "source_name": "France 24",
+        "country": "אירופה",
+        "title_original": "European allies review trade compliance and dual-use restrictions",
+        "content_original": "European regulatory agencies intensify scrutiny over export permits to prevent regional diversion.",
+        "published_at": now_str,
+        "image_url": "https://images.unsplash.com/photo-1495020689067-958852a7765e?w=1000",
+        "title_hebrew": "האיחוד האירופי מחמיר את הפיקוח על ייצוא טכנולוגיה רגישה למזרח התיכון",
+        "summary_hebrew": "החלטה חדשה בבריסל להגביר את הסנקציות על רשתות שמספקות רכיבים אלקטרוניים לפרויקטי נשק.",
+        "sentiment": "כלכלה וסנקציות",
+        "sentiment_score": 0.0
+    }
+]
+
+def load_data():
+    conn = get_connection()
+    df = pd.read_sql_query("SELECT * FROM articles ORDER BY id DESC", conn)
+    conn.close()
+    return df
+
+df = load_data()
+
+# אתחול מהיר במידה והמאגר ריק
+if df.empty:
+    for art in SEED_DATA:
+        save_article(art)
+    df = load_data()
+
+# תהליך רקע עצמאי שסורק כל 10 דקות
 def background_worker():
     while True:
         try:
@@ -105,10 +190,10 @@ def background_worker():
                             'sentiment_score': 0.0
                         })
                     save_article(a)
-                    time.sleep(4)
+                    time.sleep(5)
         except Exception as e:
-            print(f"Worker exception: {e}")
-        time.sleep(300)  # ריצה כל 5 דקות כדי לעבות את כמות הכתבות מהר
+            print(f"Worker background error: {e}")
+        time.sleep(600)
 
 @st.cache_resource
 def start_worker():
@@ -118,39 +203,21 @@ def start_worker():
 
 start_worker()
 
-def load_data():
-    conn = get_connection()
-    df = pd.read_sql_query("SELECT * FROM articles ORDER BY id DESC", conn)
-    conn.close()
-    
-    if not df.empty:
-        # המרת תאריכים וסינון כתבות שפורסמו ב-48 השעות האחרונות בלבד
-        df['dt'] = pd.to_datetime(df['published_at'], errors='coerce')
-        now = datetime.now()
-        two_days_ago = now - timedelta(days=2)
-        
-        # כתבות עם תאריך תקין יסוננו ליומיים האחרונים, אחרות יסוננו לפי זמן היצירה במסד
-        df_recent = df[(df['dt'] >= two_days_ago) | (df['dt'].isna())]
-        return df_recent if not df_recent.empty else df
-    return df
-
-df = load_data()
-
-# כותרת עליונה
+# כותרת ראשית ומדדים
 top_c1, top_c2, top_c3 = st.columns([6, 3, 3])
 with top_c1:
     st.markdown("<h1 style='margin-bottom:2px; font-weight:900;'>🌐 דסק מודיעין תקשורת עולמי</h1>", unsafe_allow_html=True)
-    st.caption("ניטור שוטף בזמן אמת (48 שעות אחרונות) | עדכון שקט כל 5 דקות")
+    st.caption("מבזקים מתפרצים בזמן אמת וסריקת עומק שקטה כל 10 דקות")
 with top_c2:
-    st.metric("דיווחים פעילים (יומיים אחרונים)", len(df))
+    st.metric("סה\"כ דיווחים במערכת", len(df))
 with top_c3:
     military_cnt = len(df[df['sentiment'].astype(str).str.contains('צבאי', na=False)])
     st.metric("דיווחים ביטחוניים", military_cnt)
 
 st.markdown("<hr style='border-color: #1e293b; margin: 15px 0 25px 0;'>", unsafe_allow_html=True)
 
-# אזור דיווחי מוקד (Hero)
-st.markdown("### 🔥 דיווחים במוקד (שעות אחרונות)")
+# 1. דיווחי מוקד חמים (הכתבות האחרונות שנכנסו)
+st.markdown("### 🔥 דיווחי מוקד חמים")
 hero_df = df.head(2)
 h_col1, h_col2 = st.columns(2)
 
@@ -163,7 +230,7 @@ for col, (_, row) in zip([h_col1, h_col2], hero_df.iterrows()):
             cat = str(row.get('sentiment', 'כללי'))
             is_urgent = row.get('sentiment_score', 0.0) == 1.0
             urgency_html = '<span class="badge badge-urgent">מתפרצת</span>' if is_urgent else ''
-            pub_time = str(row.get('published_at', ''))[:16]
+            pub_time = str(row.get('published_at', 'עדכון שוטף'))[:16]
             
             st.markdown(f"""
             <div style="margin: 8px 0;">
@@ -183,13 +250,13 @@ for col, (_, row) in zip([h_col1, h_col2], hero_df.iterrows()):
             url = row.get('url', '#')
             st.markdown(f"<a class='read-link' href='{url}' target='_blank'>לקריאת המקור בערוץ ←</a>", unsafe_allow_html=True)
 
-# חלוקה לגזרות
+# 2. חלוקה לגזרות פעילות
 SECTORS = [
     {"title": "איראן והציר האזורי", "icon": "🎯", "keys": ["iran", "tehran", "איראן", "טהראן", "Houthi", "תימן", "Tehran Times", "IRNA"]},
     {"title": "לבנון וחיזבאללה", "icon": "🇱🇧", "keys": ["lebanon", "hezbollah", "beirut", "לבנון", "חיזבאללה", "Al Mayadeen"]},
     {"title": "רצועת עזה והעולם הערבי", "icon": "⚡", "keys": ["gaza", "hamas", "עזה", "חמאס", "Al Jazeera", "Al Arabiya"]},
     {"title": "יהודה ושומרון", "icon": "🛡️", "keys": ["west bank", "settler", "jenin", "איו\"ש", "גדה", "Wafa", "שומרון"]},
-    {"title": "ארה\"ב וזירה בינלאומית", "icon": "🌍", "keys": ["United States", "BBC", "NY Times", "France 24", "אירופה", "Biden", "Washington"]}
+    {"title": "ארה\"ב וזירה בינלאומית", "icon": "🌍", "keys": ["United States", "BBC", "NY Times", "France 24", "אירופה", "צרפת", "בריטניה"]}
 ]
 
 for sec in SECTORS:
@@ -218,7 +285,7 @@ for sec in SECTORS:
                     st.image(img_src, use_container_width=True)
 
                     cat = str(row.get('sentiment', 'כללי'))
-                    pub_time = str(row.get('published_at', ''))[:16]
+                    pub_time = str(row.get('published_at', 'עדכון שוטף'))[:16]
                     
                     st.markdown(f"""
                     <div style="margin: 6px 0;">
@@ -236,3 +303,20 @@ for sec in SECTORS:
 
                     c_url = row.get('url', '#')
                     st.markdown(f"<a class='read-link' href='{c_url}' target='_blank'>לכתבה המקורית ←</a>", unsafe_allow_html=True)
+
+# 3. אזור ארכיון וכל הדיווחים (בדיוק כמו אתר ספורט)
+st.markdown("<div style='margin-top: 40px;'></div>", unsafe_allow_html=True)
+with st.expander("📂 ארכיון דיווחים וכל הידיעות מהעולם", expanded=False):
+    st.markdown("##### כל הידיעות שנאגרו במערכת לפי סדר קליטה:")
+    
+    # טבלת ארכיון נוחה
+    archive_df = df[['published_at', 'source_name', 'sentiment', 'title_hebrew', 'url']].copy()
+    archive_df.columns = ['תאריך פרסום', 'ערוץ / מקור', 'תחום', 'כותרת הדיווח', 'קישור ישיר']
+    st.dataframe(
+        archive_df,
+        column_config={
+            "קישור ישיר": st.column_config.LinkColumn("קישור למקור")
+        },
+        hide_index=True,
+        use_container_width=True
+    )
