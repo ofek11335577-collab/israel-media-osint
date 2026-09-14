@@ -1,77 +1,67 @@
-import json
 import feedparser
 from datetime import datetime
-import time
+import email.utils
 
-def load_sources():
-    try:
-        with open("config/sources.json", "r", encoding="utf-8") as f:
-            return json.load(f)
-    except Exception as e:
-        print(f"Error loading sources.json: {e}")
-        return {}
+FEEDS = [
+    # לבנון והציר
+    {"url": "https://www.aljazeera.com/xml/rss/all.xml", "source": "Al Jazeera", "country": "קטר / אזורי"},
+    {"url": "https://en.almayadeen.net/rss", "source": "Al Mayadeen", "country": "לבנון / ציר"},
+    {"url": "https://english.alarabiya.net/rss", "source": "Al Arabiya", "country": "סעודיה / מפרץ"},
+    
+    # איראן
+    {"url": "https://www.tehrantimes.com/rss", "source": "Tehran Times", "country": "איראן"},
+    {"url": "https://en.irna.ir/rss", "source": "IRNA", "country": "איראן"},
+    
+    # זירה בינלאומית ומעצמות
+    {"url": "https://feeds.bbci.co.uk/news/world/middle_east/rss.xml", "source": "BBC News", "country": "בריטניה"},
+    {"url": "https://rss.nytimes.com/services/xml/rss/nyt/MiddleEast.xml", "source": "NY Times", "country": "ארה\"ב"},
+    {"url": "https://www.france24.com/en/middle-east/rss", "source": "France 24", "country": "צרפת"}
+]
 
-def extract_image(entry) -> str:
-    # חיפוש תמונה במבני RSS נפוצים (media:content, enclosures, וכו')
-    if hasattr(entry, 'media_content'):
-        for media in entry.media_content:
-            if 'url' in media and ('image' in media.get('type', '') or 'jpg' in media.get('url', '') or 'png' in media.get('url', '')):
-                return media['url']
-                
-    if hasattr(entry, 'enclosures'):
-        for enc in entry.enclosures:
-            if 'type' in enc and 'image' in enc['type']:
-                return enc['href']
-                
-    # חיפוש תמונה מתוך תוכן HTML אם קיים
-    content_html = ""
-    if hasattr(entry, 'summary'):
-        content_html += entry.summary
-    if hasattr(entry, 'content'):
-        for c in entry.content:
-            content_html += c.value
-            
-    if '<img' in content_html:
+def parse_date(entry):
+    if hasattr(entry, 'published_parsed') and entry.published_parsed:
+        return datetime(*entry.published_parsed[:6]).strftime("%Y-%m-%d %H:%M")
+    if hasattr(entry, 'published') and entry.published:
         try:
-            from bs4 import BeautifulSoup
-            soup = BeautifulSoup(content_html, 'html.parser')
-            img = soup.find('img')
-            if img and img.get('src'):
-                return img['src']
-        except:
+            parsed = email.utils.parsedate_to_datetime(entry.published)
+            return parsed.strftime("%Y-%m-%d %H:%M")
+        except Exception:
             pass
-            
-    return "https://images.unsplash.com/photo-1504711434969-e33886168f5c?w=800"  # תמונת ברירת מחדל מודיעינית
+    return datetime.now().strftime("%Y-%m-%d %H:%M")
+
+def extract_image(entry):
+    if hasattr(entry, 'media_content') and entry.media_content:
+        return entry.media_content[0].get('url')
+    if hasattr(entry, 'links'):
+        for l in entry.links:
+            if 'image' in l.get('type', ''):
+                return l.get('href')
+    return None
 
 def fetch_relevant_articles():
-    sources_map = load_sources()
-    all_articles = []
-
-    for country, sources in sources_map.items():
-        for source in sources:
-            try:
-                feed = feedparser.parse(source['url'])
-                for entry in feed.entries[:5]:  # לוקח את ה-5 החדשים מכל מקור
-                    title = entry.get('title', '')
-                    summary = entry.get('summary', entry.get('description', ''))
-                    url = entry.get('link', '')
-                    
-                    # חילוץ תאריך פרסום או מתן תאריך נוכחי
-                    pub_date = entry.get('published', datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
-                    
-                    image_url = extract_image(entry)
-
-                    if title and url:
-                        all_articles.append({
-                            "source_name": source['name'],
-                            "country": country,
-                            "title_original": title,
-                            "content_original": summary,
-                            "url": url,
-                            "image_url": image_url,
-                            "published_at": pub_date
-                        })
-            except Exception as e:
-                print(f"Failed to fetch {source['name']}: {e}")
-
-    return all_articles
+    articles = []
+    for f in FEEDS:
+        try:
+            feed = feedparser.parse(f['url'])
+            for entry in feed.entries[:10]:  # שואב 10 מכל מקור
+                title = entry.get('title', '')
+                summary = entry.get('summary', '') or entry.get('description', '')
+                
+                # סינון בסיסי לרלוונטיות אזורית
+                text_to_check = (title + " " + summary).lower()
+                keywords = ["israel", "gaza", "lebanon", "hezbollah", "iran", "hamas", "strike", "war", "middle east", "idf", "houthi", "west bank", "syria"]
+                
+                if any(kw in text_to_check for kw in keywords):
+                    articles.append({
+                        "url": entry.get('link', ''),
+                        "source_name": f['source'],
+                        "country": f['country'],
+                        "title_original": title,
+                        "content_original": summary,
+                        "published_at": parse_date(entry),
+                        "image_url": extract_image(entry) or "https://images.unsplash.com/photo-1504711434969-e33886168f5c?w=800"
+                    })
+        except Exception as e:
+            print(f"Error fetching {f['source']}: {e}")
+            
+    return articles

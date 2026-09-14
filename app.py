@@ -2,6 +2,7 @@ import streamlit as st
 import pandas as pd
 import threading
 import time
+from datetime import datetime, timedelta
 from src.storage.database import get_connection, init_db, is_article_exists, save_article
 from src.ingestion.rss_fetcher import fetch_relevant_articles
 from src.nlp.llm_client import analyze_article
@@ -13,7 +14,6 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# עיצוב כללי - רקע כהה ופונט עברית נקי
 st.markdown("""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;600;700;900&display=swap');
@@ -26,12 +26,10 @@ st.markdown("""
         text-align: right;
     }
 
-    /* הסתרת סיידבר לחלוטין למניעת עיוותים */
     [data-testid="stSidebarCollapseButton"], section[data-testid="stSidebar"] {
         display: none !important;
     }
 
-    /* עיצוב כרטיסי container */
     [data-testid="stVerticalBlockBorderWrapper"] {
         background-color: #0f172a !important;
         border: 1px solid #1e293b !important;
@@ -43,7 +41,6 @@ st.markdown("""
         transform: translateY(-2px);
     }
 
-    /* תגים מעוצבים */
     .badge {
         display: inline-block;
         padding: 3px 8px;
@@ -55,6 +52,7 @@ st.markdown("""
     .badge-urgent { background-color: rgba(239, 68, 68, 0.2); color: #f87171; border: 1px solid #ef4444; }
     .badge-cat { background-color: rgba(14, 165, 233, 0.2); color: #38bdf8; border: 1px solid #0ea5e9; }
     .badge-src { background-color: #1e293b; color: #cbd5e1; }
+    .badge-time { background-color: rgba(100, 116, 139, 0.2); color: #94a3b8; border: 1px solid #334155; }
 
     .sector-header {
         display: flex;
@@ -85,90 +83,9 @@ st.markdown("""
 
 init_db()
 
-SEED_ARTICLES = [
-    {
-        "url": "https://www.telegraph.co.uk/world-news/2026/lebanon-pagers-special-report",
-        "source_name": "The Telegraph",
-        "country": "לבנון",
-        "title_original": "Pager blasts strike thousands of Hezbollah targets across Lebanon",
-        "content_original": "A coordinated detonation of secure communication devices used by Hezbollah fighters in Beirut and Southern Lebanon.",
-        "published_at": "Recent",
-        "image_url": "https://images.unsplash.com/photo-1504711434969-e33886168f5c?w=1000",
-        "title_hebrew": "פיצוצי ביפרים מתואמים פגעו באלפי יעדי חיזבאללה ברחבי לבנון",
-        "summary_hebrew": "גל פיצוצים מתואם של מכשירי קשר מוצפנים אשר שימשו את פעילי חיזבאללה הוביל לפגיעה נרחבת ברשת הפיקוד בביירות ודרום לבנון.",
-        "sentiment": "צבאי וביטחוני",
-        "sentiment_score": 1.0
-    },
-    {
-        "url": "https://www.aljazeera.com/news/2026/iran-nuclear-developments",
-        "source_name": "Al Jazeera",
-        "country": "איראן",
-        "title_original": "Tehran announces advancement in regional ballistic deterrence",
-        "content_original": "Iranian military officials claim deployment of new surface-to-surface capabilities amid escalating regional tensions.",
-        "published_at": "Recent",
-        "image_url": "https://images.unsplash.com/photo-1579546929518-9e396f3cc809?w=1000",
-        "title_hebrew": "טהראן מכריזה על שדרוג מערכי הטילים וההרתעה האזורית",
-        "summary_hebrew": "בכירים במשמרות המהפכה מדווחים על פריסת יכולות בליסטיות חדשות ומאיימים במענה תקיף מול כל פעילות של כוחות הקואליציה.",
-        "sentiment": "צבאי וביטחוני",
-        "sentiment_score": 1.0
-    },
-    {
-        "url": "https://www.reuters.com/world/middle-east/gaza-humanitarian-diplomacy-2026",
-        "source_name": "Reuters",
-        "country": "עזה",
-        "title_original": "Diplomatic summits intensify discussions on regional stability in Gaza",
-        "content_original": "International mediators hold rounds of discussions regarding humanitarian corridors and long-term security mechanisms.",
-        "published_at": "Recent",
-        "image_url": "https://images.unsplash.com/photo-1585829365295-ab7cd400c167?w=1000",
-        "title_hebrew": "פסגה בינלאומית מאיצה מגעים להסדרי ביטחון ומסדרונות סיוע בעזה",
-        "summary_hebrew": "מתווכים בינלאומיים מקיימים סבב דיונים בקהיר במטרה להגיע למנגנון הסדרה וערבויות בינלאומיות למניעת הסלמה.",
-        "sentiment": "מדיני ודיפלומטי",
-        "sentiment_score": 0.0
-    },
-    {
-        "url": "https://wafa.ps/ar/news/westbank-economic-developments",
-        "source_name": "Wafa",
-        "country": "יהודה ושומרון",
-        "title_original": "West Bank security operations and commercial impacts",
-        "content_original": "Reports on security closures impacting local transport and market supply chains across Nablus and Jenin.",
-        "published_at": "Recent",
-        "image_url": "https://images.unsplash.com/photo-1495020689067-958852a7765e?w=1000",
-        "title_hebrew": "פעילות ביטחונית נרחבת ביהודה ושומרון: השפעה על צירי הסחר והתנועה",
-        "summary_hebrew": "מבצעי סיכול מתמשכים בגזרת שכם וג'נין הובילו לסגירת צירים מרכזיים ולהגבלות תנועה במוקדי חיכוך.",
-        "sentiment": "צבאי וביטחוני",
-        "sentiment_score": 0.0
-    },
-    {
-        "url": "https://www.france24.com/en/diplomatic-sanctions-iran",
-        "source_name": "France 24",
-        "country": "אירופה",
-        "title_original": "European Union drafts new sanctions targeting Iranian supply chains",
-        "content_original": "EU envoys agree on comprehensive sanctions packet targeting manufacturers of drones and precision components.",
-        "published_at": "Recent",
-        "image_url": "https://images.unsplash.com/photo-1541872703-74c5e44368f9?w=1000",
-        "title_hebrew": "האיחוד האירופי מגבש חבילת סנקציות מקיפה נגד רשתות אספקה איראניות",
-        "summary_hebrew": "שרי החוץ של אירופה אישרו צעדים כלכליים ממוקדים נגד חברות ומפקדים המעורבים בייצור והפצת כטב\"מים במזרח התיכון.",
-        "sentiment": "כלכלה וסנקציות",
-        "sentiment_score": 0.0
-    }
-]
-
-def load_data():
-    conn = get_connection()
-    df = pd.read_sql_query("SELECT * FROM articles ORDER BY id DESC", conn)
-    conn.close()
-    return df
-
-df = load_data()
-if df.empty:
-    for art in SEED_ARTICLES:
-        save_article(art)
-    df = load_data()
-
 def background_worker():
     while True:
         try:
-            time.sleep(600)
             arts = fetch_relevant_articles()
             for a in arts:
                 if not is_article_exists(a['url']):
@@ -188,9 +105,10 @@ def background_worker():
                             'sentiment_score': 0.0
                         })
                     save_article(a)
-                    time.sleep(5)
+                    time.sleep(4)
         except Exception as e:
-            print(f"Background worker error: {e}")
+            print(f"Worker exception: {e}")
+        time.sleep(300)  # ריצה כל 5 דקות כדי לעבות את כמות הכתבות מהר
 
 @st.cache_resource
 def start_worker():
@@ -200,21 +118,39 @@ def start_worker():
 
 start_worker()
 
+def load_data():
+    conn = get_connection()
+    df = pd.read_sql_query("SELECT * FROM articles ORDER BY id DESC", conn)
+    conn.close()
+    
+    if not df.empty:
+        # המרת תאריכים וסינון כתבות שפורסמו ב-48 השעות האחרונות בלבד
+        df['dt'] = pd.to_datetime(df['published_at'], errors='coerce')
+        now = datetime.now()
+        two_days_ago = now - timedelta(days=2)
+        
+        # כתבות עם תאריך תקין יסוננו ליומיים האחרונים, אחרות יסוננו לפי זמן היצירה במסד
+        df_recent = df[(df['dt'] >= two_days_ago) | (df['dt'].isna())]
+        return df_recent if not df_recent.empty else df
+    return df
+
+df = load_data()
+
 # כותרת עליונה
 top_c1, top_c2, top_c3 = st.columns([6, 3, 3])
 with top_c1:
     st.markdown("<h1 style='margin-bottom:2px; font-weight:900;'>🌐 דסק מודיעין תקשורת עולמי</h1>", unsafe_allow_html=True)
-    st.caption("איסוף שוטף 24/7 ממאגרי תקשורת בינלאומיים | עדכון שקט כל 10 דקות")
+    st.caption("ניטור שוטף בזמן אמת (48 שעות אחרונות) | עדכון שקט כל 5 דקות")
 with top_c2:
-    st.metric("סה\"כ דיווחים במאגר", len(df))
+    st.metric("דיווחים פעילים (יומיים אחרונים)", len(df))
 with top_c3:
     military_cnt = len(df[df['sentiment'].astype(str).str.contains('צבאי', na=False)])
     st.metric("דיווחים ביטחוניים", military_cnt)
 
 st.markdown("<hr style='border-color: #1e293b; margin: 15px 0 25px 0;'>", unsafe_allow_html=True)
 
-# אזור דיווחי מוקד (Hero) - בנוי עם st.container כדי למנוע באגי רינדור
-st.markdown("### 🔥 דיווחים במוקד")
+# אזור דיווחי מוקד (Hero)
+st.markdown("### 🔥 דיווחים במוקד (שעות אחרונות)")
 hero_df = df.head(2)
 h_col1, h_col2 = st.columns(2)
 
@@ -227,11 +163,13 @@ for col, (_, row) in zip([h_col1, h_col2], hero_df.iterrows()):
             cat = str(row.get('sentiment', 'כללי'))
             is_urgent = row.get('sentiment_score', 0.0) == 1.0
             urgency_html = '<span class="badge badge-urgent">מתפרצת</span>' if is_urgent else ''
+            pub_time = str(row.get('published_at', ''))[:16]
             
             st.markdown(f"""
             <div style="margin: 8px 0;">
                 <span class="badge badge-src">📰 {row.get('source_name', '')}</span>
                 <span class="badge badge-cat">{cat}</span>
+                <span class="badge badge-time">🕒 {pub_time}</span>
                 {urgency_html}
             </div>
             """, unsafe_allow_html=True)
@@ -245,13 +183,13 @@ for col, (_, row) in zip([h_col1, h_col2], hero_df.iterrows()):
             url = row.get('url', '#')
             st.markdown(f"<a class='read-link' href='{url}' target='_blank'>לקריאת המקור בערוץ ←</a>", unsafe_allow_html=True)
 
-# גזרות
+# חלוקה לגזרות
 SECTORS = [
-    {"title": "איראן והציר האזורי", "icon": "🎯", "keys": ["iran", "tehran", "איראן", "טהראן", "Houthi", "תימן"]},
-    {"title": "לבנון וחיזבאללה", "icon": "🇱🇧", "keys": ["lebanon", "hezbollah", "beirut", "לבנון", "חיזבאללה", "Telegraph"]},
-    {"title": "רצועת עזה והעולם הערבי", "icon": "⚡", "keys": ["gaza", "hamas", "עזה", "חמאס", "Al Jazeera", "Reuters"]},
+    {"title": "איראן והציר האזורי", "icon": "🎯", "keys": ["iran", "tehran", "איראן", "טהראן", "Houthi", "תימן", "Tehran Times", "IRNA"]},
+    {"title": "לבנון וחיזבאללה", "icon": "🇱🇧", "keys": ["lebanon", "hezbollah", "beirut", "לבנון", "חיזבאללה", "Al Mayadeen"]},
+    {"title": "רצועת עזה והעולם הערבי", "icon": "⚡", "keys": ["gaza", "hamas", "עזה", "חמאס", "Al Jazeera", "Al Arabiya"]},
     {"title": "יהודה ושומרון", "icon": "🛡️", "keys": ["west bank", "settler", "jenin", "איו\"ש", "גדה", "Wafa", "שומרון"]},
-    {"title": "אירופה וזירה בינלאומית", "icon": "🌍", "keys": ["United States", "United Kingdom", "France", "Spain", "אירופה"]}
+    {"title": "ארה\"ב וזירה בינלאומית", "icon": "🌍", "keys": ["United States", "BBC", "NY Times", "France 24", "אירופה", "Biden", "Washington"]}
 ]
 
 for sec in SECTORS:
@@ -280,10 +218,13 @@ for sec in SECTORS:
                     st.image(img_src, use_container_width=True)
 
                     cat = str(row.get('sentiment', 'כללי'))
+                    pub_time = str(row.get('published_at', ''))[:16]
+                    
                     st.markdown(f"""
                     <div style="margin: 6px 0;">
                         <span class="badge badge-src">📰 {row.get('source_name', '')}</span>
                         <span class="badge badge-cat">{cat}</span>
+                        <span class="badge badge-time">🕒 {pub_time}</span>
                     </div>
                     """, unsafe_allow_html=True)
 
