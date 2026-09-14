@@ -1,0 +1,47 @@
+{
+  "Iran": [
+    {"name": "Tehran Times", "url": "https://www.tehrantimes.com/rss", "language": "en"},
+    {"name": "Press TV", "url": "https://www.presstv.ir/Default/SectionRss/14001", "language": "en"},
+    {"name": "Iran International", "url": "https://www.iranintl.com/en/rss", "language": "en"}
+  ],
+  "Lebanon": [
+    {"name": "L'Orient Today", "url": "https://today.lorientlejour.com/rss", "language": "en"},
+    {"name": "Naharnet", "url": "https://feeds.feedburner.com/naharnet/all", "language": "en"},
+    {"name": "Al Akhbar", "url": "https://al-akhbar.com/rss", "language": "ar"}
+  ],
+  "Gaza & Regional": [
+    {"name": "Al Jazeera Arabic", "url": "https://www.aljazeera.net/aljazeerarss/a7c6e73c-d38c-443b-8260-2ff58602b921", "language": "ar"},
+    {"name": "Al Jazeera English", "url": "https://www.aljazeera.com/xml/rss/all.xml", "language": "en"},
+    {"name": "Al Arabiya News", "url": "https://english.alarabiya.net/feed/rss2/latest-news", "language": "en"}
+  ],
+  "West Bank & PA": [
+    {"name": "WAFA Agency", "url": "https://english.wafa.ps/RSS/Rss", "language": "en"},
+    {"name": "Maan News", "url": "https://www.maannews.net/rss/", "language": "ar"},
+    {"name": "Palestine Chronicle", "url": "https://www.palestinechronicle.com/feed/", "language": "en"}
+  ],
+  "United States": [
+    {"name": "CNN World", "url": "http://rss.cnn.com/rss/edition_world.rss", "language": "en"},
+    {"name": "New York Times", "url": "https://rss.nytimes.com/services/xml/rss/nyt/World.xml", "language": "en"},
+    {"name": "Washington Post", "url": "https://feeds.washingtonpost.com/rss/world", "language": "en"}
+  ],
+  "United Kingdom": [
+    {"name": "BBC World", "url": "https://feeds.bbci.co.uk/news/world/rss.xml", "language": "en"},
+    {"name": "The Guardian", "url": "https://www.theguardian.com/world/rss", "language": "en"},
+    {"name": "The Telegraph", "url": "https://www.telegraph.co.uk/news/rss.xml", "language": "en"}
+  ],
+  "France": [
+    {"name": "France 24", "url": "https://www.france24.com/fr/rss", "language": "fr"},
+    {"name": "Le Figaro", "url": "https://www.lefigaro.fr/rss/figaro_international.xml", "language": "fr"},
+    {"name": "Le Monde", "url": "https://www.lemonde.fr/international/rss_full.xml", "language": "fr"}
+  ],
+  "Spain": [
+    {"name": "El País", "url": "https://feeds.elpais.com/mrss-s/pages/ep/site/elpais.com/section/internacional/portada", "language": "es"},
+    {"name": "El Mundo", "url": "https://e00-elmundo.uecdn.es/elmundo/rss/internacional.xml", "language": "es"},
+    {"name": "ABC España", "url": "https://www.abc.es/rss/2.0/internacional/", "language": "es"}
+  ],
+  "Turkey": [
+    {"name": "Anadolu Agency", "url": "https://www.aa.com.tr/tr/rss/default?cat=guncel", "language": "tr"},
+    {"name": "TRT World", "url": "https://www.trtworld.com/rss", "language": "en"},
+    {"name": "Daily Sabah", "url": "https://www.dailysabah.com/rssFeed/world", "language": "en"}
+  ]
+}
