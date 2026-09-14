@@ -1,5 +1,6 @@
 import streamlit as st
 import pandas as pd
+import threading
 import time
 from src.storage.database import get_connection, init_db, is_article_exists, save_article
 from src.ingestion.rss_fetcher import fetch_relevant_articles
@@ -40,11 +41,6 @@ st.markdown("""
         background-size: cover;
         background-position: center;
         margin-bottom: 24px;
-        transition: transform 0.2s ease, border-color 0.2s ease;
-    }
-    .hero-card:hover {
-        transform: scale(1.01);
-        border-color: #38bdf8;
     }
     .hero-overlay {
         position: absolute;
@@ -63,10 +59,10 @@ st.markdown("""
         border-radius: 12px;
         overflow: hidden;
         margin-bottom: 18px;
-        transition: all 0.2s ease;
         display: flex;
         flex-direction: column;
         height: 100%;
+        transition: all 0.2s ease;
     }
     .news-card:hover {
         border-color: #0ea5e9;
@@ -107,10 +103,9 @@ st.markdown("""
         font-weight: 700;
         margin-left: 6px;
     }
-    .badge-hostile { background-color: rgba(239, 68, 68, 0.25); color: #f87171; border: 1px solid #ef4444; }
-    .badge-neutral { background-color: rgba(148, 163, 184, 0.2); color: #94a3b8; border: 1px solid #64748b; }
-    .badge-positive { background-color: rgba(34, 197, 94, 0.25); color: #4ade80; border: 1px solid #22c55e; }
-    .badge-src { background-color: #1e293b; color: #38bdf8; }
+    .badge-urgent { background-color: rgba(239, 68, 68, 0.25); color: #f87171; border: 1px solid #ef4444; }
+    .badge-cat { background-color: rgba(14, 165, 233, 0.2); color: #38bdf8; border: 1px solid #0ea5e9; }
+    .badge-src { background-color: #1e293b; color: #94a3b8; }
 
     .read-more {
         color: #38bdf8;
@@ -126,60 +121,64 @@ st.markdown("""
 
 init_db()
 
+# --- מנגנון איסוף שקט ברקע (רץ כל 10 דקות בסרבר) ---
+def background_scanner():
+    while True:
+        try:
+            arts = fetch_relevant_articles()
+            for a in arts:
+                if not is_article_exists(a['url']):
+                    res = analyze_article(a['title_original'], a['content_original'])
+                    a.update({
+                        'title_hebrew': res.get('title_hebrew'),
+                        'summary_hebrew': res.get('summary_hebrew'),
+                        'sentiment': res.get('category'),  # שימוש בעמודה לסיווג הקטגוריה
+                        'sentiment_score': 1.0 if res.get('urgency') == 'מתפרצת' else 0.0
+                    })
+                    save_article(a)
+                    time.sleep(6)
+        except Exception as err:
+            print(f"Background scanner error: {err}")
+        time.sleep(600)  # המתנה של 10 דקות עד הסריקה הבאה
+
+@st.cache_resource
+def start_background_thread():
+    t = threading.Thread(target=background_scanner, daemon=True)
+    t.start()
+    return True
+
+start_background_thread()
+
 def load_data():
     conn = get_connection()
     df = pd.read_sql_query("SELECT * FROM articles ORDER BY id DESC", conn)
     conn.close()
     return df
 
-def run_auto_ingestion():
-    arts = fetch_relevant_articles()
-    new_c = 0
-    for a in arts:
-        if not is_article_exists(a['url']):
-            a.update(analyze_article(a['title_original'], a['content_original']))
-            save_article(a)
-            new_c += 1
-            time.sleep(12)
-    return new_c
-
 df = load_data()
-
-# סריקה ראשונית אם המאגר ריק בעת פתיחת השרת
-if df.empty:
-    with st.spinner("🚀 טוען את דסק המודיעין ומבצע איסוף ראשוני ממקורות גלובליים..."):
-        run_auto_ingestion()
-        df = load_data()
-
-with st.sidebar:
-    st.markdown("### ⚙️ פעולות דסק")
-    if st.button("🔄 סרוק מקורות ידנית", use_container_width=True):
-        with st.status("איסוף וניתוח בתהליך...") as s:
-            new_count = run_auto_ingestion()
-            s.update(label=f"התווספו {new_count} דיווחים חדשים", state="complete")
-            st.rerun()
 
 top_c1, top_c2, top_c3 = st.columns([6, 3, 3])
 with top_c1:
     st.markdown("<h1 style='margin-bottom:2px; font-weight:900;'>🌐 דסק מודיעין תקשורת עולמי</h1>", unsafe_allow_html=True)
-    st.caption("ניטור נרטיבים, סנטימנט והשפעה בזמן אמת ממאגרי תקשורת בינלאומיים")
+    st.caption("איסוף שוטף 24/7 ממאגרי תקשורת בינלאומיים | עדכון שקט כל 10 דקות")
 with top_c2:
     st.metric("סה\"כ ידיעות במאגר", len(df) if not df.empty else 0)
 with top_c3:
-    avg_s = df['sentiment_score'].mean() if (not df.empty and 'sentiment_score' in df.columns) else 0.0
-    st.metric("מדד סנטימנט משוקלל", f"{avg_s:.2f}")
+    military_cnt = len(df[df['sentiment'].str.contains('צבאי', na=False)]) if not df.empty else 0
+    st.metric("דיווחים ביטחוניים", military_cnt)
 
 st.markdown("<hr style='border-color: #1e293b; margin: 15px 0 25px 0;'>", unsafe_allow_html=True)
 
 if not df.empty:
-    st.markdown("### 🔥 דיווחי מוקד")
-    hero_df = df.sort_values(by="sentiment_score", ascending=True).head(2)
+    st.markdown("### 🔥 דיווחים במוקד")
+    hero_df = df.head(2)
     h_col1, h_col2 = st.columns(2)
 
     for col, (_, row) in zip([h_col1, h_col2], hero_df.iterrows()):
         with col:
-            sent = str(row.get('sentiment', 'נייטרלי'))
-            badge_class = "badge-hostile" if "עוין" in sent else ("badge-positive" if "חיובי" in sent else "badge-neutral")
+            cat = str(row.get('sentiment', 'כללי'))
+            is_urgent = row.get('sentiment_score', 0.0) == 1.0
+            urgency_badge = '<span class="badge badge-urgent">מתפרצת</span>' if is_urgent else ''
             img_url = row.get('image_url') if ('image_url' in row and pd.notna(row['image_url']) and row['image_url']) else "https://images.unsplash.com/photo-1504711434969-e33886168f5c?w=1000"
             
             st.markdown(f"""
@@ -189,7 +188,8 @@ if not df.empty:
                     <div style="margin-bottom: 8px;">
                         <span class="badge badge-src">📰 {row.get('source_name', '')}</span>
                         <span class="badge badge-src">🌍 {row.get('country', '')}</span>
-                        <span class="badge {badge_class}">{sent} ({row.get('sentiment_score', 0.0)})</span>
+                        <span class="badge badge-cat">{cat}</span>
+                        {urgency_badge}
                     </div>
                     <h3 style="color:#ffffff; margin:0 0 8px 0; font-size:1.35rem; font-weight:800; line-height:1.3;">
                         {row.get('title_hebrew') or row.get('title_original')}
@@ -230,8 +230,7 @@ if not df.empty:
             cols = st.columns(3)
             for c_idx, (_, row) in enumerate(sec_df.iterrows()):
                 with cols[c_idx]:
-                    sent = str(row.get('sentiment', 'נייטרלי'))
-                    badge_class = "badge-hostile" if "עוין" in sent else ("badge-positive" if "חיובי" in sent else "badge-neutral")
+                    cat = str(row.get('sentiment', 'כללי'))
                     img_src = row.get('image_url') if ('image_url' in row and pd.notna(row['image_url']) and row['image_url']) else "https://images.unsplash.com/photo-1504711434969-e33886168f5c?w=800"
 
                     st.markdown(f"""
@@ -240,7 +239,7 @@ if not df.empty:
                         <div class="news-card-body">
                             <div style="margin-bottom: 8px;">
                                 <span class="badge badge-src">📰 {row.get('source_name', '')}</span>
-                                <span class="badge {badge_class}">{sent}</span>
+                                <span class="badge badge-cat">{cat}</span>
                             </div>
                             <div style="font-weight:700; color:#fff; font-size:1.02rem; margin-bottom:6px; line-height:1.4;">
                                 {row.get('title_hebrew') or row.get('title_original')}
