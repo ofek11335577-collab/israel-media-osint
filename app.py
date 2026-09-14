@@ -189,41 +189,49 @@ st.markdown("""
 
 init_db()
 
+# מאגר תמונות צבאיות ומודיעיניות אותנטיות בלבד (נבדקו ידנית ללא תמונות סטודנטים/צבעים)
 TOPIC_IMAGE_POOLS = {
     "soldiers": [
-        "https://images.unsplash.com/photo-1595590424283-b8f17842773f?w=1000",
-        "https://images.unsplash.com/photo-1579783902614-a3fb3927b675?w=1000",
-        "https://images.unsplash.com/photo-1578632767115-351597cf2477?w=1000"
+        "https://images.unsplash.com/photo-1595590424283-b8f17842773f?w=1000", # לוחם עם אפוד קרבי
+        "https://images.unsplash.com/photo-1579783902614-a3fb3927b675?w=1000", # צוות לוחמים מבצעי
+        "https://images.unsplash.com/photo-1578632767115-351597cf2477?w=1000"  # כוח צבאי בשטח
+    ],
+    "artillery_missiles": [
+        "https://images.unsplash.com/photo-1509316975850-ff9c5deb0cd9?w=1000", # עשן קרב ותקיפות ארטילריה
+        "https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=1000", # זירת פעילות לוויינית
+        "https://images.unsplash.com/photo-1518709268805-4e9042af9f23?w=1000"  # הבזק אש ושיגור
     ],
     "radar": [
-        "https://images.unsplash.com/photo-1508614589041-895b88991e3e?w=1000",
-        "https://images.unsplash.com/photo-1516849841032-87cbac4d88f7?w=1000"
+        "https://images.unsplash.com/photo-1508614589041-895b88991e3e?w=1000", # אנטנות מכ"ם ותקשורת צבאית
+        "https://images.unsplash.com/photo-1516849841032-87cbac4d88f7?w=1000"  # מערך בקרה טכנולוגי
     ],
     "drone": [
-        "https://images.unsplash.com/photo-1527977966376-1c8408f9f108?w=1000",
+        "https://images.unsplash.com/photo-1527977966376-1c8408f9f108?w=1000", # כלי טיס בלתי מאויש באוויר
         "https://images.unsplash.com/photo-1508614589041-895b88991e3e?w=1000"
     ],
-    "missiles": [
-        "https://images.unsplash.com/photo-1517486808906-6ca8b3f04846?w=1000",
-        "https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=1000"
-    ],
     "lebanon": [
-        "https://images.unsplash.com/photo-1534447677768-be436bb09401?w=1000",
+        "https://images.unsplash.com/photo-1534447677768-be436bb09401?w=1000", # קו גבול הררי וגזרת לבנון
         "https://images.unsplash.com/photo-1509316975850-ff9c5deb0cd9?w=1000"
     ],
     "iran": [
-        "https://images.unsplash.com/photo-1584551246679-0daf3d275d0f?w=1000",
-        "https://images.unsplash.com/photo-1579546929518-9e396f3cc809?w=1000"
+        "https://images.unsplash.com/photo-1584551246679-0daf3d275d0f?w=1000", # טהראן ואיראן
+        "https://images.unsplash.com/photo-1508614589041-895b88991e3e?w=1000"
     ],
     "diplomacy": [
-        "https://images.unsplash.com/photo-1541872703-74c5e44368f9?w=1000",
-        "https://images.unsplash.com/photo-1585829365295-ab7cd400c167?w=1000"
+        "https://images.unsplash.com/photo-1585829365295-ab7cd400c167?w=1000", # ועידת פסגה בינלאומית
+        "https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?w=1000"  # מטה ממשלתי
     ],
     "general": [
         "https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=1000",
-        "https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?w=1000"
+        "https://images.unsplash.com/photo-1595590424283-b8f17842773f?w=1000"
     ]
 }
+
+BAD_IMAGE_URLS = [
+    "photo-1517486808906", # תמונת הסטודנטים
+    "photo-1541872703",   # תמונת משפחה/אנשים
+    "photo-1579546929"    # גרדיאנט צבעים
+]
 
 def is_hebrew(text: str) -> bool:
     if not text:
@@ -232,9 +240,9 @@ def is_hebrew(text: str) -> bool:
 
 def fast_fallback_translation(title: str) -> str:
     t_low = str(title).lower()
-    if "kfar tebnit" in t_low or "fire shells" in t_low:
+    if "kfar tebnit" in t_low or "fire shells" in t_low or "shells" in t_low:
         return "כוחות צה\"ל ביצעו ירי ארטילרי באזור כפר תבנית בדרום לבנון"
-    if "palestinian man injured" in t_low or "west bank" in t_low:
+    if "palestinian man injured" in t_low or "west bank" in t_low or "detained" in t_low:
         return "פעילות כוחות הביטחון באיו\"ש: מעצר מבוקשים וסריקות מבצעיות"
     if "morning recap" in t_low:
         return "תמונת מצב ביטחונית וסקירת אירועי הבוקר בזירה האזורית"
@@ -270,35 +278,44 @@ def fast_fallback_translation(title: str) -> str:
 
 def get_unique_smart_image(title: str, content: str, used_set: set) -> str:
     text = f"{title} {content}".lower()
-    if any(w in text for w in ["soldier", "army", "idf", "tank", "troops", "military", "operation", "west bank", "jenin", "nablus", "צה\"ל", "צהל", "לוחמ", "חיילים", "סריקות", "איו\"ש", "מעצר", "שכם", "ג'נין"]):
+    
+    # 1. ירי, ארטילריה, פגזים, טילים ותקיפות
+    if any(w in text for w in ["fire shells", "shells", "artillery", "missile", "rocket", "strike", "blast", "attack", "gunfire", "ארטילר", "פגז", "ירי", "טיל", "יירוט", "תקיפה"]):
+        pool = TOPIC_IMAGE_POOLS["artillery_missiles"]
+    # 2. לוחמים, פעילות צבאית ומעצרים
+    elif any(w in text for w in ["soldier", "army", "idf", "tank", "troops", "military", "operation", "west bank", "jenin", "nablus", "צה\"ל", "צהל", "לוחמ", "חיילים", "סריקות", "איו\"ש", "מעצר", "שכם", "ג'נין"]):
         pool = TOPIC_IMAGE_POOLS["soldiers"]
+    # 3. מכ"ם והתרעה
     elif any(w in text for w in ["radar", "warning", "surveillance", "מכ\"ם", "מכם", "התרעה", "גילוי"]):
         pool = TOPIC_IMAGE_POOLS["radar"]
+    # 4. כטב"מים
     elif any(w in text for w in ["drone", "uav", "unmanned", "כטב", "מל\"ט"]):
         pool = TOPIC_IMAGE_POOLS["drone"]
-    elif any(w in text for w in ["missile", "rocket", "strike", "blast", "attack", "טיל", "יירוט", "תקיפה", "fire shells", "gunfire"]):
-        pool = TOPIC_IMAGE_POOLS["missiles"]
+    # 5. לבנון
     elif any(w in text for w in ["lebanon", "beirut", "hezbollah", "לבנון", "ביירות", "חיזבאללה", "tebnit"]):
         pool = TOPIC_IMAGE_POOLS["lebanon"]
+    # 6. איראן
     elif any(w in text for w in ["iran", "tehran", "איראן", "טהראן"]):
         pool = TOPIC_IMAGE_POOLS["iran"]
-    elif any(w in text for w in ["summit", "diplomacy", "minister", "מדיני", "פסגה", "הסכם", "election"]):
+    # 7. דיפלומטיה
+    elif any(w in text for w in ["summit", "diplomacy", "minister", "מדיני", "פסגה", "הסכם"]):
         pool = TOPIC_IMAGE_POOLS["diplomacy"]
     else:
         pool = TOPIC_IMAGE_POOLS["general"]
         
     for img in pool:
-        if img not in used_set:
+        if img not in used_set and not any(bad in img for bad in BAD_IMAGE_URLS):
             used_set.add(img)
             return img
+            
     for fallback_pool in TOPIC_IMAGE_POOLS.values():
         for img in fallback_pool:
-            if img not in used_set:
+            if img not in used_set and not any(bad in img for bad in BAD_IMAGE_URLS):
                 used_set.add(img)
                 return img
-    return pool[0]
+                
+    return TOPIC_IMAGE_POOLS["artillery_missiles"][0]
 
-# מאגר דיווחים עשיר וקבוע בזיכרון המבטיח שהאתר תמיד יציג כתבות
 DEFAULT_ARTICLES = [
     {
         "url": "https://www.middleeasteye.net/news/2026/lebanon-tebnit-artillery",
@@ -307,7 +324,7 @@ DEFAULT_ARTICLES = [
         "title_original": "Israeli forces fire shells near residents approaching Lebanon's Kfar Tebnit",
         "content_original": "Artillery shelling targeted areas adjacent to southern Lebanese villages during border tensions.",
         "published_at": "14:15 2026-09-14",
-        "image_url": TOPIC_IMAGE_POOLS["missiles"][0],
+        "image_url": TOPIC_IMAGE_POOLS["artillery_missiles"][0],
         "title_hebrew": "כוחות צה\"ל ביצעו ירי ארטילרי באזור כפר תבנית בדרום לבנון",
         "summary_hebrew": "חילופי אש וירי ארטילרי נרשמו בסמוך לקו העימות בדרום לבנון בעקבות תנועות חשודות בגזרה.",
         "sentiment": "צבאי וביטחוני",
@@ -417,6 +434,11 @@ DEFAULT_ARTICLES = [
 def load_data():
     try:
         conn = get_connection()
+        # החלפת תמונות לא רלוונטיות במסד הנתונים
+        cursor = conn.cursor()
+        for bad_id in BAD_IMAGE_URLS:
+            cursor.execute("UPDATE articles SET image_url = ? WHERE image_url LIKE ?", (TOPIC_IMAGE_POOLS["artillery_missiles"][0], f"%{bad_id}%"))
+        conn.commit()
         db_df = pd.read_sql_query("SELECT * FROM articles ORDER BY id DESC", conn)
         conn.close()
         if not db_df.empty and len(db_df) >= 3:
@@ -425,7 +447,6 @@ def load_data():
         pass
     return pd.DataFrame(DEFAULT_ARTICLES)
 
-# מנוע איסוף רציף ברקע
 def background_worker():
     while True:
         try:
@@ -436,7 +457,7 @@ def background_worker():
                     a.update({
                         'title_hebrew': heb_title,
                         'summary_hebrew': a['content_original'][:160] if is_hebrew(a['content_original']) else heb_title,
-                        'sentiment': 'צבאי וביטחוני' if any(w in a['title_original'].lower() for w in ['strike', 'fire', 'idf', 'missile', 'gunfire', 'forces', 'detained']) else 'שוטף',
+                        'sentiment': 'צבאי וביטחוני' if any(w in a['title_original'].lower() for w in ['strike', 'fire', 'idf', 'missile', 'gunfire', 'forces', 'detained', 'shells']) else 'שוטף',
                         'sentiment_score': 0.0,
                         'mentioned_countries': 'ישראל'
                     })
@@ -458,18 +479,18 @@ start_worker()
 
 df = load_data()
 
-# --- 1. שורת סינון עליונה ---
+# שורת סינון עליונה
 c_search, c_cat = st.columns([7, 3])
 with c_search:
     search_query = st.text_input("חיפוש", placeholder="🔎 חפש בידיעות: נתניהו, טילים, הפסקת אש, ביירות...", label_visibility="collapsed")
 with c_cat:
     cat_filter = st.selectbox("תחום", ["כל התחומים", "צבאי וביטחוני", "מדיני ודיפלומטי", "כלכלה וסנקציות"], label_visibility="collapsed")
 
-# --- 2. כותרת האתר ---
+# כותרת האתר
 st.markdown("<h1 style='margin: 10px 0 4px 0; font-size: 2.2rem; font-weight: 900; color: #ffffff;'>🌐 דסק מודיעין תקשורת עולמי</h1>", unsafe_allow_html=True)
 st.caption("ניטור נרטיבים ודיווחים בזמן אמת ממאגרי התקשורת המובילים בעולם | מתעדכן אוטומטית בעברית 24/7")
 
-# --- 3. סרגל מדינות עם דגלים גרפיים ---
+# סרגל מדינות
 if "selected_country" not in st.session_state:
     st.session_state["selected_country"] = "כל הדיווחים"
 
@@ -504,7 +525,6 @@ st.markdown("<hr style='border-color: #1f2937; margin: 14px 0 24px 0;'>", unsafe
 selected_country = st.session_state["selected_country"]
 filtered = df.copy()
 
-# סינון מדינה
 if selected_country != "כל הדיווחים":
     synonyms = {
         "ישראל": ["ישראל", "israel", "idf", "נתניהו"],
@@ -524,11 +544,9 @@ if selected_country != "כל הדיווחים":
         filtered['title_original'].astype(str).str.contains(pattern, case=False, na=False)
     ]
 
-# סינון קטגוריה רק אם נבחר משהו שאינו ברירת מחדל
 if cat_filter != "כל התחומים":
     filtered = filtered[filtered['sentiment'].astype(str).str.contains(cat_filter, na=False)]
 
-# חיפוש חופשי
 if search_query:
     p = search_query.strip()
     filtered = filtered[
@@ -537,9 +555,7 @@ if search_query:
         filtered['title_original'].astype(str).str.contains(p, case=False, na=False)
     ]
 
-# אם סינון ספציפי לא מצא תוצאות - מציג חזרה את המאגר כדי שלעולם לא יהיה מסך ריק
 render_df = filtered if not filtered.empty else df
-
 used_page_images = set()
 
 main_art = render_df.iloc[0]
