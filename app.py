@@ -14,13 +14,14 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
+# עיצוב מתקדם בסגנון פורטל ספורט/חדשות כהה
 st.markdown("""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;600;700;900&display=swap');
 
     .stApp {
-        background-color: #080b11;
-        color: #e2e8f0;
+        background-color: #0b0f19;
+        color: #f1f5f9;
         font-family: 'Heebo', sans-serif !important;
         direction: rtl;
         text-align: right;
@@ -30,132 +31,213 @@ st.markdown("""
         display: none !important;
     }
 
-    [data-testid="stVerticalBlockBorderWrapper"] {
-        background-color: #0f172a !important;
-        border: 1px solid #1e293b !important;
-        border-radius: 12px !important;
-        transition: transform 0.2s ease, border-color 0.2s ease;
-    }
-    [data-testid="stVerticalBlockBorderWrapper"]:hover {
-        border-color: #0ea5e9 !important;
-        transform: translateY(-2px);
-    }
-
-    .badge {
-        display: inline-block;
-        padding: 3px 8px;
-        border-radius: 4px;
-        font-size: 0.75rem;
-        font-weight: 700;
-        margin-left: 6px;
-    }
-    .badge-urgent { background-color: rgba(239, 68, 68, 0.2); color: #f87171; border: 1px solid #ef4444; }
-    .badge-cat { background-color: rgba(14, 165, 233, 0.2); color: #38bdf8; border: 1px solid #0ea5e9; }
-    .badge-src { background-color: #1e293b; color: #cbd5e1; }
-    .badge-time { background-color: rgba(100, 116, 139, 0.2); color: #94a3b8; border: 1px solid #334155; }
-    .badge-target { background-color: rgba(168, 85, 247, 0.2); color: #c084fc; border: 1px solid #a855f7; }
-
-    .sector-header {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        border-bottom: 2px solid #1e293b;
-        padding-bottom: 8px;
-        margin-top: 36px;
+    /* תיבת חיפוש וסינון עליונה מעוצבת */
+    .filter-wrapper {
+        background: #111827;
+        border: 1px solid #1f2937;
+        border-radius: 12px;
+        padding: 14px 18px;
         margin-bottom: 20px;
     }
-    .sector-title {
-        font-size: 1.35rem;
-        font-weight: 800;
-        color: #f1f5f9;
+
+    /* כרטיס ראשי ענק בסגנון אתר ספורט */
+    .main-hero-card {
+        background: #111827;
+        border: 1px solid #1f2937;
+        border-radius: 14px;
+        overflow: hidden;
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        transition: border-color 0.2s;
+    }
+    .main-hero-card:hover {
+        border-color: #38bdf8;
+    }
+    .main-hero-img {
+        width: 100%;
+        height: 340px;
+        object-fit: cover;
+    }
+    .main-hero-body {
+        padding: 18px 22px;
+        display: flex;
+        flex-direction: column;
+        flex-grow: 1;
     }
 
-    a.read-link {
-        color: #38bdf8 !important;
-        font-weight: 700;
-        font-size: 0.85rem;
+    /* כרטיסי הרשימה הצדדית (3 כתבות לצד הראשית) */
+    .side-item-card {
+        background: #111827;
+        border: 1px solid #1f2937;
+        border-radius: 10px;
+        display: flex;
+        gap: 12px;
+        padding: 10px;
+        margin-bottom: 12px;
+        align-items: center;
+        transition: transform 0.2s, border-color 0.2s;
         text-decoration: none;
     }
-    a.read-link:hover {
-        text-decoration: underline;
+    .side-item-card:hover {
+        border-color: #0284c7;
+        transform: translateX(-4px);
     }
+    .side-item-img {
+        width: 105px;
+        height: 80px;
+        border-radius: 6px;
+        object-fit: cover;
+        flex-shrink: 0;
+    }
+
+    /* כרטיסי גריד תחתונים */
+    .grid-card {
+        background: #111827;
+        border: 1px solid #1f2937;
+        border-radius: 12px;
+        overflow: hidden;
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        transition: transform 0.2s, border-color 0.2s;
+    }
+    .grid-card:hover {
+        border-color: #0284c7;
+        transform: translateY(-3px);
+    }
+    .grid-card-img {
+        width: 100%;
+        height: 155px;
+        object-fit: cover;
+    }
+    .grid-card-body {
+        padding: 14px;
+        display: flex;
+        flex-direction: column;
+        flex-grow: 1;
+    }
+
+    /* תגים */
+    .tag {
+        display: inline-block;
+        padding: 2px 7px;
+        border-radius: 4px;
+        font-size: 0.72rem;
+        font-weight: 700;
+        margin-left: 5px;
+    }
+    .tag-source { background: #1e293b; color: #93c5fd; }
+    .tag-category { background: #0369a1; color: #ffffff; }
+    .tag-time { background: #334155; color: #cbd5e1; }
+    .tag-country { background: #4c1d95; color: #e9d5ff; }
+
+    .read-btn {
+        color: #38bdf8 !important;
+        font-weight: 700;
+        font-size: 0.82rem;
+        text-decoration: none;
+        margin-top: auto;
+        padding-top: 8px;
+        display: inline-block;
+    }
+    .read-btn:hover { text-decoration: underline; }
 </style>
 """, unsafe_allow_html=True)
 
 init_db()
 
-# נתוני אתחול עשירים ומעודכנים מראש
+# פונקציה לבחירת תמונה חכמה לפי תוכן הכתבה
+def get_smart_image(title: str, content: str, default_img: str) -> str:
+    text = f"{title} {content}".lower()
+    if any(w in text for w in ["missile", "rocket", "strike", "drone", "blast", "attack", "טיל", "יירוט", "תקיפה", "כטב", "פיצוץ"]):
+        return "https://images.unsplash.com/photo-1517486808906-6ca8b3f04846?w=1000"
+    if any(w in text for w in ["soldier", "army", "idf", "tank", "troops", "military", "צבא", "צהל", "לוחמ"]):
+        return "https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?w=1000"
+    if any(w in text for w in ["iran", "tehran", "nuclear", "איראן", "טהראן", "גרעין"]):
+        return "https://images.unsplash.com/photo-1579546929518-9e396f3cc809?w=1000"
+    if any(w in text for w in ["lebanon", "beirut", "hezbollah", "לבנון", "ביירות", "חיזבאללה"]):
+        return "https://images.unsplash.com/photo-1534447677768-be436bb09401?w=1000"
+    if any(w in text for w in ["gaza", "hamas", "עזה", "חמאס", "רפיח"]):
+        return "https://images.unsplash.com/photo-1541872703-74c5e44368f9?w=1000"
+    if any(w in text for w in ["summit", "biden", "white house", "diplomacy", "minister", "מדיני", "ארה\"ב", "פסגה", "בלינקן"]):
+        return "https://images.unsplash.com/photo-1541872703-74c5e44368f9?w=1000"
+    if default_img and "unsplash" not in default_img and "http" in default_img:
+        return default_img
+    return "https://images.unsplash.com/photo-1504711434969-e33886168f5c?w=1000"
+
+# נתוני אתחול מעודכנים
 now_str = datetime.now().strftime("%Y-%m-%d %H:%M")
 SEED_DATA = [
     {
-        "url": "https://www.bbc.com/news/world-middle-east-2026-regional-diplomacy",
-        "source_name": "BBC News",
-        "country": "בריטניה",
-        "title_original": "Intense security consultations held regarding northern border escalation",
-        "content_original": "International envoys coordinate with Israel and Lebanon to contain border hostilities and preserve maritime stability.",
-        "published_at": now_str,
-        "image_url": "https://images.unsplash.com/photo-1504711434969-e33886168f5c?w=1000",
-        "title_hebrew": "מגעים בינלאומיים דחופים למניעת התרחבות הלחימה בצפון",
-        "summary_hebrew": "שליחים מארה\"ב ומאירופה מקיימים התייעצויות ביטחוניות בירושלים ובביירות במאמץ למנוע הידרדרות אזורית כוללת.",
-        "sentiment": "צבאי וביטחוני",
-        "sentiment_score": 1.0,
-        "mentioned_countries": "ישראל, לבנון, ארה\"ב"
-    },
-    {
-        "url": "https://www.aljazeera.com/news/2026/gaza-humanitarian-talks",
+        "url": "https://www.aljazeera.com/news/liveblog/2026/mideast-security",
         "source_name": "Al Jazeera",
         "country": "קטר",
-        "title_original": "Negotiation delegations assemble in Cairo regarding aid protocols",
-        "content_original": "Regional mediators present revised mechanisms regarding security guarantees and civilian logistics in Gaza.",
-        "published_at": now_str,
-        "image_url": "https://images.unsplash.com/photo-1585829365295-ab7cd400c167?w=1000",
-        "title_hebrew": "משלחות משא ומתן התכנסו בקהיר לגיבוש מתווה ביטחוני וסיוע",
-        "summary_hebrew": "מתווכים מקטר ומצרים מגבשים מסמך עקרונות להסדרת המעברים והפסקת אש זמנית תחת ערבויות בינלאומיות.",
-        "sentiment": "מדיני ודיפלומטי",
-        "sentiment_score": 1.0,
-        "mentioned_countries": "ישראל, מצרים, קטר"
-    },
-    {
-        "url": "https://english.alarabiya.net/news/2026/gulf-shipping-safety",
-        "source_name": "Al Arabiya",
-        "country": "סעודיה",
-        "title_original": "Coalition naval forces track maritime threats in the Red Sea corridor",
-        "content_original": "Naval task forces intercept suspicious drone arrays threatening commercial transit routes.",
+        "title_original": "Regional security summits address border stabilization and maritime protocols",
+        "content_original": "Mediators assemble to coordinate ceasefire conditions and security mechanisms across frontiers.",
         "published_at": now_str,
         "image_url": "https://images.unsplash.com/photo-1541872703-74c5e44368f9?w=1000",
-        "title_hebrew": "כוחות קואליציה ימיים יירטו מערך כטב\"מים בים האדום",
-        "summary_hebrew": "כוחות הצי המערבי הדפו מתקפת כטב\"מים של החות'ים שנועדה לשבש את תנועת כלי השיט לעבר מפרץ אילת.",
-        "sentiment": "צבאי וביטחוני",
+        "title_hebrew": "מגעים בינלאומיים דחופים לגיבוש מתווה ביטחוני וייצוב קווי הגבול",
+        "summary_hebrew": "משלחות תיווך אזוריות מקיימות התייעצויות אינטנסיביות למניעת הסלמה ולהסדרת מנגנוני פיקוח הדדיים.",
+        "sentiment": "מדיני ודיפלומטי",
         "sentiment_score": 1.0,
-        "mentioned_countries": "ישראל, תימן, סעודיה, ארה\"ב"
+        "mentioned_countries": "ישראל, ארה\"ב, קטר"
     },
     {
-        "url": "https://www.tehrantimes.com/news/2026/iran-strategic-announcement",
+        "url": "https://english.alarabiya.net/news/2026/red-sea-defense",
+        "source_name": "Al Arabiya",
+        "country": "סעודיה",
+        "title_original": "Coalition naval forces engage aerial targets over international shipping routes",
+        "content_original": "Naval systems shoot down hostile drone salvos launched toward navigation corridors.",
+        "published_at": now_str,
+        "image_url": "https://images.unsplash.com/photo-1517486808906-6ca8b3f04846?w=1000",
+        "title_hebrew": "יירוט נרחב של כטב\"מים עוינים מעל נתיבי השיט הבינלאומיים בים האדום",
+        "summary_hebrew": "מערכי ההגנה של הקואליציה סיכלו מתקפה מכיוון תימן שנועדה לשבש את התנועה הימית לאילת.",
+        "sentiment": "צבאי וביטחוני",
+        "sentiment_score": 1.0,
+        "mentioned_countries": "ישראל, ארה\"ב, איראן"
+    },
+    {
+        "url": "https://www.bbc.com/news/world-middle-east-2026-lebanon",
+        "source_name": "BBC News",
+        "country": "בריטניה",
+        "title_original": "Northern border exchanges intensify amid diplomatic efforts in Beirut",
+        "content_original": "Field intelligence reports track reciprocal fire and air defense responses across border communities.",
+        "published_at": now_str,
+        "image_url": "https://images.unsplash.com/photo-1534447677768-be436bb09401?w=1000",
+        "title_hebrew": "הסלמה בחילופי האש לאורך קו העימות בלבנון לצד מאמץ תיווך צרפתי",
+        "summary_hebrew": "סדרת תקיפות ממוקדות בדרום לבנון בעקבות שיגורים לעבר הגליל, במקביל למגעים דיפלומטיים בביירות.",
+        "sentiment": "צבאי וביטחוני",
+        "sentiment_score": 1.0,
+        "mentioned_countries": "לבנון, ישראל"
+    },
+    {
+        "url": "https://www.tehrantimes.com/news/2026/iran-tactical-aerospace",
         "source_name": "Tehran Times",
         "country": "איראן",
-        "title_original": "Defense officials review strategic deterrence against Western sanctions",
-        "content_original": "Iranian commanders warn against any coalition measures impacting domestic infrastructure.",
+        "title_original": "Tehran unveils integrated air surveillance grid",
+        "content_original": "Aerospace commanders declare activation of early-warning radar arrays and mobile deterrent batteries.",
         "published_at": now_str,
         "image_url": "https://images.unsplash.com/photo-1579546929518-9e396f3cc809?w=1000",
-        "title_hebrew": "איראן מאיימת במענה צבאי מול צעדים כלכליים של המערב",
-        "summary_hebrew": "בכירים בטהראן מזהירים מפני השלכות של החמרת הסנקציות וטוענים כי מערכי הטילים ערוכים לתגובה מהירה.",
+        "title_hebrew": "איראן הודיעה על פריסת מערכות התרעה ומכ\"ם חדשות",
+        "summary_hebrew": "פיקוד ההגנה האווירית של משמרות המהפכה טוען לשדרוג יכולות היירוט מול כלי טיס בלתי מאוישים.",
         "sentiment": "צבאי וביטחוני",
         "sentiment_score": 0.0,
         "mentioned_countries": "איראן, ישראל, ארה\"ב"
     },
     {
-        "url": "https://www.france24.com/en/middle-east/2026/europe-diplomatic-initiative",
-        "source_name": "France 24",
-        "country": "צרפת",
-        "title_original": "European Union drafts joint resolution on Middle East stability",
-        "content_original": "EU foreign ministers convene in Brussels to discuss diplomatic initiatives and funding for regional recovery.",
+        "url": "https://wafa.ps/ar/news/2026/west-bank-reports",
+        "source_name": "Wafa",
+        "country": "איו\"ש",
+        "title_original": "Security operations and movement regulations across northern sectors",
+        "content_original": "Field reports on checkpoints and logistical routes around commercial hubs in Nablus and Jenin.",
         "published_at": now_str,
-        "image_url": "https://images.unsplash.com/photo-1495020689067-958852a7765e?w=1000",
-        "title_hebrew": "האיחוד האירופי מקדם יוזמה מדינית להסדרה אזורית",
-        "summary_hebrew": "שרי החוץ בבריסל דנים בהצעת החלטה משותפת הקוראת לחידוש המו\"מ המדיני והרחבת הסיוע ההומניטרי.",
-        "sentiment": "מדיני ודיפלומטי",
+        "image_url": "https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?w=1000",
+        "title_hebrew": "פעילות ביטחונית וסריקות צה\"ל במוקדי חיכוך באיו\"ש",
+        "summary_hebrew": "כוחות הביטחון פעלו הלילה בגזרות ג'נין ושכם לסיכול תשתיות טרור ולמעצר מבוקשים.",
+        "sentiment": "צבאי וביטחוני",
         "sentiment_score": 0.0,
-        "mentioned_countries": "צרפת, ישראל"
+        "mentioned_countries": "איו\"ש, ישראל"
     }
 ]
 
@@ -171,7 +253,7 @@ if df.empty:
         save_article(art)
     df = load_data()
 
-# מנוע איסוף רציף ברקע
+# מנוע איסוף ברקע כל 10 דקות
 def background_worker():
     while True:
         try:
@@ -180,12 +262,14 @@ def background_worker():
                 if not is_article_exists(a['url']):
                     try:
                         res = analyze_article(a['title_original'], a['content_original'])
+                        smart_img = get_smart_image(a['title_original'], a['content_original'], a.get('image_url'))
                         a.update({
                             'title_hebrew': res.get('title_hebrew'),
                             'summary_hebrew': res.get('summary_hebrew'),
                             'sentiment': res.get('category'),
                             'sentiment_score': 1.0 if res.get('urgency') == 'מתפרצת' else 0.0,
-                            'mentioned_countries': res.get('mentioned_countries_str', 'ישראל')
+                            'mentioned_countries': res.get('mentioned_countries_str', 'ישראל'),
+                            'image_url': smart_img
                         })
                     except Exception:
                         a.update({
@@ -193,13 +277,14 @@ def background_worker():
                             'summary_hebrew': a['content_original'][:160],
                             'sentiment': 'שוטף',
                             'sentiment_score': 0.0,
-                            'mentioned_countries': 'ישראל'
+                            'mentioned_countries': 'ישראל',
+                            'image_url': get_smart_image(a['title_original'], a['content_original'], a.get('image_url'))
                         })
                     save_article(a)
                     time.sleep(4)
         except Exception as e:
             print(f"Worker background error: {e}")
-        time.sleep(300)
+        time.sleep(600)
 
 @st.cache_resource
 def start_worker():
@@ -209,169 +294,158 @@ def start_worker():
 
 start_worker()
 
-# כותרת עליונה
-top_c1, top_c2, top_c3 = st.columns([6, 3, 3])
-with top_c1:
-    st.markdown("<h1 style='margin-bottom:2px; font-weight:900;'>🌐 דסק מודיעין תקשורת עולמי</h1>", unsafe_allow_html=True)
-    st.caption("ניטור רב-זירתי 24/7 | סריקה של 15+ סוכנויות בינלאומיות מובילות")
-with top_c2:
-    st.metric("סה\"כ דיווחים במערכת", len(df))
-with top_c3:
-    military_cnt = len(df[df['sentiment'].astype(str).str.contains('צבאי', na=False)])
-    st.metric("דיווחים ביטחוניים", military_cnt)
+# --- 1. שורת סינון וחיפוש עליונה מעוצבת ---
+c_search, c_cat = st.columns([7, 3])
+with c_search:
+    search_query = st.text_input("חיפוש", placeholder="🔎 חפש בידיעות: נתניהו, טילים, הפסקת אש, ביירות...", label_visibility="collapsed")
+with c_cat:
+    cat_filter = st.selectbox("תחום", ["כל התחומים", "צבאי וביטחוני", "מדיני ודיפלומטי", "כלכלה וסנקציות"], label_visibility="collapsed")
 
-st.markdown("<hr style='border-color: #1e293b; margin: 15px 0 20px 0;'>", unsafe_allow_html=True)
+# --- 2. כותרת האתר ---
+st.markdown("<h1 style='margin: 10px 0 4px 0; font-size: 2.2rem; font-weight: 900; color: #ffffff;'>🌐 דסק מודיעין תקשורת עולמי</h1>", unsafe_allow_html=True)
+st.caption("ניטור נרטיבים ודיווחים בזמן אמת ממאגרי התקשורת המובילים בעולם")
 
-# --- אזור סינון וחיפוש מתקדם ---
-st.markdown("##### 🔍 סינון מודיעיני ממוקד")
-f_col1, f_col2, f_col3 = st.columns([3, 3, 4])
+# --- 3. תפריט מדינות עליון בסגנון ערוץ ספורט (Sport 1 Navbar) ---
+COUNTRIES_NAV = ["כל הדיווחים", "ישראל", "ארה\"ב", "איראן", "לבנון", "רצועת עזה", "איו\"ש"]
+selected_country = st.radio(
+    "בחר מדינה",
+    COUNTRIES_NAV,
+    horizontal=True,
+    label_visibility="collapsed"
+)
 
-# איסוף רשימת מדינות מקור
-source_countries = ["הכל"] + sorted(list(df['country'].dropna().unique()))
+st.markdown("<hr style='border-color: #1f2937; margin: 12px 0 24px 0;'>", unsafe_allow_html=True)
 
-# איסוף רשימת כל המדינות המוזכרות מתוך השדה
-all_targets = set()
-for item in df['mentioned_countries'].dropna():
-    for c in str(item).split(","):
-        c_clean = c.strip()
-        if c_clean:
-            all_targets.add(c_clean)
-target_countries = ["הכל"] + sorted(list(all_targets))
+# סינון הנתונים
+filtered = df.copy()
 
-with f_col1:
-    sel_source = st.selectbox("🌍 מדינה שבה פורסם:", source_countries)
-
-with f_col2:
-    sel_target = st.selectbox("🎯 מדינה שנוגעת לכתבה:", target_countries)
-
-with f_col3:
-    search_txt = st.text_input("🔎 חיפוש חופשי בכותרת או בתוכן:", placeholder="למשל: נתניהו, טילים, סנקציות, ביירות...")
-
-# החלת הסינונים
-filtered_df = df.copy()
-
-if sel_source != "הכל":
-    filtered_df = filtered_df[filtered_df['country'] == sel_source]
-
-if sel_target != "הכל":
-    filtered_df = filtered_df[filtered_df['mentioned_countries'].astype(str).str.contains(sel_target, case=False, na=False)]
-
-if search_txt:
-    pattern = search_txt.strip()
-    filtered_df = filtered_df[
-        filtered_df['title_hebrew'].astype(str).str.contains(pattern, case=False, na=False) |
-        filtered_df['summary_hebrew'].astype(str).str.contains(pattern, case=False, na=False) |
-        filtered_df['title_original'].astype(str).str.contains(pattern, case=False, na=False)
+# סינון מדינה (כולל איפה פורסם וגם על מי זה נוגע!)
+if selected_country != "כל הדיווחים":
+    synonyms = {
+        "ישראל": ["ישראל", "israel", "idf", "נתניהו"],
+        "ארה\"ב": ["ארה\"ב", "ארצות הברית", "united states", "biden", "וושינגטון"],
+        "איראן": ["איראן", "iran", "tehran", "טהראן"],
+        "לבנון": ["לבנון", "lebanon", "beirut", "חיזבאללה"],
+        "רצועת עזה": ["עזה", "gaza", "חמאס", "רפיח"],
+        "איו\"ש": ["איו\"ש", "יהודה ושומרון", "גדה", "west bank", "ג'נין", "שכם"]
+    }
+    keys = synonyms.get(selected_country, [selected_country])
+    pattern = "|".join(keys)
+    filtered = filtered[
+        filtered['country'].astype(str).str.contains(pattern, case=False, na=False) |
+        filtered['mentioned_countries'].astype(str).str.contains(pattern, case=False, na=False) |
+        filtered['title_hebrew'].astype(str).str.contains(pattern, case=False, na=False) |
+        filtered['summary_hebrew'].astype(str).str.contains(pattern, case=False, na=False)
     ]
 
-st.markdown("<div style='margin-bottom: 25px;'></div>", unsafe_allow_html=True)
+if cat_filter != "כל התחומים":
+    filtered = filtered[filtered['sentiment'] == cat_filter]
 
-if filtered_df.empty:
-    st.warning("לא נמצאו דיווחים התואמים לסינון שנבחר. נסה לבחור קריטריון אחר.")
+if search_query:
+    p = search_query.strip()
+    filtered = filtered[
+        filtered['title_hebrew'].astype(str).str.contains(p, case=False, na=False) |
+        filtered['summary_hebrew'].astype(str).str.contains(p, case=False, na=False) |
+        filtered['title_original'].astype(str).str.contains(p, case=False, na=False)
+    ]
+
+# --- 4. מבנה דף הבית (Main Hero + Side Feed) בדיוק כמו ספורט 1 ---
+if filtered.empty:
+    st.info(f"לא נמצאו דיווחים התואמים לקריטריון עבור '{selected_country}'.")
 else:
-    # 1. דיווחי מוקד חמים
-    st.markdown("### 🔥 דיווחי מוקד")
-    hero_df = filtered_df.head(2)
-    h_col1, h_col2 = st.columns(2)
+    main_art = filtered.iloc[0]
+    side_arts = filtered.iloc[1:4] if len(filtered) > 1 else pd.DataFrame()
 
-    for col, (_, row) in zip([h_col1, h_col2], hero_df.iterrows()):
-        with col:
-            with st.container(border=True):
-                img_url = row.get('image_url') if ('image_url' in row and pd.notna(row['image_url']) and row['image_url']) else "https://images.unsplash.com/photo-1504711434969-e33886168f5c?w=1000"
-                st.image(img_url, use_container_width=True)
-                
-                cat = str(row.get('sentiment', 'כללי'))
-                is_urgent = row.get('sentiment_score', 0.0) == 1.0
-                urgency_html = '<span class="badge badge-urgent">מתפרצת</span>' if is_urgent else ''
-                pub_time = str(row.get('published_at', 'עדכון שוטף'))[:16]
-                targets = str(row.get('mentioned_countries', 'ישראל'))
-                
+    col_main, col_side = st.columns([7, 5])
+
+    # כתבה ראשית גדולה (מימין)
+    with col_main:
+        hero_img = get_smart_image(main_art['title_original'], main_art['content_original'], main_art.get('image_url'))
+        cat = str(main_art.get('sentiment', 'כללי'))
+        t_heb = main_art.get('title_hebrew') or main_art.get('title_original')
+        s_heb = str(main_art.get('summary_hebrew', ''))[:220]
+        time_str = str(main_art.get('published_at', 'שעות אחרונות'))[:16]
+        src = main_art.get('source_name', '')
+        c_name = main_art.get('country', '')
+        targets = str(main_art.get('mentioned_countries', ''))
+        url = main_art.get('url', '#')
+
+        st.markdown(f"""
+        <div class="main-hero-card">
+            <img class="main-hero-img" src="{hero_img}" alt="Main story" />
+            <div class="main-hero-body">
+                <div style="margin-bottom: 8px;">
+                    <span class="tag tag-category">{cat}</span>
+                    <span class="tag tag-source">📰 {src} ({c_name})</span>
+                    <span class="tag tag-country">🎯 נוגע ל: {targets}</span>
+                    <span class="tag tag-time">🕒 {time_str}</span>
+                </div>
+                <h2 style="font-size: 1.55rem; font-weight: 900; margin: 6px 0 10px 0; color: #ffffff; line-height: 1.35;">{t_heb}</h2>
+                <p style="color: #94a3b8; font-size: 0.98rem; line-height: 1.6; margin-bottom: 14px;">{s_heb}...</p>
+                <a class="read-btn" href="{url}" target="_blank">לקריאת הדיווח המקורי בערוץ ←</a>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+
+    # 3 מבזקים צדדיים עם תמונות (משמאל)
+    with col_side:
+        st.markdown("<div style='font-size: 1.15rem; font-weight: 800; margin-bottom: 10px; color: #38bdf8;'>⚡ דיווחים חמים נוספים</div>", unsafe_allow_html=True)
+        if not side_arts.empty:
+            for _, s_row in side_arts.iterrows():
+                s_img = get_smart_image(s_row['title_original'], s_row['content_original'], s_row.get('image_url'))
+                s_title = s_row.get('title_hebrew') or s_row.get('title_original')
+                s_src = s_row.get('source_name', '')
+                s_time = str(s_row.get('published_at', ''))[:16]
+                s_cat = str(s_row.get('sentiment', 'כללי'))
+                s_url = s_row.get('url', '#')
+
                 st.markdown(f"""
-                <div style="margin: 8px 0;">
-                    <span class="badge badge-src">📰 {row.get('source_name', '')} ({row.get('country', '')})</span>
-                    <span class="badge badge-cat">{cat}</span>
-                    <span class="badge badge-target">🎯 נוגע ל: {targets}</span>
-                    <span class="badge badge-time">🕒 {pub_time}</span>
-                    {urgency_html}
+                <a class="side-item-card" href="{s_url}" target="_blank">
+                    <img class="side-item-img" src="{s_img}" />
+                    <div style="flex-grow: 1;">
+                        <div style="margin-bottom: 4px;">
+                            <span class="tag tag-source">{s_src}</span>
+                            <span class="tag tag-category">{s_cat}</span>
+                        </div>
+                        <div style="font-weight: 700; font-size: 0.92rem; color: #f1f5f9; line-height: 1.4; margin-bottom: 4px;">
+                            {s_title}
+                        </div>
+                        <div style="font-size: 0.75rem; color: #64748b;">🕒 {s_time}</div>
+                    </div>
+                </a>
+                """, unsafe_allow_html=True)
+
+    # --- 5. גריד דיווחים נוספים מהעולם ---
+    rem_arts = filtered.iloc[4:] if len(filtered) > 4 else pd.DataFrame()
+    if not rem_arts.empty:
+        st.markdown("<h3 style='margin: 35px 0 15px 0; font-weight: 800;'>📰 כל הדיווחים והכתבות</h3>", unsafe_allow_html=True)
+        cols = st.columns(3)
+        for idx, (_, r_art) in enumerate(rem_arts.iterrows()):
+            with cols[idx % 3]:
+                r_img = get_smart_image(r_art['title_original'], r_art['content_original'], r_art.get('image_url'))
+                r_title = r_art.get('title_hebrew') or r_art.get('title_original')
+                r_summary = str(r_art.get('summary_hebrew', ''))[:110]
+                r_cat = str(r_art.get('sentiment', 'כללי'))
+                r_src = r_art.get('source_name', '')
+                r_time = str(r_art.get('published_at', ''))[:16]
+                r_url = r_art.get('url', '#')
+
+                st.markdown(f"""
+                <div class="grid-card" style="margin-bottom: 18px;">
+                    <img class="grid-card-img" src="{r_img}" />
+                    <div class="grid-card-body">
+                        <div style="margin-bottom: 6px;">
+                            <span class="tag tag-source">{r_src}</span>
+                            <span class="tag tag-category">{r_cat}</span>
+                            <span class="tag tag-time">🕒 {r_time}</span>
+                        </div>
+                        <div style="font-weight: 700; font-size: 0.98rem; color: #ffffff; line-height: 1.4; margin-bottom: 6px;">
+                            {r_title}
+                        </div>
+                        <div style="font-size: 0.84rem; color: #94a3b8; line-height: 1.5; margin-bottom: 10px;">
+                            {r_summary}...
+                        </div>
+                        <a class="read-btn" href="{r_url}" target="_blank">לכתבה המלאה ←</a>
+                    </div>
                 </div>
                 """, unsafe_allow_html=True)
-                
-                title = row.get('title_hebrew') or row.get('title_original')
-                st.markdown(f"<h3 style='color: #ffffff; margin: 4px 0 8px 0; font-size: 1.25rem; font-weight: 800; line-height: 1.4;'>{title}</h3>", unsafe_allow_html=True)
-                
-                summary = str(row.get('summary_hebrew', ''))[:160]
-                st.markdown(f"<p style='color: #94a3b8; font-size: 0.92rem; line-height: 1.6; margin-bottom: 12px;'>{summary}...</p>", unsafe_allow_html=True)
-                
-                url = row.get('url', '#')
-                st.markdown(f"<a class='read-link' href='{url}' target='_blank'>לקריאת המקור בערוץ ←</a>", unsafe_allow_html=True)
-
-    # 2. חלוקה לגזרות פעילות
-    SECTORS = [
-        {"title": "איראן והציר האזורי", "icon": "🎯", "keys": ["iran", "tehran", "איראן", "טהראן", "Houthi", "תימן", "Tehran Times", "IRNA"]},
-        {"title": "לבנון וחיזבאללה", "icon": "🇱🇧", "keys": ["lebanon", "hezbollah", "beirut", "לבנון", "חיזבאללה", "Al Mayadeen", "L'Orient"]},
-        {"title": "רצועת עזה והעולם הערבי", "icon": "⚡", "keys": ["gaza", "hamas", "עזה", "חמאס", "Al Jazeera", "Al Arabiya", "מצרים", "קטר"]},
-        {"title": "יהודה ושומרון", "icon": "🛡️", "keys": ["west bank", "settler", "jenin", "איו\"ש", "גדה", "Wafa", "שומרון"]},
-        {"title": "מעצמות וזירה בינלאומית", "icon": "🌍", "keys": ["United States", "BBC", "NY Times", "France 24", "The Guardian", "אירופה", "DW", "Washington"]}
-    ]
-
-    for sec in SECTORS:
-        pattern = "|".join(sec["keys"])
-        sec_df = filtered_df[
-            filtered_df['country'].astype(str).str.contains(pattern, case=False, na=False) |
-            filtered_df['source_name'].astype(str).str.contains(pattern, case=False, na=False) |
-            filtered_df['title_original'].astype(str).str.contains(pattern, case=False, na=False) |
-            filtered_df['title_hebrew'].astype(str).str.contains(pattern, case=False, na=False) |
-            filtered_df['summary_hebrew'].astype(str).str.contains(pattern, case=False, na=False) |
-            filtered_df['mentioned_countries'].astype(str).str.contains(pattern, case=False, na=False)
-        ].head(3)
-
-        if not sec_df.empty:
-            st.markdown(f"""
-            <div class="sector-header">
-                <span style="font-size: 1.4rem;">{sec['icon']}</span>
-                <span class="sector-title">{sec['title']}</span>
-            </div>
-            """, unsafe_allow_html=True)
-
-            cols = st.columns(3)
-            for c_idx, (_, row) in enumerate(sec_df.iterrows()):
-                with cols[c_idx]:
-                    with st.container(border=True):
-                        img_src = row.get('image_url') if ('image_url' in row and pd.notna(row['image_url']) and row['image_url']) else "https://images.unsplash.com/photo-1504711434969-e33886168f5c?w=800"
-                        st.image(img_src, use_container_width=True)
-
-                        cat = str(row.get('sentiment', 'כללי'))
-                        pub_time = str(row.get('published_at', 'עדכון שוטף'))[:16]
-                        targets = str(row.get('mentioned_countries', 'ישראל'))
-                        
-                        st.markdown(f"""
-                        <div style="margin: 6px 0;">
-                            <span class="badge badge-src">📰 {row.get('source_name', '')}</span>
-                            <span class="badge badge-cat">{cat}</span>
-                            <span class="badge badge-target">🎯 {targets}</span>
-                            <span class="badge badge-time">🕒 {pub_time}</span>
-                        </div>
-                        """, unsafe_allow_html=True)
-
-                        c_title = row.get('title_hebrew') or row.get('title_original')
-                        st.markdown(f"<div style='font-weight: 700; color: #fff; font-size: 1.02rem; margin-bottom: 6px; line-height: 1.4;'>{c_title}</div>", unsafe_allow_html=True)
-
-                        c_summary = str(row.get('summary_hebrew', ''))[:120]
-                        st.markdown(f"<div style='font-size: 0.85rem; color: #94a3b8; line-height: 1.5; margin-bottom: 12px;'>{c_summary}...</div>", unsafe_allow_html=True)
-
-                        c_url = row.get('url', '#')
-                        st.markdown(f"<a class='read-link' href='{c_url}' target='_blank'>לכתבה המקורית ←</a>", unsafe_allow_html=True)
-
-# 3. ארכיון מלא עם תמיכה במדינות
-st.markdown("<div style='margin-top: 40px;'></div>", unsafe_allow_html=True)
-with st.expander("📂 ארכיון וכל הדיווחים מהעולם", expanded=False):
-    archive_df = filtered_df[['published_at', 'source_name', 'country', 'mentioned_countries', 'sentiment', 'title_hebrew', 'url']].copy()
-    archive_df.columns = ['תאריך פרסום', 'ערוץ / מקור', 'מדינת פרסום', 'נוגע למדינות', 'תחום', 'כותרת הדיווח', 'קישור ישיר']
-    st.dataframe(
-        archive_df,
-        column_config={
-            "קישור ישיר": st.column_config.LinkColumn("קישור למקור")
-        },
-        hide_index=True,
-        use_container_width=True
-    )
