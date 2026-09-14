@@ -1,32 +1,34 @@
 import sqlite3
 import os
 
-DB_PATH = "data/osint.db"
+DB_PATH = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "data", "osint.db")
 
 def get_connection():
     os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)
-    return sqlite3.connect(DB_PATH)
+    conn = sqlite3.connect(DB_PATH, check_same_thread=False)
+    conn.row_factory = sqlite3.Row
+    return conn
 
 def init_db():
     conn = get_connection()
     cursor = conn.cursor()
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS articles (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            url TEXT UNIQUE,
-            source_name TEXT,
-            country TEXT,
-            title_original TEXT,
-            content_original TEXT,
-            title_hebrew TEXT,
-            summary_hebrew TEXT,
-            sentiment TEXT,
-            sentiment_score REAL,
-            image_url TEXT,
-            published_at TEXT,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        )
-    ''')
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS articles (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        url TEXT UNIQUE,
+        source_name TEXT,
+        country TEXT,
+        title_original TEXT,
+        content_original TEXT,
+        published_at TEXT,
+        image_url TEXT,
+        title_hebrew TEXT,
+        summary_hebrew TEXT,
+        sentiment TEXT,
+        sentiment_score REAL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+    """)
     conn.commit()
     conn.close()
 
@@ -41,23 +43,24 @@ def is_article_exists(url: str) -> bool:
 def save_article(art: dict):
     conn = get_connection()
     cursor = conn.cursor()
-    cursor.execute('''
-        OR IGNORE INTO articles (
-            url, source_name, country, title_original, content_original,
-            title_hebrew, summary_hebrew, sentiment, sentiment_score, image_url, published_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    ''', (
-        art.get('url'),
-        art.get('source_name'),
-        art.get('country'),
-        art.get('title_original'),
-        art.get('content_original'),
-        art.get('title_hebrew'),
-        art.get('summary_hebrew'),
-        art.get('sentiment'),
-        art.get('sentiment_score'),
-        art.get('image_url'),
-        art.get('published_at')
+    cursor.execute("""
+    INSERT OR IGNORE INTO articles (
+        url, source_name, country, title_original,
+        content_original, published_at, image_url,
+        title_hebrew, summary_hebrew, sentiment, sentiment_score
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    """, (
+        art.get("url"),
+        art.get("source_name"),
+        art.get("country"),
+        art.get("title_original"),
+        art.get("content_original"),
+        art.get("published_at"),
+        art.get("image_url"),
+        art.get("title_hebrew"),
+        art.get("summary_hebrew"),
+        art.get("sentiment"),
+        art.get("sentiment_score", 0.0)
     ))
     conn.commit()
     conn.close()
