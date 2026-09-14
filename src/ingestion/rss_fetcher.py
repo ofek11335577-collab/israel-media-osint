@@ -32,17 +32,11 @@ def extract_real_image(entry):
 def fetch_relevant_articles():
     articles = []
     seen = set()
-    keywords = [
-        "israel", "netanyahu", "gaza", "lebanon", "hezbollah", "beirut", "iran", 
-        "tehran", "hamas", "tel aviv", "idf", "houthi", "yemen", "west bank", 
-        "jerusalem", "syria", "damascus", "palestin", "middle east", "ceasefire",
-        "strike", "military", "missile", "war", "drone", "hostage", "saudi", "iraq", "irgc"
-    ]
-    
     for f in FEEDS:
         try:
             feed = feedparser.parse(f['url'])
-            for entry in feed.entries[:12]:
+            # שאיפה של עד 25 כתבות מכל פיד כדי להבטיח שפע עצום של תוכן
+            for entry in feed.entries[:25]:
                 title = entry.get('title', '').strip()
                 clean_key = re.sub(r'[^a-zA-Z0-9\u0590-\u05ea]', '', title.lower())
                 if not clean_key or clean_key in seen:
@@ -51,19 +45,16 @@ def fetch_relevant_articles():
                 
                 link = entry.get('link', '')
                 summary = entry.get('summary', '') or entry.get('description', '')
-                full_text = f"{title} {summary}".lower()
-                
-                if any(k in full_text for k in keywords) or "middle" in f['url'] or "mideast" in f['url'] or "iran" in f['url']:
-                    if link:
-                        articles.append({
-                            "url": link,
-                            "source_name": f['source'],
-                            "country": f['country'],
-                            "title_original": title,
-                            "content_original": summary,
-                            "published_at": datetime.now().strftime("%Y-%m-%d %H:%M"), # זמן העלאה מדויק לדסק
-                            "image_url": extract_real_image(entry)
-                        })
+                if link:
+                    articles.append({
+                        "url": link,
+                        "source_name": f['source'],
+                        "country": f['country'],
+                        "title_original": title,
+                        "content_original": summary,
+                        "published_at": datetime.now().strftime("%Y-%m-%d %H:%M"),
+                        "image_url": extract_real_image(entry)
+                    })
         except Exception as e:
             print(f"Error {f['source']}: {e}")
     return articles
