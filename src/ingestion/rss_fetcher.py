@@ -2,9 +2,8 @@ import feedparser
 from datetime import datetime
 import email.utils
 
-# רשימת מקורות אמינים ובינלאומיים המכסים את המזרח התיכון וישראל ברציפות
 FEEDS = [
-    # סוכנויות מובילות בעולם
+    # סוכנויות עולמיות
     {"url": "https://feeds.bbci.co.uk/news/world/middle_east/rss.xml", "source": "BBC News", "country": "בריטניה"},
     {"url": "https://rss.nytimes.com/services/xml/rss/nyt/MiddleEast.xml", "source": "NY Times", "country": "ארה\"ב"},
     {"url": "https://www.france24.com/en/middle-east/rss", "source": "France 24", "country": "צרפת"},
@@ -12,18 +11,15 @@ FEEDS = [
     {"url": "https://www.theguardian.com/world/middleeast/rss", "source": "The Guardian", "country": "בריטניה"},
     {"url": "https://feeds.washingtonpost.com/rss/world", "source": "Washington Post", "country": "ארה\"ב"},
 
-    # תקשורת אזורית ומפרצית
+    # תקשורת אזורית
     {"url": "https://www.aljazeera.com/xml/rss/all.xml", "source": "Al Jazeera", "country": "קטר"},
     {"url": "https://english.alarabiya.net/rss", "source": "Al Arabiya", "country": "סעודיה"},
     {"url": "https://en.almayadeen.net/rss", "source": "Al Mayadeen", "country": "לבנון"},
     {"url": "https://today.lorientlejour.com/rss", "source": "L'Orient Today", "country": "לבנון"},
 
-    # ציר איראן ועיראק
+    # ציר איראן ואזור
     {"url": "https://www.tehrantimes.com/rss", "source": "Tehran Times", "country": "איראן"},
     {"url": "https://en.irna.ir/rss", "source": "IRNA", "country": "איראן"},
-
-    # סוכנויות ודיווחי שטח
-    {"url": "https://wafa.ps/ar/rss", "source": "Wafa", "country": "הרשות הפלסטינית"},
     {"url": "https://www.middleeasteye.net/rss", "source": "Middle East Eye", "country": "בריטניה"}
 ]
 
@@ -49,22 +45,23 @@ def extract_image(entry):
 
 def fetch_relevant_articles():
     articles = []
-    # מילות מפתח מורחבות לסינון מדויק
     keywords = [
         "israel", "netanyahu", "gaza", "lebanon", "hezbollah", "beirut", "iran", 
         "tehran", "hamas", "tel aviv", "idf", "houthi", "yemen", "west bank", 
-        "jerusalem", "syria", "damascus", "palestin", "middle east", "ceasefire"
+        "jerusalem", "syria", "damascus", "palestin", "middle east", "ceasefire",
+        "strike", "military", "missile", "war", "drone", "hostage"
     ]
     
     for f in FEEDS:
         try:
             feed = feedparser.parse(f['url'])
-            for entry in feed.entries[:12]:
+            for entry in feed.entries[:25]:
                 title = entry.get('title', '')
                 summary = entry.get('summary', '') or entry.get('description', '')
-                text_to_check = (title + " " + summary).lower()
+                full_text = f"{title} {summary}".lower()
                 
-                if any(kw in text_to_check for kw in keywords):
+                # בדיקת רלוונטיות
+                if any(k in full_text for k in keywords):
                     articles.append({
                         "url": entry.get('link', ''),
                         "source_name": f['source'],
@@ -72,9 +69,9 @@ def fetch_relevant_articles():
                         "title_original": title,
                         "content_original": summary,
                         "published_at": parse_date(entry),
-                        "image_url": extract_image(entry) or "https://images.unsplash.com/photo-1504711434969-e33886168f5c?w=800"
+                        "image_url": extract_image(entry)
                     })
         except Exception as e:
-            print(f"Error fetching {f['source']}: {e}")
+            print(f"Fetch error {f['source']}: {e}")
             
     return articles

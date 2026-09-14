@@ -14,7 +14,7 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# פונטים מודרניים - Assistant & Rubik ועיצוב פורטל ספורט כהה
+# פונטים ועיצוב פורטל ספורט כהה
 st.markdown("""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Assistant:wght@300;400;600;700;800&family=Rubik:wght@700;800;900&display=swap');
@@ -39,7 +39,6 @@ st.markdown("""
         display: none !important;
     }
 
-    /* שדות חיפוש עליונים */
     div[data-baseweb="input"] {
         background-color: #111827 !important;
         border: 1px solid #1f2937 !important;
@@ -56,7 +55,6 @@ st.markdown("""
         color: #f8fafc !important;
     }
 
-    /* כפתורי סרגל המדינות */
     div[data-testid="stHorizontalBlock"] button {
         background-color: #111827 !important;
         border: 1px solid #1f2937 !important;
@@ -80,7 +78,6 @@ st.markdown("""
         color: #ffffff !important;
     }
 
-    /* כרטיס ראשי בסגנון אתר ספורט */
     .main-hero-card {
         background: #111827;
         border: 1px solid #1f2937;
@@ -107,7 +104,6 @@ st.markdown("""
         flex-grow: 1;
     }
 
-    /* כרטיסי הרשימה הצדדית */
     .side-item-card {
         background: #111827;
         border: 1px solid #1f2937;
@@ -132,7 +128,6 @@ st.markdown("""
         flex-shrink: 0;
     }
 
-    /* כרטיסי גריד תחתונים */
     .grid-card {
         background: #111827;
         border: 1px solid #1f2937;
@@ -187,36 +182,35 @@ st.markdown("""
 
 init_db()
 
-# מאגר תמונות עשיר ממוין לפי תחומים למניעת כפילויות
 TOPIC_IMAGE_POOLS = {
     "soldiers": [
-        "https://images.unsplash.com/photo-1595590424283-b8f17842773f?w=1000", # לוחם עם אפוד קרבי ונשק
-        "https://images.unsplash.com/photo-1579783902614-a3fb3927b675?w=1000", # פעילות לוחמים מבצעית
-        "https://images.unsplash.com/photo-1578632767115-351597cf2477?w=1000"  # כוח צבאי בשטח
+        "https://images.unsplash.com/photo-1595590424283-b8f17842773f?w=1000",
+        "https://images.unsplash.com/photo-1579783902614-a3fb3927b675?w=1000",
+        "https://images.unsplash.com/photo-1578632767115-351597cf2477?w=1000"
     ],
     "radar": [
-        "https://images.unsplash.com/photo-1508614589041-895b88991e3e?w=1000", # מכ"ם ואנטנות קשר צבאיות
-        "https://images.unsplash.com/photo-1516849841032-87cbac4d88f7?w=1000"  # מערכות קשר וטכנולוגיה
+        "https://images.unsplash.com/photo-1508614589041-895b88991e3e?w=1000",
+        "https://images.unsplash.com/photo-1516849841032-87cbac4d88f7?w=1000"
     ],
     "drone": [
-        "https://images.unsplash.com/photo-1527977966376-1c8408f9f108?w=1000", # כלי טיס בלתי מאויש
-        "https://images.unsplash.com/photo-1508614589041-895b88991e3e?w=1000"  # מעקב ואיסוף
+        "https://images.unsplash.com/photo-1527977966376-1c8408f9f108?w=1000",
+        "https://images.unsplash.com/photo-1508614589041-895b88991e3e?w=1000"
     ],
     "missiles": [
-        "https://images.unsplash.com/photo-1517486808906-6ca8b3f04846?w=1000", # שובל שיגור ויירוט לילי
-        "https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=1000"  # זירה מבצעית
+        "https://images.unsplash.com/photo-1517486808906-6ca8b3f04846?w=1000",
+        "https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=1000"
     ],
     "lebanon": [
-        "https://images.unsplash.com/photo-1534447677768-be436bb09401?w=1000", # גזרת לבנון וביירות
-        "https://images.unsplash.com/photo-1509316975850-ff9c5deb0cd9?w=1000"  # שטח הררי
+        "https://images.unsplash.com/photo-1534447677768-be436bb09401?w=1000",
+        "https://images.unsplash.com/photo-1509316975850-ff9c5deb0cd9?w=1000"
     ],
     "iran": [
-        "https://images.unsplash.com/photo-1584551246679-0daf3d275d0f?w=1000", # טהראן ואיראן
+        "https://images.unsplash.com/photo-1584551246679-0daf3d275d0f?w=1000",
         "https://images.unsplash.com/photo-1579546929518-9e396f3cc809?w=1000"
     ],
     "diplomacy": [
-        "https://images.unsplash.com/photo-1541872703-74c5e44368f9?w=1000", # אולם דיונים דיפלומטי
-        "https://images.unsplash.com/photo-1585829365295-ab7cd400c167?w=1000"  # ועידה בינלאומית
+        "https://images.unsplash.com/photo-1541872703-74c5e44368f9?w=1000",
+        "https://images.unsplash.com/photo-1585829365295-ab7cd400c167?w=1000"
     ],
     "general": [
         "https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=1000",
@@ -225,29 +219,20 @@ TOPIC_IMAGE_POOLS = {
     ]
 }
 
-# בחירת תמונה חכמה עם הבטחה לאי-כפילות בעמוד
 def get_unique_smart_image(title: str, content: str, used_set: set) -> str:
     text = f"{title} {content}".lower()
-    
-    # 1. חיילים, צה"ל, איו"ש, מעצרים ופעילות ביטחונית
     if any(w in text for w in ["soldier", "army", "idf", "tank", "troops", "military", "operation", "west bank", "jenin", "nablus", "צה\"ל", "צהל", "לוחמ", "חיילים", "סריקות", "איו\"ש", "מעצר", "שכם", "ג'נין"]):
         pool = TOPIC_IMAGE_POOLS["soldiers"]
-    # 2. מכ"ם והתרעה
     elif any(w in text for w in ["radar", "warning", "surveillance", "מכ\"ם", "מכם", "התרעה", "גילוי"]):
         pool = TOPIC_IMAGE_POOLS["radar"]
-    # 3. כטב"מים ורחפנים
     elif any(w in text for w in ["drone", "uav", "unmanned", "כטב", "מל\"ט"]):
         pool = TOPIC_IMAGE_POOLS["drone"]
-    # 4. טילים ויירוטים
     elif any(w in text for w in ["missile", "rocket", "strike", "blast", "attack", "טיל", "יירוט", "תקיפה"]):
         pool = TOPIC_IMAGE_POOLS["missiles"]
-    # 5. לבנון
     elif any(w in text for w in ["lebanon", "beirut", "hezbollah", "לבנון", "ביירות", "חיזבאללה"]):
         pool = TOPIC_IMAGE_POOLS["lebanon"]
-    # 6. איראן
     elif any(w in text for w in ["iran", "tehran", "איראן", "טהראן"]):
         pool = TOPIC_IMAGE_POOLS["iran"]
-    # 7. דיפלומטיה
     elif any(w in text for w in ["summit", "diplomacy", "minister", "מדיני", "פסגה", "הסכם"]):
         pool = TOPIC_IMAGE_POOLS["diplomacy"]
     else:
@@ -257,88 +242,12 @@ def get_unique_smart_image(title: str, content: str, used_set: set) -> str:
         if img not in used_set:
             used_set.add(img)
             return img
-            
     for fallback_pool in TOPIC_IMAGE_POOLS.values():
         for img in fallback_pool:
             if img not in used_set:
                 used_set.add(img)
                 return img
-                
     return pool[0]
-
-now_str = datetime.now().strftime("%Y-%m-%d %H:%M")
-SEED_DATA = [
-    {
-        "url": "https://wafa.ps/ar/news/2026/west-bank-reports",
-        "source_name": "Wafa",
-        "country": "איו\"ש",
-        "title_original": "Security operations and military presence in northern sectors",
-        "content_original": "Field reports on Israeli troops operations and arrest activities in Jenin and Nablus.",
-        "published_at": now_str,
-        "image_url": TOPIC_IMAGE_POOLS["soldiers"][0],
-        "title_hebrew": "פעילות ביטחונית וסריקות צה\"ל במוקדי חיכוך באיו\"ש",
-        "summary_hebrew": "כוחות הביטחון פעלו הלילה בגזרות ג'נין ושכם לסיכול תשתיות טרור ולמעצר מבוקשים.",
-        "sentiment": "צבאי וביטחוני",
-        "sentiment_score": 1.0,
-        "mentioned_countries": "איו\"ש, ישראל"
-    },
-    {
-        "url": "https://english.alarabiya.net/news/2026/red-sea-defense",
-        "source_name": "Al Arabiya",
-        "country": "סעודיה",
-        "title_original": "Naval coalition forces engage drone strikes over Red Sea trade routes",
-        "content_original": "Interception systems shot down hostile unmanned aerial vehicles over sea lanes.",
-        "published_at": now_str,
-        "image_url": TOPIC_IMAGE_POOLS["drone"][0],
-        "title_hebrew": "יירוט נרחב של כטב\"מים עוינים מעל נתיבי השיט הבינלאומיים בים האדום",
-        "summary_hebrew": "מערכי ההגנה של הקואליציה סיכלו מתקפה מכיוון תימן שנועדה לשבש את התנועה הימית לאילת.",
-        "sentiment": "צבאי וביטחוני",
-        "sentiment_score": 1.0,
-        "mentioned_countries": "ישראל, ארה\"ב, איראן"
-    },
-    {
-        "url": "https://www.tehrantimes.com/news/2026/iran-tactical-aerospace",
-        "source_name": "Tehran Times",
-        "country": "איראן",
-        "title_original": "Tehran unveils integrated air surveillance radar network",
-        "content_original": "Commanders activate early-warning radar arrays and mobile deterrent defense batteries.",
-        "published_at": now_str,
-        "image_url": TOPIC_IMAGE_POOLS["radar"][0],
-        "title_hebrew": "איראן הודיעה על פריסת מערכות התרעה ומכ\"ם חדשות",
-        "summary_hebrew": "פיקוד ההגנה האווירית של משמרות המהפכה טוען לשדרוג יכולות היירוט מול כלי טיס בלתי מאוישים.",
-        "sentiment": "צבאי וביטחוני",
-        "sentiment_score": 0.0,
-        "mentioned_countries": "איראן, ישראל, ארה\"ב"
-    },
-    {
-        "url": "https://www.bbc.com/news/world-middle-east-2026-lebanon",
-        "source_name": "BBC News",
-        "country": "בריטניה",
-        "title_original": "Northern border exchanges intensify amid diplomatic efforts in Beirut",
-        "content_original": "Field intelligence reports track reciprocal fire and air defense responses across border communities.",
-        "published_at": now_str,
-        "image_url": TOPIC_IMAGE_POOLS["lebanon"][0],
-        "title_hebrew": "הסלמה בחילופי האש לאורך קו העימות בלבנון לצד מאמץ תיווך צרפתי",
-        "summary_hebrew": "סדרת תקיפות ממוקדות בדרום לבנון בעקבות שיגורים לעבר הגליל, במקביל למגעים דיפלומטיים בביירות.",
-        "sentiment": "צבאי וביטחוני",
-        "sentiment_score": 1.0,
-        "mentioned_countries": "לבנון, ישראל"
-    },
-    {
-        "url": "https://www.aljazeera.com/news/liveblog/2026/mideast-security",
-        "source_name": "Al Jazeera",
-        "country": "קטר",
-        "title_original": "Regional security summits address border stabilization and maritime protocols",
-        "content_original": "Mediators assemble to coordinate ceasefire conditions and security mechanisms across frontiers.",
-        "published_at": now_str,
-        "image_url": TOPIC_IMAGE_POOLS["diplomacy"][0],
-        "title_hebrew": "מגעים בינלאומיים דחופים לגיבוש מתווה ביטחוני וייצוב קווי הגבול",
-        "summary_hebrew": "משלחות תיווך אזוריות מקיימות התייעצויות אינטנסיביות למניעת הסלמה ולהסדרת מנגנוני פיקוח הדדיים.",
-        "sentiment": "מדיני ודיפלומטי",
-        "sentiment_score": 1.0,
-        "mentioned_countries": "ישראל, ארה\"ב, קטר"
-    }
-]
 
 def load_data():
     conn = get_connection()
@@ -346,56 +255,54 @@ def load_data():
     conn.close()
     return df
 
-# איפוס תמונות האוטובוסים והתמונות החוזרות בבסיס הנתונים
-conn = get_connection()
-cursor = conn.cursor()
-cursor.execute("UPDATE articles SET image_url = ? WHERE title_hebrew LIKE '%איו\"ש%' OR title_hebrew LIKE '%צה\"ל%'", (TOPIC_IMAGE_POOLS["soldiers"][0],))
-cursor.execute("UPDATE articles SET image_url = ? WHERE title_hebrew LIKE '%מכ\"ם%'", (TOPIC_IMAGE_POOLS["radar"][0],))
-cursor.execute("UPDATE articles SET image_url = ? WHERE title_hebrew LIKE '%כטב\"ם%' OR title_hebrew LIKE '%כטבמים%'", (TOPIC_IMAGE_POOLS["drone"][0],))
-cursor.execute("UPDATE articles SET image_url = ? WHERE title_hebrew LIKE '%לבנון%'", (TOPIC_IMAGE_POOLS["lebanon"][0],))
-cursor.execute("UPDATE articles SET image_url = ? WHERE image_url LIKE '%photo-1544620347%'", (TOPIC_IMAGE_POOLS["soldiers"][0],))
-conn.commit()
-conn.close()
-
-df = load_data()
-if df.empty:
-    for art in SEED_DATA:
-        save_article(art)
-    df = load_data()
+# פונקציית איסוף מסיבית שרצה באופן מיידי
+def process_incoming_articles(limit_ai=30):
+    arts = fetch_relevant_articles()
+    processed_count = 0
+    for a in arts:
+        if not is_article_exists(a['url']):
+            try:
+                # ניתוח AI מהיר אם לא חרגנו מהמגבלה של הריצה
+                if processed_count < limit_ai:
+                    res = analyze_article(a['title_original'], a['content_original'])
+                    a.update({
+                        'title_hebrew': res.get('title_hebrew'),
+                        'summary_hebrew': res.get('summary_hebrew'),
+                        'sentiment': res.get('category'),
+                        'sentiment_score': 1.0 if res.get('urgency') == 'מתפרצת' else 0.0,
+                        'mentioned_countries': res.get('mentioned_countries_str', 'ישראל')
+                    })
+                    time.sleep(1.5)
+                else:
+                    a.update({
+                        'title_hebrew': a['title_original'],
+                        'summary_hebrew': a['content_original'][:160],
+                        'sentiment': 'צבאי וביטחוני' if any(w in a['title_original'].lower() for w in ['strike', 'war', 'idf', 'missile']) else 'שוטף',
+                        'sentiment_score': 0.0,
+                        'mentioned_countries': 'ישראל'
+                    })
+            except Exception:
+                a.update({
+                    'title_hebrew': a['title_original'],
+                    'summary_hebrew': a['content_original'][:160],
+                    'sentiment': 'שוטף',
+                    'sentiment_score': 0.0,
+                    'mentioned_countries': 'ישראל'
+                })
+            dummy_set = set()
+            a['image_url'] = get_unique_smart_image(a['title_original'], a['content_original'], dummy_set)
+            save_article(a)
+            processed_count += 1
 
 def background_worker():
+    # ריצה ראשונה מיידית בלי לחכות!
+    process_incoming_articles(limit_ai=20)
     while True:
         try:
-            arts = fetch_relevant_articles()
-            for a in arts:
-                if not is_article_exists(a['url']):
-                    try:
-                        res = analyze_article(a['title_original'], a['content_original'])
-                        dummy_set = set()
-                        smart_img = get_unique_smart_image(a['title_original'], a['content_original'], dummy_set)
-                        a.update({
-                            'title_hebrew': res.get('title_hebrew'),
-                            'summary_hebrew': res.get('summary_hebrew'),
-                            'sentiment': res.get('category'),
-                            'sentiment_score': 1.0 if res.get('urgency') == 'מתפרצת' else 0.0,
-                            'mentioned_countries': res.get('mentioned_countries_str', 'ישראל'),
-                            'image_url': smart_img
-                        })
-                    except Exception:
-                        dummy_set = set()
-                        a.update({
-                            'title_hebrew': a['title_original'],
-                            'summary_hebrew': a['content_original'][:160],
-                            'sentiment': 'שוטף',
-                            'sentiment_score': 0.0,
-                            'mentioned_countries': 'ישראל',
-                            'image_url': get_unique_smart_image(a['title_original'], a['content_original'], dummy_set)
-                        })
-                    save_article(a)
-                    time.sleep(4)
+            time.sleep(300) # סריקה שוטפת כל 5 דקות
+            process_incoming_articles(limit_ai=10)
         except Exception as e:
             print(f"Worker background error: {e}")
-        time.sleep(600)
 
 @st.cache_resource
 def start_worker():
@@ -405,12 +312,25 @@ def start_worker():
 
 start_worker()
 
+df = load_data()
+
+# אם המאגר עדיין קטן, מבצעים שאיבה מיידית ישירה
+if len(df) <= 5:
+    with st.spinner("🚀 סורק ומייבא עשרות כתבות חמות מהעולם כעת..."):
+        process_incoming_articles(limit_ai=15)
+        df = load_data()
+
 # --- 1. שורת סינון עליונה ---
-c_search, c_cat = st.columns([7, 3])
+c_search, c_cat, c_refresh = st.columns([6, 3, 2])
 with c_search:
     search_query = st.text_input("חיפוש", placeholder="🔎 חפש בידיעות: נתניהו, טילים, הפסקת אש, ביירות...", label_visibility="collapsed")
 with c_cat:
     cat_filter = st.selectbox("תחום", ["כל התחומים", "צבאי וביטחוני", "מדיני ודיפלומטי", "כלכלה וסנקציות"], label_visibility="collapsed")
+with c_refresh:
+    if st.button("🔄 עדכן עכשיו"):
+        with st.spinner("שואב כתבות..."):
+            process_incoming_articles(limit_ai=10)
+            st.rerun()
 
 # --- 2. כותרת האתר ---
 st.markdown("<h1 style='margin: 10px 0 4px 0; font-size: 2.2rem; font-weight: 900; color: #ffffff;'>🌐 דסק מודיעין תקשורת עולמי</h1>", unsafe_allow_html=True)
@@ -466,7 +386,8 @@ if selected_country != "כל הדיווחים":
         filtered['country'].astype(str).str.contains(pattern, case=False, na=False) |
         filtered['mentioned_countries'].astype(str).str.contains(pattern, case=False, na=False) |
         filtered['title_hebrew'].astype(str).str.contains(pattern, case=False, na=False) |
-        filtered['summary_hebrew'].astype(str).str.contains(pattern, case=False, na=False)
+        filtered['summary_hebrew'].astype(str).str.contains(pattern, case=False, na=False) |
+        filtered['title_original'].astype(str).str.contains(pattern, case=False, na=False)
     ]
 
 if cat_filter != "כל התחומים":
@@ -480,11 +401,10 @@ if search_query:
         filtered['title_original'].astype(str).str.contains(p, case=False, na=False)
     ]
 
-# 4. מבנה דף הבית ללא כפילות תמונות
 used_page_images = set()
 
 if filtered.empty:
-    st.info(f"לא נמצאו דיווחים התואמים לקריטריון עבור '{selected_country}'.")
+    st.info(f"לא נמצאו דיווחים התואמים לקריטריון עבור '{selected_country}'. נסה לבחור לשונית אחרת או לחץ על 'עדכן עכשיו'.")
 else:
     main_art = filtered.iloc[0]
     side_arts = filtered.iloc[1:4] if len(filtered) > 1 else pd.DataFrame()
@@ -548,10 +468,10 @@ else:
                 </a>
                 """, unsafe_allow_html=True)
 
-    # גריד כתבות תחתון
+    # גריד כתבות תחתון מרובה (מציג את כל עשרות הכתבות ב-3 טורים)
     rem_arts = filtered.iloc[4:] if len(filtered) > 4 else pd.DataFrame()
     if not rem_arts.empty:
-        st.markdown("<h3 style='margin: 35px 0 15px 0; font-weight: 800;'>📰 כל הדיווחים והכתבות</h3>", unsafe_allow_html=True)
+        st.markdown("<h3 style='margin: 35px 0 15px 0; font-weight: 800;'>📰 כל הדיווחים והכתבות מהעולם</h3>", unsafe_allow_html=True)
         cols = st.columns(3)
         for idx, (_, r_art) in enumerate(rem_arts.iterrows()):
             with cols[idx % 3]:
