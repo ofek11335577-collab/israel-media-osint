@@ -104,7 +104,7 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# מאגר ארכיון מפוצץ ועשיר של עשרות כתבות אמיתיות מהשנה האחרונה
+# מאגר ארכיון עשיר ומלא ללא שגיאות תאריך
 now_t = datetime.now()
 MASSIVE_ARCHIVE = [
     {
@@ -163,7 +163,7 @@ MASSIVE_ARCHIVE = [
         "country": "איראן",
         "title_hebrew": "איראן: ניתוח אסטרטגי סביב המאזן הגיאופוליטי במפרץ ובאזור",
         "summary_hebrew": "בכירי הממשל בטהראן מדגישים את חשיבות שיתוף הפעולה הכלכלי והביטחוני האזורי.",
-        "published_at": (now_t - timedelta(weeks=2)).strftime("%Y-%m-%d %H:%M"),
+        "published_at": (now_t - timedelta(days=14)).strftime("%Y-%m-%d %H:%M"),
         "image_url": "https://images.unsplash.com/photo-1584551246679-0daf3d275d0f?w=1000",
         "sentiment": "מדיני ודיפלומטי"
     },
@@ -173,7 +173,7 @@ MASSIVE_ARCHIVE = [
         "country": "ארה\"ב",
         "title_hebrew": "וושינגטון מעדכנת את הערכות המודיעין סביב יציבות תשתיות האנרגיה",
         "summary_hebrew": "דוח פנימי מצביע על חשיבות אבטחת צירי התעבורה הימית והאנרגיה למניעת משברים גלובליים.",
-        "published_at": (now_t - timedelta(months=1)).strftime("%Y-%m-%d %H:%M"),
+        "published_at": (now_t - timedelta(days=35)).strftime("%Y-%m-%d %H:%M"),
         "image_url": "https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=1000",
         "sentiment": "כלכלה וסנקציות"
     },
@@ -183,7 +183,7 @@ MASSIVE_ARCHIVE = [
         "country": "רצועת עזה",
         "title_hebrew": "רצועת עזה: תמונת מצב הומניטרית ופעילות ארגוני הסיוע הבינלאומיים",
         "summary_hebrew": "עדכונים שוטפים מהשטח על תפקוד המרכזים הרפואיים והמאמצים לשיקום תשתיות חיוניות.",
-        "published_at": (now_t - timedelta(months=3)).strftime("%Y-%m-%d %H:%M"),
+        "published_at": (now_t - timedelta(days=90)).strftime("%Y-%m-%d %H:%M"),
         "image_url": "https://images.unsplash.com/photo-1579783902614-a3fb3927b675?w=1000",
         "sentiment": "שוטף"
     }
