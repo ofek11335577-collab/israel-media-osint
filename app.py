@@ -13,12 +13,10 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# CSS מדויק ונקי: RTL על בלוק התוכן בלבד, תיקון כפתור הסיידבר הלבן והעלמת אלמנטים תקועים
 st.markdown("""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;600;700;900&display=swap');
 
-    /* הגדרת RTL ופונט רק על תוכן האפליקציה ולא על אלמנטים פנימיים של Streamlit */
     .stApp {
         background-color: #080b11;
         color: #e2e8f0;
@@ -27,42 +25,47 @@ st.markdown("""
         text-align: right;
     }
 
-    /* תיקון והעלמת הפס הלבן השבור של הסיידבר */
-    [data-testid="stSidebarCollapseButton"] {
-        display: none !important;
-    }
-    section[data-testid="stSidebar"] {
+    [data-testid="stSidebarCollapseButton"], section[data-testid="stSidebar"] {
         display: none !important;
     }
 
-    /* כרטיס Hero עליון */
-    .hero-card {
-        position: relative;
+    /* כרטיס Hero מתוקן ונקי */
+    .hero-box {
+        background: #0f172a;
+        border: 1px solid #1e293b;
         border-radius: 14px;
         overflow: hidden;
-        height: 380px;
-        border: 1px solid #1e293b;
-        display: flex;
-        flex-direction: column;
-        justify-content: flex-end;
-        padding: 24px;
-        box-shadow: 0 10px 30px rgba(0,0,0,0.6);
-        background-size: cover;
-        background-position: center;
         margin-bottom: 24px;
+        box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+        transition: transform 0.2s ease, border-color 0.2s ease;
     }
-    .hero-overlay {
-        position: absolute;
-        inset: 0;
-        background: linear-gradient(to top, rgba(8, 11, 17, 0.95) 15%, rgba(8, 11, 17, 0.5) 60%, rgba(8, 11, 17, 0.2) 100%);
-        z-index: 1;
+    .hero-box:hover {
+        transform: translateY(-2px);
+        border-color: #38bdf8;
     }
-    .hero-content {
-        position: relative;
-        z-index: 2;
+    .hero-img {
+        width: 100%;
+        height: 220px;
+        object-fit: cover;
+    }
+    .hero-body {
+        padding: 20px;
+    }
+    .hero-title {
+        color: #ffffff;
+        margin: 10px 0;
+        font-size: 1.3rem;
+        font-weight: 800;
+        line-height: 1.4;
+    }
+    .hero-desc {
+        color: #94a3b8;
+        font-size: 0.92rem;
+        line-height: 1.6;
+        margin-bottom: 14px;
     }
 
-    /* כרטיס כתבה משני */
+    /* כרטיס גזרה */
     .news-card {
         background: #0f172a;
         border: 1px solid #1e293b;
@@ -84,7 +87,7 @@ st.markdown("""
         object-fit: cover;
     }
     .news-card-body {
-        padding: 14px;
+        padding: 16px;
         display: flex;
         flex-direction: column;
         flex-grow: 1;
@@ -93,37 +96,38 @@ st.markdown("""
     .sector-header {
         display: flex;
         align-items: center;
-        gap: 12px;
+        gap: 10px;
         border-bottom: 2px solid #1e293b;
-        padding-bottom: 10px;
+        padding-bottom: 8px;
         margin-top: 36px;
         margin-bottom: 20px;
     }
     .sector-title {
-        font-size: 1.5rem;
+        font-size: 1.35rem;
         font-weight: 800;
-        color: #ffffff;
+        color: #f1f5f9;
     }
 
     .badge {
         display: inline-block;
         padding: 3px 8px;
         border-radius: 4px;
-        font-size: 0.72rem;
+        font-size: 0.75rem;
         font-weight: 700;
         margin-left: 6px;
     }
-    .badge-urgent { background-color: rgba(239, 68, 68, 0.25); color: #f87171; border: 1px solid #ef4444; }
+    .badge-urgent { background-color: rgba(239, 68, 68, 0.2); color: #f87171; border: 1px solid #ef4444; }
     .badge-cat { background-color: rgba(14, 165, 233, 0.2); color: #38bdf8; border: 1px solid #0ea5e9; }
-    .badge-src { background-color: #1e293b; color: #94a3b8; }
+    .badge-src { background-color: #1e293b; color: #cbd5e1; }
 
     .read-more {
         color: #38bdf8;
         font-weight: 700;
-        font-size: 0.8rem;
+        font-size: 0.82rem;
         text-decoration: none;
         margin-top: auto;
-        padding-top: 10px;
+        padding-top: 8px;
+        display: inline-block;
     }
     .read-more:hover { text-decoration: underline; }
 </style>
@@ -131,12 +135,11 @@ st.markdown("""
 
 init_db()
 
-# נתוני אתחול מיידיים למקרה שהמסד ריק (מבטיח שהאתר תמיד מלא מיד בהפעלה ראשונה)
 SEED_ARTICLES = [
     {
         "url": "https://www.telegraph.co.uk/world-news/2026/lebanon-pagers-special-report",
         "source_name": "The Telegraph",
-        "country": "United Kingdom",
+        "country": "לבנון",
         "title_original": "Pager blasts strike thousands of Hezbollah targets across Lebanon",
         "content_original": "A coordinated detonation of secure communication devices used by Hezbollah fighters in Beirut and Southern Lebanon.",
         "published_at": "Recent",
@@ -149,7 +152,7 @@ SEED_ARTICLES = [
     {
         "url": "https://www.aljazeera.com/news/2026/iran-nuclear-developments",
         "source_name": "Al Jazeera",
-        "country": "Qatar",
+        "country": "איראן",
         "title_original": "Tehran announces advancement in regional ballistic deterrence",
         "content_original": "Iranian military officials claim deployment of new surface-to-surface capabilities amid escalating regional tensions.",
         "published_at": "Recent",
@@ -162,7 +165,7 @@ SEED_ARTICLES = [
     {
         "url": "https://www.reuters.com/world/middle-east/gaza-humanitarian-diplomacy-2026",
         "source_name": "Reuters",
-        "country": "United States",
+        "country": "עזה",
         "title_original": "Diplomatic summits intensify discussions on regional stability in Gaza",
         "content_original": "International mediators hold rounds of discussions regarding humanitarian corridors and long-term security mechanisms.",
         "published_at": "Recent",
@@ -175,7 +178,7 @@ SEED_ARTICLES = [
     {
         "url": "https://wafa.ps/ar/news/westbank-economic-developments",
         "source_name": "Wafa",
-        "country": "Palestine",
+        "country": "יהודה ושומרון",
         "title_original": "West Bank security operations and commercial impacts",
         "content_original": "Reports on security closures impacting local transport and market supply chains across Nablus and Jenin.",
         "published_at": "Recent",
@@ -188,7 +191,7 @@ SEED_ARTICLES = [
     {
         "url": "https://www.france24.com/en/diplomatic-sanctions-iran",
         "source_name": "France 24",
-        "country": "France",
+        "country": "אירופה",
         "title_original": "European Union drafts new sanctions targeting Iranian supply chains",
         "content_original": "EU envoys agree on comprehensive sanctions packet targeting manufacturers of drones and precision components.",
         "published_at": "Recent",
@@ -206,18 +209,16 @@ def load_data():
     conn.close()
     return df
 
-# אם המסד ריק, מאכלסים אותו מיד ב-Seed כדי שלעולם לא יהיה 0
 df = load_data()
 if df.empty:
     for art in SEED_ARTICLES:
         save_article(art)
     df = load_data()
 
-# מנוע סריקה שקט ברקע
 def background_worker():
     while True:
         try:
-            time.sleep(600)  # כל 10 דקות
+            time.sleep(600)
             arts = fetch_relevant_articles()
             for a in arts:
                 if not is_article_exists(a['url']):
@@ -249,20 +250,20 @@ def start_worker():
 
 start_worker()
 
-# תצוגה ראשית נקייה
+# כותרת ראשית
 top_c1, top_c2, top_c3 = st.columns([6, 3, 3])
 with top_c1:
     st.markdown("<h1 style='margin-bottom:2px; font-weight:900;'>🌐 דסק מודיעין תקשורת עולמי</h1>", unsafe_allow_html=True)
-    st.caption("איסוף שוטף 24/7 ממאגרי תקשורת בינלאומיים | עדכון שקט כל 10 דקות")
+    st.caption("איסוף שוטף 24/7 ממאגרי תקשורת בינלאומיים | סריקה שקטה כל 10 דקות")
 with top_c2:
-    st.metric("סה\"כ ידיעות במאגר", len(df))
+    st.metric("סה\"כ דיווחים במאגר", len(df))
 with top_c3:
     military_cnt = len(df[df['sentiment'].astype(str).str.contains('צבאי', na=False)])
     st.metric("דיווחים ביטחוניים", military_cnt)
 
 st.markdown("<hr style='border-color: #1e293b; margin: 15px 0 25px 0;'>", unsafe_allow_html=True)
 
-# דיווחי מוקד (Hero)
+# אזור דיווחי מוקד (Hero) ללא באגים ב-CSS
 st.markdown("### 🔥 דיווחים במוקד")
 hero_df = df.head(2)
 h_col1, h_col2 = st.columns(2)
@@ -273,41 +274,40 @@ for col, (_, row) in zip([h_col1, h_col2], hero_df.iterrows()):
         is_urgent = row.get('sentiment_score', 0.0) == 1.0
         urgency_badge = '<span class="badge badge-urgent">מתפרצת</span>' if is_urgent else ''
         img_url = row.get('image_url') if ('image_url' in row and pd.notna(row['image_url']) and row['image_url']) else "https://images.unsplash.com/photo-1504711434969-e33886168f5c?w=1000"
-        
+        title = row.get('title_hebrew') or row.get('title_original')
+        summary = str(row.get('summary_hebrew', ''))[:160]
+        url = row.get('url', '#')
+
         st.markdown(f"""
-        <div class="hero-card" style="background-image: url('{img_url}');">
-            <div class="hero-overlay"></div>
-            <div class="hero-content">
-                <div style="margin-bottom: 8px;">
+        <div class="hero-box">
+            <img class="hero-img" src="{img_url}" alt="News image" />
+            <div class="hero-body">
+                <div>
                     <span class="badge badge-src">📰 {row.get('source_name', '')}</span>
-                    <span class="badge badge-src">🌍 {row.get('country', '')}</span>
                     <span class="badge badge-cat">{cat}</span>
                     {urgency_badge}
                 </div>
-                <h3 style="color:#ffffff; margin:0 0 8px 0; font-size:1.35rem; font-weight:800; line-height:1.3;">
-                    {row.get('title_hebrew') or row.get('title_original')}
-                </h3>
-                <p style="color:#cbd5e1; font-size:0.9rem; line-height:1.5; margin-bottom:12px;">
-                    {str(row.get('summary_hebrew', ''))[:160]}...
-                </p>
-                <a class="read-more" href="{row.get('url', '#')}" target="_blank">לקריאת המקור בערוץ ←</a>
+                <div class="hero-title">{title}</div>
+                <div class="hero-desc">{summary}...</div>
+                <a class="read-more" href="{url}" target="_blank">לקריאת המקור בערוץ ←</a>
             </div>
         </div>
         """, unsafe_allow_html=True)
 
-# חלוקה לגזרות
+# גזרות עם אייקונים אחידים ונקיים
 SECTORS = [
-    {"title": "איראן והציר האזורי", "flag": "🇮🇷", "keys": ["iran", "tehran", "איראן", "טהראן", "Houthi", "תימן"]},
-    {"title": "לבנון וחיזבאללה", "flag": "🇱🇧", "keys": ["lebanon", "hezbollah", "beirut", "לבנון", "חיזבאללה"]},
-    {"title": "רצועת עזה והעולם הערבי", "flag": "🇵🇸", "keys": ["gaza", "hamas", "עזה", "חמאס", "Al Jazeera", "Maan"]},
-    {"title": "יהודה ושומרון", "flag": "🛡️", "keys": ["west bank", "settler", "jenin", "איו\"ש", "גדה", "wafa"]},
-    {"title": "ארה\"ב וזירה בינלאומית", "flag": "🌐", "keys": ["United States", "United Kingdom", "France", "Spain", "Turkey"]}
+    {"title": "איראן והציר האזורי", "icon": "🎯", "keys": ["iran", "tehran", "איראן", "טהראן", "Houthi", "תימן"]},
+    {"title": "לבנון וחיזבאללה", "icon": "🇱🇧", "keys": ["lebanon", "hezbollah", "beirut", "לבנון", "חיזבאללה", "Telegraph"]},
+    {"title": "רצועת עזה והעולם הערבי", "icon": "⚡", "keys": ["gaza", "hamas", "עזה", "חמאס", "Al Jazeera", "Reuters"]},
+    {"title": "יהודה ושומרון", "icon": "🛡️", "keys": ["west bank", "settler", "jenin", "איו\"ש", "גדה", "Wafa", "שומרון"]},
+    {"title": "אירופה וזירה בינלאומית", "icon": "🌍", "keys": ["United States", "United Kingdom", "France", "Spain", "אירופה"]}
 ]
 
 for sec in SECTORS:
     pattern = "|".join(sec["keys"])
     sec_df = df[
         df['country'].astype(str).str.contains(pattern, case=False, na=False) |
+        df['source_name'].astype(str).str.contains(pattern, case=False, na=False) |
         df['title_original'].astype(str).str.contains(pattern, case=False, na=False) |
         df['title_hebrew'].astype(str).str.contains(pattern, case=False, na=False) |
         df['summary_hebrew'].astype(str).str.contains(pattern, case=False, na=False)
@@ -316,7 +316,7 @@ for sec in SECTORS:
     if not sec_df.empty:
         st.markdown(f"""
         <div class="sector-header">
-            <span style="font-size: 1.8rem;">{sec['flag']}</span>
+            <span style="font-size: 1.4rem;">{sec['icon']}</span>
             <span class="sector-title">{sec['title']}</span>
         </div>
         """, unsafe_allow_html=True)
@@ -326,22 +326,25 @@ for sec in SECTORS:
             with cols[c_idx]:
                 cat = str(row.get('sentiment', 'כללי'))
                 img_src = row.get('image_url') if ('image_url' in row and pd.notna(row['image_url']) and row['image_url']) else "https://images.unsplash.com/photo-1504711434969-e33886168f5c?w=800"
+                c_title = row.get('title_hebrew') or row.get('title_original')
+                c_summary = str(row.get('summary_hebrew', ''))[:120]
+                c_url = row.get('url', '#')
 
                 st.markdown(f"""
                 <div class="news-card">
-                    <img class="news-card-img" src="{img_src}" />
+                    <img class="news-card-img" src="{img_src}" alt="News image" />
                     <div class="news-card-body">
                         <div style="margin-bottom: 8px;">
                             <span class="badge badge-src">📰 {row.get('source_name', '')}</span>
                             <span class="badge badge-cat">{cat}</span>
                         </div>
                         <div style="font-weight:700; color:#fff; font-size:1.02rem; margin-bottom:6px; line-height:1.4;">
-                            {row.get('title_hebrew') or row.get('title_original')}
+                            {c_title}
                         </div>
                         <div style="font-size:0.85rem; color:#94a3b8; line-height:1.5; margin-bottom:12px;">
-                            {str(row.get('summary_hebrew', ''))[:120]}...
+                            {c_summary}...
                         </div>
-                        <a class="read-more" href="{row.get('url', '#')}" target="_blank">לכתבה המקורית ←</a>
+                        <a class="read-more" href="{c_url}" target="_blank">לכתבה המקורית ←</a>
                     </div>
                 </div>
                 """, unsafe_allow_html=True)
