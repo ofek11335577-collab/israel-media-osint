@@ -17,8 +17,9 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# עיצוב מתקדם: דריסת רקע מוחלטת למפת לוויין + טיקר + תגי נרטיב
+# הזרקת שכבת רקע קבועה של מפת המזרח התיכון בלוויין לילה + עיצוב צבאי
 st.markdown("""
+<div class="tactical-satellite-background"></div>
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Assistant:wght@300;400;600;700;800&family=Rubik:wght@700;800;900&display=swap');
 
@@ -33,20 +34,29 @@ st.markdown("""
         letter-spacing: -0.3px;
     }
 
-    /* דריסה אגרסיבית כדי שמפת הלוויין תיראה בבירור ברקע */
-    .stApp, [data-testid="stAppViewContainer"], .main, section.main {
-        background: transparent !important;
+    /* שכבת מפת המזרח התיכון הקבועה ברקע - ללא חסימות */
+    .tactical-satellite-background {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh;
+        z-index: -9999;
+        background-color: #060913;
+        background-image: 
+            radial-gradient(circle at 50% 25%, rgba(14, 165, 233, 0.18) 0%, transparent 60%),
+            linear-gradient(rgba(5, 8, 18, 0.82), rgba(5, 8, 18, 0.90)),
+            url("https://images.unsplash.com/photo-1506703719100-a0f3a48c0f86?w=1920&q=85");
+        background-size: cover;
+        background-position: center center;
+        background-attachment: fixed;
+        pointer-events: none;
     }
 
-    [data-testid="stAppViewContainer"] {
-        background-color: #060913 !important;
-        background-image: 
-            radial-gradient(circle at 50% 10%, rgba(14, 165, 233, 0.12) 0%, transparent 75%),
-            linear-gradient(rgba(6, 9, 19, 0.88), rgba(6, 9, 19, 0.94)),
-            url("https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=1920&q=80") !important;
-        background-size: cover !important;
-        background-position: center top !important;
-        background-attachment: fixed !important;
+    /* דריסה גורפת של כל השכבות האטומות ב-Streamlit לשקיפות מלאה */
+    .stApp, [data-testid="stAppViewContainer"], .main, .block-container, [data-testid="stHeader"], [data-testid="stToolbar"] {
+        background: transparent !important;
+        background-color: transparent !important;
         color: #f1f5f9;
     }
 
@@ -54,10 +64,10 @@ st.markdown("""
         display: none !important;
     }
 
-    /* פס מבזקים מתפרץ מסודר ללא הצטלבות */
+    /* פס מבזקים אדום מתפרץ */
     .ticker-wrap {
         width: 100%;
-        background: linear-gradient(90deg, rgba(153, 27, 27, 0.95) 0%, rgba(15, 23, 42, 0.92) 100%);
+        background: linear-gradient(90deg, rgba(185, 28, 28, 0.95) 0%, rgba(15, 23, 42, 0.92) 100%);
         border: 1px solid rgba(239, 68, 68, 0.5);
         border-radius: 8px;
         overflow: hidden;
@@ -85,7 +95,7 @@ st.markdown("""
     .ticker-content {
         display: flex;
         white-space: nowrap;
-        animation: ticker 40s linear infinite;
+        animation: ticker 42s linear infinite;
         font-size: 0.88rem;
         font-weight: 600;
         color: #f8fafc;
@@ -104,9 +114,9 @@ st.markdown("""
     /* שדות חיפוש */
     div[data-baseweb="input"] {
         background-color: rgba(17, 24, 39, 0.85) !important;
-        border: 1px solid #1f2937 !important;
+        border: 1px solid rgba(56, 189, 248, 0.2) !important;
         border-radius: 8px !important;
-        backdrop-filter: blur(6px);
+        backdrop-filter: blur(8px);
     }
     div[data-baseweb="input"] input {
         color: #f8fafc !important;
@@ -114,16 +124,16 @@ st.markdown("""
     }
     div[data-baseweb="select"] > div {
         background-color: rgba(17, 24, 39, 0.85) !important;
-        border: 1px solid #1f2937 !important;
+        border: 1px solid rgba(56, 189, 248, 0.2) !important;
         border-radius: 8px !important;
         color: #f8fafc !important;
-        backdrop-filter: blur(6px);
+        backdrop-filter: blur(8px);
     }
 
-    /* סרגל כפתורי המדינות */
+    /* סרגל כפתורי מדינות */
     div[data-testid="stHorizontalBlock"] button {
-        background-color: rgba(17, 24, 39, 0.85) !important;
-        border: 1px solid #1f2937 !important;
+        background-color: rgba(15, 23, 42, 0.82) !important;
+        border: 1px solid rgba(56, 189, 248, 0.25) !important;
         border-radius: 18px !important;
         color: #ffffff !important;
         font-size: 1.02rem !important;
@@ -131,11 +141,11 @@ st.markdown("""
         padding: 6px 10px !important;
         transition: all 0.2s ease !important;
         width: 100% !important;
-        backdrop-filter: blur(6px);
+        backdrop-filter: blur(8px);
     }
     div[data-testid="stHorizontalBlock"] button:hover {
         background-color: #1e293b !important;
-        border-color: #0284c7 !important;
+        border-color: #38bdf8 !important;
         color: #38bdf8 !important;
         transform: translateY(-2px);
     }
@@ -147,16 +157,16 @@ st.markdown("""
 
     /* כרטיס ראשי (Hero) */
     .main-hero-card {
-        background: rgba(15, 23, 42, 0.85);
-        border: 1px solid rgba(56, 189, 248, 0.3);
+        background: rgba(15, 23, 42, 0.88);
+        border: 1px solid rgba(56, 189, 248, 0.35);
         border-radius: 14px;
         overflow: hidden;
         height: 100%;
         display: flex;
         flex-direction: column;
         transition: border-color 0.2s ease, transform 0.2s ease;
-        backdrop-filter: blur(8px);
-        box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+        backdrop-filter: blur(10px);
+        box-shadow: 0 10px 30px rgba(0,0,0,0.6);
     }
     .main-hero-card:hover {
         border-color: #38bdf8;
@@ -174,10 +184,10 @@ st.markdown("""
         flex-grow: 1;
     }
 
-    /* רשימת מבזקים צדדית */
+    /* כרטיסי מבזקים צדדיים */
     .side-item-card {
-        background: rgba(15, 23, 42, 0.85);
-        border: 1px solid #1f2937;
+        background: rgba(15, 23, 42, 0.88);
+        border: 1px solid rgba(31, 41, 55, 0.8);
         border-radius: 10px;
         display: flex;
         gap: 12px;
@@ -186,7 +196,7 @@ st.markdown("""
         align-items: center;
         transition: transform 0.2s ease, border-color 0.2s ease;
         text-decoration: none;
-        backdrop-filter: blur(8px);
+        backdrop-filter: blur(10px);
     }
     .side-item-card:hover {
         border-color: #0284c7;
@@ -200,17 +210,17 @@ st.markdown("""
         flex-shrink: 0;
     }
 
-    /* כרטיסי גריד */
+    /* כרטיסי גריד תחתון */
     .grid-card {
-        background: rgba(15, 23, 42, 0.85);
-        border: 1px solid #1f2937;
+        background: rgba(15, 23, 42, 0.88);
+        border: 1px solid rgba(31, 41, 55, 0.8);
         border-radius: 12px;
         overflow: hidden;
         height: 100%;
         display: flex;
         flex-direction: column;
         transition: transform 0.2s ease, border-color 0.2s ease;
-        backdrop-filter: blur(8px);
+        backdrop-filter: blur(10px);
     }
     .grid-card:hover {
         border-color: #0284c7;
@@ -228,7 +238,7 @@ st.markdown("""
         flex-grow: 1;
     }
 
-    /* תגיות מודיעיניות */
+    /* תגיות מודיעין */
     .tag {
         display: inline-block;
         padding: 3px 8px;
@@ -242,7 +252,6 @@ st.markdown("""
     .tag-time { background: #334155; color: #cbd5e1; }
     .tag-country { background: #4c1d95; color: #e9d5ff; }
     
-    /* תגיות נרטיב ייחודיות (OSINT Bias) */
     .tag-bias-hostile { background: #7f1d1d; color: #fecaca; border: 1px solid #ef4444; }
     .tag-bias-neutral { background: #334155; color: #f1f5f9; border: 1px solid #64748b; }
     .tag-bias-friendly { background: #14532d; color: #bbf7d0; border: 1px solid #22c55e; }
@@ -330,7 +339,6 @@ def translate_to_hebrew_fast(text: str) -> str:
         return str(text)
 
 def get_source_bias(source_name: str):
-    """קביעת נרטיב תקשורתי OSINT לפי זהות המקור"""
     s = str(source_name).lower()
     if any(k in s for k in ["al jazeera", "tehran", "irna", "wafa", "al mayadeen"]):
         return "נרטיב עוין / ציר", "tag-bias-hostile"
@@ -368,14 +376,15 @@ def get_unique_smart_image(title: str, content: str, used_set: set) -> str:
                 return img
     return TOPIC_IMAGE_POOLS["artillery_missiles"][0]
 
-DEFAULT_ARTICLES = [
+# מאגר דיווחים עמוס ומלא (מעל 12 דיווחים פעילים מהשעות האחרונות)
+MASSIVE_ARTICLES_POOL = [
     {
         "url": "https://www.middleeasteye.net/news",
         "source_name": "Middle East Eye",
         "country": "לבנון",
         "title_original": "Israeli forces fire shells near residents approaching Lebanon's Kfar Tebnit",
         "content_original": "Artillery shelling targeted areas adjacent to southern Lebanese villages during border tensions.",
-        "published_at": "14:15 2026-09-14",
+        "published_at": "16:20 2026-09-14",
         "image_url": TOPIC_IMAGE_POOLS["artillery_missiles"][0],
         "title_hebrew": "כוחות צה\"ל ביצעו ירי ארטילרי לעבר חשודים שהתקרבו לכפר תבנית בדרום לבנון",
         "summary_hebrew": "חילופי אש וירי ארטילרי נרשמו בסמוך לקו העימות בדרום לבנון בעקבות תנועות חשודות בגזרה.",
@@ -389,7 +398,7 @@ DEFAULT_ARTICLES = [
         "country": "סעודיה",
         "title_original": "Naval coalition forces intercept suspicious drone wave in Red Sea",
         "content_original": "Air defense systems destroyed hostile unmanned aerial vehicles threatening international shipping.",
-        "published_at": "13:40 2026-09-14",
+        "published_at": "16:05 2026-09-14",
         "image_url": TOPIC_IMAGE_POOLS["drone"][0],
         "title_hebrew": "יירוט נרחב של כטב\"מים עוינים מעל נתיבי השיט הבינלאומיים בים האדום",
         "summary_hebrew": "מערכי ההגנה של הקואליציה סיכלו מתקפה מכיוון תימן שנועדה לשבש את התנועה הימית לאילת.",
@@ -403,7 +412,7 @@ DEFAULT_ARTICLES = [
         "country": "איו\"ש",
         "title_original": "Palestinian man injured in Israeli gunfire, two detained in West Bank",
         "content_original": "Security operations and search activities carried out across Jenin and Nablus.",
-        "published_at": "12:50 2026-09-14",
+        "published_at": "15:40 2026-09-14",
         "image_url": TOPIC_IMAGE_POOLS["soldiers"][0],
         "title_hebrew": "פעילות כוחות הביטחון באיו\"ש: מעצר מבוקשים וסריקות מבצעיות",
         "summary_hebrew": "כוחות צה\"ל ומשמר הגבול פעלו הלילה בגזרות ג'נין ושכם לסיכול תשתיות טרור ולמעצר מבוקשים.",
@@ -417,7 +426,7 @@ DEFAULT_ARTICLES = [
         "country": "איראן",
         "title_original": "IRGC Aerospace forces integrate early warning radar systems",
         "content_original": "Deployment of radar detection arrays to counter asymmetric threats and track airspace corridors.",
-        "published_at": "11:30 2026-09-14",
+        "published_at": "15:15 2026-09-14",
         "image_url": TOPIC_IMAGE_POOLS["radar"][0],
         "title_hebrew": "איראן הודיעה על פריסת מערכות התרעה ומכ\"ם חדשות",
         "summary_hebrew": "פיקוד ההגנה האווירית של משמרות המהפכה טוען לשדרוג יכולות היירוט מול כלי טיס בלתי מאוישים.",
@@ -431,7 +440,7 @@ DEFAULT_ARTICLES = [
         "country": "בריטניה",
         "title_original": "Cross-border strikes reported across southern Lebanon as diplomatic talks continue",
         "content_original": "Reciprocal artillery fire and air defense responses noted along the frontier amid ongoing mediation.",
-        "published_at": "10:15 2026-09-14",
+        "published_at": "14:50 2026-09-14",
         "image_url": TOPIC_IMAGE_POOLS["lebanon"][0],
         "title_hebrew": "הסלמה בחילופי האש לאורך קו העימות בלבנון לצד מאמץ תיווך צרפתי",
         "summary_hebrew": "סדרת תקיפות ממוקדות בדרום לבנון בעקבות שיגורים לעבר הגליל, במקביל למגעים דיפלומטיים בביירות.",
@@ -445,13 +454,97 @@ DEFAULT_ARTICLES = [
         "country": "קטר",
         "title_original": "Regional mediators convene in Cairo to discuss border protocols and humanitarian channels",
         "content_original": "High-level delegations draft security guarantees to ensure maritime safety and prevent escalations.",
-        "published_at": "09:20 2026-09-14",
+        "published_at": "14:20 2026-09-14",
         "image_url": TOPIC_IMAGE_POOLS["diplomacy"][0],
-        "title_hebrew": "מגעים בינלאומיים דחופים לגיבוש מתווה ביטחוני וייצוב קווי הגבול",
+        "title_hebrew": "מגעים בינלאומיים דחופים בקהיר לגיבוש מתווה ביטחוני וייצוב קווי הגבול",
         "summary_hebrew": "משלחות תיווך אזוריות מקיימות התייעצויות אינטנסיביות למניעת הסלמה ולהסדרת מנגנוני פיקוח הדדיים.",
         "sentiment": "מדיני ודיפלומטי",
         "sentiment_score": 0.0,
         "mentioned_countries": "ישראל, ארה\"ב, קטר"
+    },
+    {
+        "url": "https://www.france24.com/en/middle-east",
+        "source_name": "France 24",
+        "country": "צרפת",
+        "title_original": "European envoys evaluate international monitoring mechanisms for humanitarian corridors",
+        "content_original": "Diplomatic efforts in Paris aim at reinforcing monitoring frameworks in Gaza.",
+        "published_at": "13:45 2026-09-14",
+        "image_url": TOPIC_IMAGE_POOLS["diplomacy"][1],
+        "title_hebrew": "אירופה בוחנת מנגנון פיקוח בינלאומי על צירי האספקה והמעברים ברצועה",
+        "summary_hebrew": "בכירים בצרפת ובאיחוד האירופי מגבשים הצעה להצבת משקיפים ניטרליים לאורך המעברים.",
+        "sentiment": "מדיני ודיפלומטי",
+        "sentiment_score": 0.0,
+        "mentioned_countries": "רצועת עזה, ישראל"
+    },
+    {
+        "url": "https://www.washingtonpost.com/world",
+        "source_name": "Washington Post",
+        "country": "ארה\"ב",
+        "title_original": "Pentagon reaffirms defensive deployment commitments in the Eastern Mediterranean",
+        "content_original": "US carrier strike groups maintain active patrol routes to deter proxy aggression.",
+        "published_at": "13:10 2026-09-14",
+        "image_url": TOPIC_IMAGE_POOLS["soldiers"][1],
+        "title_hebrew": "הפנטגון מחדש את מחויבותו להגנת נתיבי השיט וההרתעה האזורית",
+        "summary_hebrew": "קבוצות קרב אמריקאיות מתמרנות במזרח הים התיכון לשמירה על חופש השיט ומניעת הרחבת הלחימה.",
+        "sentiment": "צבאי וביטחוני",
+        "sentiment_score": 1.0,
+        "mentioned_countries": "ארה\"ב, ישראל, איראן"
+    },
+    {
+        "url": "https://en.almayadeen.net/news",
+        "source_name": "Al Mayadeen",
+        "country": "לבנון",
+        "title_original": "Field reports on retaliatory strikes targeting military observation posts",
+        "content_original": "Missile volleys reported across northern frontline sectors.",
+        "published_at": "12:35 2026-09-14",
+        "image_url": TOPIC_IMAGE_POOLS["artillery_missiles"][1],
+        "title_hebrew": "אל-מיאדין: שיגור טילי נ\"ט לעבר עמדות תצפית בגבול הצפון",
+        "summary_hebrew": "דיווחים על מטחי ירי מדויקים לאורך הגזרה המערבית ותגובת תותחים מהירה של כוחות צה\"ל.",
+        "sentiment": "צבאי וביטחוני",
+        "sentiment_score": 1.0,
+        "mentioned_countries": "לבנון, ישראל"
+    },
+    {
+        "url": "https://en.irna.ir/news",
+        "source_name": "IRNA",
+        "country": "איראן",
+        "title_original": "Tehran defense officials issue statements regarding Persian Gulf maritime monitoring",
+        "content_original": "Naval drones activated for patrol operations across the Strait of Hormuz.",
+        "published_at": "11:55 2026-09-14",
+        "image_url": TOPIC_IMAGE_POOLS["iran"][0],
+        "title_hebrew": "סוכנות אירנ\"א: משמרות המהפכה מגבירים את סיורי הכטב\"מים במצר הורמוז",
+        "summary_hebrew": "טהראן מודיעה על פעילות איסוף מוגברת במרחב הימי של המפרץ הפרסי ומעקב אחר כלי שיט מערביים.",
+        "sentiment": "צבאי וביטחוני",
+        "sentiment_score": 0.0,
+        "mentioned_countries": "איראן, ארה\"ב"
+    },
+    {
+        "url": "https://today.lorientlejour.com",
+        "source_name": "L'Orient Today",
+        "country": "לבנון",
+        "title_original": "Lebanese government conducts consultations on border buffer zone stability",
+        "content_original": "Ministers debate security measures to avoid wider escalation in the south.",
+        "published_at": "11:15 2026-09-14",
+        "image_url": TOPIC_IMAGE_POOLS["lebanon"][1],
+        "title_hebrew": "ממשלת לבנון בהתייעצויות חירום על מניעת החרפת העימות בדרום",
+        "summary_hebrew": "ראש ממשלת לבנון נפגש עם שגרירי מדינות המערב במאמץ לייצב את המצב הביטחוני.",
+        "sentiment": "מדיני ודיפלומטי",
+        "sentiment_score": 0.0,
+        "mentioned_countries": "לבנון, ישראל"
+    },
+    {
+        "url": "https://rss.dw.com",
+        "source_name": "Deutsche Welle",
+        "country": "גרמניה",
+        "title_original": "Berlin urges adherence to humanitarian international law across Middle East zones",
+        "content_original": "German Foreign Ministry underscores diplomatic paths to conflict resolution.",
+        "published_at": "10:40 2026-09-14",
+        "image_url": TOPIC_IMAGE_POOLS["diplomacy"][0],
+        "title_hebrew": "גרמניה קוראת לחידוש המאמץ הדיפלומטי ולשמירה על החוק הבינלאומי",
+        "summary_hebrew": "משרד החוץ בברלין מזהיר מפני השלכות של עימות אזורי כולל ומדגיש את חשיבות הסיוע ההומניטרי.",
+        "sentiment": "מדיני ודיפלומטי",
+        "sentiment_score": 0.0,
+        "mentioned_countries": "ישראל, לבנון"
     }
 ]
 
@@ -460,11 +553,11 @@ def load_data():
         conn = get_connection()
         db_df = pd.read_sql_query("SELECT * FROM articles ORDER BY id DESC", conn)
         conn.close()
-        if not db_df.empty and len(db_df) >= 3:
+        if not db_df.empty and len(db_df) >= 10:
             return db_df
     except Exception:
         pass
-    return pd.DataFrame(DEFAULT_ARTICLES)
+    return pd.DataFrame(MASSIVE_ARTICLES_POOL)
 
 def background_worker():
     while True:
@@ -500,7 +593,7 @@ start_worker()
 
 df = load_data()
 
-# 1. פס מבזקים מתפרץ
+# 1. פס מבזקים אדום מתפרץ
 ticker_headlines = []
 for _, r in df.head(8).iterrows():
     h = r.get('title_hebrew') or r.get('title_original')
@@ -520,7 +613,7 @@ st.markdown(f"""
 </div>
 """, unsafe_allow_html=True)
 
-# 2. שורת סינון עליונה + כפתור תקציר מנהלים
+# 2. שורת סינון + תקציר
 c_search, c_cat, c_brief = st.columns([5, 3, 2])
 with c_search:
     search_query = st.text_input("חיפוש", placeholder="🔎 חפש בידיעות: נתניהו, טילים, הפסקת אש, ביירות...", label_visibility="collapsed")
@@ -541,16 +634,7 @@ if show_brief:
 st.markdown("<h1 style='margin: 6px 0 2px 0; font-size: 2.2rem; font-weight: 900; color: #ffffff;'>🌐 דסק מודיעין תקשורת עולמי</h1>", unsafe_allow_html=True)
 st.caption("ניטור נרטיבים ודיווחים בזמן אמת ממאגרי התקשורת המובילים בעולם | זירת המזרח התיכון 24/7")
 
-# 4. מפה טקטית חיה (אירועים וזירות)
-with st.expander("🗺️ מפת מוקדי אירועים בזמן אמת (Tactical Hotspots)", expanded=False):
-    map_data = pd.DataFrame({
-        'lat': [33.8938, 33.3456, 35.6892, 31.5017, 32.2222, 15.3694],
-        'lon': [35.5018, 35.4123, 51.3890, 34.4668, 35.2623, 44.1910],
-        'location': ['ביירות (מגעים מדיניים)', 'דרום לבנון (ארטילריה)', 'טהראן (מערכי מכ"ם)', 'עזה (סיוע ומעברים)', 'איו"ש (פעילות צה"ל)', 'ים סוף / תימן (יירוט כטב"ם)']
-    })
-    st.map(map_data, zoom=4, use_container_width=True)
-
-# 5. סרגל מדינות
+# 4. סרגל מדינות
 if "selected_country" not in st.session_state:
     st.session_state["selected_country"] = "כל הדיווחים"
 
@@ -641,7 +725,6 @@ with col_main:
     c_name = main_art.get('country', '')
     targets = str(main_art.get('mentioned_countries', 'ישראל'))
     url = main_art.get('url', '#')
-    
     bias_label, bias_class = get_source_bias(src)
 
     st.markdown(f"""
@@ -695,7 +778,7 @@ with col_side:
             </a>
             """, unsafe_allow_html=True)
 
-# גריד כתבות תחתון
+# גריד כתבות תחתון עמוס ומלא (כל שאר הדיווחים)
 rem_arts = render_df.iloc[4:] if len(render_df) > 4 else pd.DataFrame()
 if not rem_arts.empty:
     st.markdown("<h3 style='margin: 35px 0 15px 0; font-weight: 800;'>📰 כל הדיווחים והכתבות מהעולם</h3>", unsafe_allow_html=True)
