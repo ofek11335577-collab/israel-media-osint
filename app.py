@@ -13,6 +13,7 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
+# עיצוב כללי - רקע כהה ופונט עברית נקי
 st.markdown("""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;600;700;900&display=swap');
@@ -25,73 +26,35 @@ st.markdown("""
         text-align: right;
     }
 
+    /* הסתרת סיידבר לחלוטין למניעת עיוותים */
     [data-testid="stSidebarCollapseButton"], section[data-testid="stSidebar"] {
         display: none !important;
     }
 
-    /* כרטיס Hero מתוקן ונקי */
-    .hero-box {
-        background: #0f172a;
-        border: 1px solid #1e293b;
-        border-radius: 14px;
-        overflow: hidden;
-        margin-bottom: 24px;
-        box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+    /* עיצוב כרטיסי container */
+    [data-testid="stVerticalBlockBorderWrapper"] {
+        background-color: #0f172a !important;
+        border: 1px solid #1e293b !important;
+        border-radius: 12px !important;
         transition: transform 0.2s ease, border-color 0.2s ease;
     }
-    .hero-box:hover {
+    [data-testid="stVerticalBlockBorderWrapper"]:hover {
+        border-color: #0ea5e9 !important;
         transform: translateY(-2px);
-        border-color: #38bdf8;
-    }
-    .hero-img {
-        width: 100%;
-        height: 220px;
-        object-fit: cover;
-    }
-    .hero-body {
-        padding: 20px;
-    }
-    .hero-title {
-        color: #ffffff;
-        margin: 10px 0;
-        font-size: 1.3rem;
-        font-weight: 800;
-        line-height: 1.4;
-    }
-    .hero-desc {
-        color: #94a3b8;
-        font-size: 0.92rem;
-        line-height: 1.6;
-        margin-bottom: 14px;
     }
 
-    /* כרטיס גזרה */
-    .news-card {
-        background: #0f172a;
-        border: 1px solid #1e293b;
-        border-radius: 12px;
-        overflow: hidden;
-        margin-bottom: 18px;
-        display: flex;
-        flex-direction: column;
-        height: 100%;
-        transition: all 0.2s ease;
+    /* תגים מעוצבים */
+    .badge {
+        display: inline-block;
+        padding: 3px 8px;
+        border-radius: 4px;
+        font-size: 0.75rem;
+        font-weight: 700;
+        margin-left: 6px;
     }
-    .news-card:hover {
-        border-color: #0ea5e9;
-        transform: translateY(-3px);
-    }
-    .news-card-img {
-        width: 100%;
-        height: 160px;
-        object-fit: cover;
-    }
-    .news-card-body {
-        padding: 16px;
-        display: flex;
-        flex-direction: column;
-        flex-grow: 1;
-    }
+    .badge-urgent { background-color: rgba(239, 68, 68, 0.2); color: #f87171; border: 1px solid #ef4444; }
+    .badge-cat { background-color: rgba(14, 165, 233, 0.2); color: #38bdf8; border: 1px solid #0ea5e9; }
+    .badge-src { background-color: #1e293b; color: #cbd5e1; }
 
     .sector-header {
         display: flex;
@@ -108,28 +71,15 @@ st.markdown("""
         color: #f1f5f9;
     }
 
-    .badge {
-        display: inline-block;
-        padding: 3px 8px;
-        border-radius: 4px;
-        font-size: 0.75rem;
+    a.read-link {
+        color: #38bdf8 !important;
         font-weight: 700;
-        margin-left: 6px;
-    }
-    .badge-urgent { background-color: rgba(239, 68, 68, 0.2); color: #f87171; border: 1px solid #ef4444; }
-    .badge-cat { background-color: rgba(14, 165, 233, 0.2); color: #38bdf8; border: 1px solid #0ea5e9; }
-    .badge-src { background-color: #1e293b; color: #cbd5e1; }
-
-    .read-more {
-        color: #38bdf8;
-        font-weight: 700;
-        font-size: 0.82rem;
+        font-size: 0.85rem;
         text-decoration: none;
-        margin-top: auto;
-        padding-top: 8px;
-        display: inline-block;
     }
-    .read-more:hover { text-decoration: underline; }
+    a.read-link:hover {
+        text-decoration: underline;
+    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -250,11 +200,11 @@ def start_worker():
 
 start_worker()
 
-# כותרת ראשית
+# כותרת עליונה
 top_c1, top_c2, top_c3 = st.columns([6, 3, 3])
 with top_c1:
     st.markdown("<h1 style='margin-bottom:2px; font-weight:900;'>🌐 דסק מודיעין תקשורת עולמי</h1>", unsafe_allow_html=True)
-    st.caption("איסוף שוטף 24/7 ממאגרי תקשורת בינלאומיים | סריקה שקטה כל 10 דקות")
+    st.caption("איסוף שוטף 24/7 ממאגרי תקשורת בינלאומיים | עדכון שקט כל 10 דקות")
 with top_c2:
     st.metric("סה\"כ דיווחים במאגר", len(df))
 with top_c3:
@@ -263,38 +213,39 @@ with top_c3:
 
 st.markdown("<hr style='border-color: #1e293b; margin: 15px 0 25px 0;'>", unsafe_allow_html=True)
 
-# אזור דיווחי מוקד (Hero) ללא באגים ב-CSS
+# אזור דיווחי מוקד (Hero) - בנוי עם st.container כדי למנוע באגי רינדור
 st.markdown("### 🔥 דיווחים במוקד")
 hero_df = df.head(2)
 h_col1, h_col2 = st.columns(2)
 
 for col, (_, row) in zip([h_col1, h_col2], hero_df.iterrows()):
     with col:
-        cat = str(row.get('sentiment', 'כללי'))
-        is_urgent = row.get('sentiment_score', 0.0) == 1.0
-        urgency_badge = '<span class="badge badge-urgent">מתפרצת</span>' if is_urgent else ''
-        img_url = row.get('image_url') if ('image_url' in row and pd.notna(row['image_url']) and row['image_url']) else "https://images.unsplash.com/photo-1504711434969-e33886168f5c?w=1000"
-        title = row.get('title_hebrew') or row.get('title_original')
-        summary = str(row.get('summary_hebrew', ''))[:160]
-        url = row.get('url', '#')
-
-        st.markdown(f"""
-        <div class="hero-box">
-            <img class="hero-img" src="{img_url}" alt="News image" />
-            <div class="hero-body">
-                <div>
-                    <span class="badge badge-src">📰 {row.get('source_name', '')}</span>
-                    <span class="badge badge-cat">{cat}</span>
-                    {urgency_badge}
-                </div>
-                <div class="hero-title">{title}</div>
-                <div class="hero-desc">{summary}...</div>
-                <a class="read-more" href="{url}" target="_blank">לקריאת המקור בערוץ ←</a>
+        with st.container(border=True):
+            img_url = row.get('image_url') if ('image_url' in row and pd.notna(row['image_url']) and row['image_url']) else "https://images.unsplash.com/photo-1504711434969-e33886168f5c?w=1000"
+            st.image(img_url, use_container_width=True)
+            
+            cat = str(row.get('sentiment', 'כללי'))
+            is_urgent = row.get('sentiment_score', 0.0) == 1.0
+            urgency_html = '<span class="badge badge-urgent">מתפרצת</span>' if is_urgent else ''
+            
+            st.markdown(f"""
+            <div style="margin: 8px 0;">
+                <span class="badge badge-src">📰 {row.get('source_name', '')}</span>
+                <span class="badge badge-cat">{cat}</span>
+                {urgency_html}
             </div>
-        </div>
-        """, unsafe_allow_html=True)
+            """, unsafe_allow_html=True)
+            
+            title = row.get('title_hebrew') or row.get('title_original')
+            st.markdown(f"<h3 style='color: #ffffff; margin: 4px 0 8px 0; font-size: 1.25rem; font-weight: 800; line-height: 1.4;'>{title}</h3>", unsafe_allow_html=True)
+            
+            summary = str(row.get('summary_hebrew', ''))[:160]
+            st.markdown(f"<p style='color: #94a3b8; font-size: 0.92rem; line-height: 1.6; margin-bottom: 12px;'>{summary}...</p>", unsafe_allow_html=True)
+            
+            url = row.get('url', '#')
+            st.markdown(f"<a class='read-link' href='{url}' target='_blank'>לקריאת המקור בערוץ ←</a>", unsafe_allow_html=True)
 
-# גזרות עם אייקונים אחידים ונקיים
+# גזרות
 SECTORS = [
     {"title": "איראן והציר האזורי", "icon": "🎯", "keys": ["iran", "tehran", "איראן", "טהראן", "Houthi", "תימן"]},
     {"title": "לבנון וחיזבאללה", "icon": "🇱🇧", "keys": ["lebanon", "hezbollah", "beirut", "לבנון", "חיזבאללה", "Telegraph"]},
@@ -324,27 +275,23 @@ for sec in SECTORS:
         cols = st.columns(3)
         for c_idx, (_, row) in enumerate(sec_df.iterrows()):
             with cols[c_idx]:
-                cat = str(row.get('sentiment', 'כללי'))
-                img_src = row.get('image_url') if ('image_url' in row and pd.notna(row['image_url']) and row['image_url']) else "https://images.unsplash.com/photo-1504711434969-e33886168f5c?w=800"
-                c_title = row.get('title_hebrew') or row.get('title_original')
-                c_summary = str(row.get('summary_hebrew', ''))[:120]
-                c_url = row.get('url', '#')
+                with st.container(border=True):
+                    img_src = row.get('image_url') if ('image_url' in row and pd.notna(row['image_url']) and row['image_url']) else "https://images.unsplash.com/photo-1504711434969-e33886168f5c?w=800"
+                    st.image(img_src, use_container_width=True)
 
-                st.markdown(f"""
-                <div class="news-card">
-                    <img class="news-card-img" src="{img_src}" alt="News image" />
-                    <div class="news-card-body">
-                        <div style="margin-bottom: 8px;">
-                            <span class="badge badge-src">📰 {row.get('source_name', '')}</span>
-                            <span class="badge badge-cat">{cat}</span>
-                        </div>
-                        <div style="font-weight:700; color:#fff; font-size:1.02rem; margin-bottom:6px; line-height:1.4;">
-                            {c_title}
-                        </div>
-                        <div style="font-size:0.85rem; color:#94a3b8; line-height:1.5; margin-bottom:12px;">
-                            {c_summary}...
-                        </div>
-                        <a class="read-more" href="{c_url}" target="_blank">לכתבה המקורית ←</a>
+                    cat = str(row.get('sentiment', 'כללי'))
+                    st.markdown(f"""
+                    <div style="margin: 6px 0;">
+                        <span class="badge badge-src">📰 {row.get('source_name', '')}</span>
+                        <span class="badge badge-cat">{cat}</span>
                     </div>
-                </div>
-                """, unsafe_allow_html=True)
+                    """, unsafe_allow_html=True)
+
+                    c_title = row.get('title_hebrew') or row.get('title_original')
+                    st.markdown(f"<div style='font-weight: 700; color: #fff; font-size: 1.02rem; margin-bottom: 6px; line-height: 1.4;'>{c_title}</div>", unsafe_allow_html=True)
+
+                    c_summary = str(row.get('summary_hebrew', ''))[:120]
+                    st.markdown(f"<div style='font-size: 0.85rem; color: #94a3b8; line-height: 1.5; margin-bottom: 12px;'>{c_summary}...</div>", unsafe_allow_html=True)
+
+                    c_url = row.get('url', '#')
+                    st.markdown(f"<a class='read-link' href='{c_url}' target='_blank'>לכתבה המקורית ←</a>", unsafe_allow_html=True)
