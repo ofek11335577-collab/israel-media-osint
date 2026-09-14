@@ -12,6 +12,7 @@ st.set_page_config(
 st.markdown("""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Assistant:wght@300;400;600;700;800&display=swap');
+    
     html, body, [class*="css"], .stApp {
         font-family: 'Assistant', sans-serif !important;
         direction: rtl;
@@ -19,17 +20,23 @@ st.markdown("""
         background-color: #060913;
         color: #f1f5f9;
     }
+    
     header[data-testid="stHeader"] { display: none !important; }
+
+    /* עיצוב כרטיסים אחיד עם תמיכה מלאה ב-RTL */
     .card {
-        background: rgba(15, 23, 42, 0.9);
-        border: 1px solid rgba(56, 189, 248, 0.2);
+        background: rgba(15, 23, 42, 0.92);
+        border: 1px solid rgba(56, 189, 248, 0.25);
         border-radius: 10px;
         padding: 16px;
         margin-bottom: 16px;
         height: 100%;
         display: flex;
         flex-direction: column;
+        direction: rtl;
+        text-align: right;
     }
+    
     .tag {
         display: inline-block;
         padding: 2px 8px;
@@ -40,18 +47,21 @@ st.markdown("""
         color: #93c5fd;
         margin-left: 5px;
     }
+    
     .read-btn {
         color: #38bdf8 !important;
         font-weight: 700;
         text-decoration: none !important;
         margin-top: auto;
-        padding-top: 8px;
+        padding-top: 10px;
         display: inline-block;
+        direction: rtl;
+        text-align: right;
     }
 </style>
 """, unsafe_allow_html=True)
 
-# מאגר נתונים רחב ועשיר המכיל עשרות כתבות אמיתיות מכלל הזירות והעולם
+# מאגר נתונים מלא ויציב
 now_t = datetime.now()
 FULL_ARTICLES_POOL = [
     {
@@ -59,7 +69,7 @@ FULL_ARTICLES_POOL = [
         "source_name": "Tehran Times",
         "country": "איראן",
         "title_hebrew": "איראן: חיל האוויר של משמרות המהפכה שילב מערכות מכ\"ם מתקדמות",
-        "summary_hebrew": "טהראן דיווחה על שדרוג משמעותי במערכי ההתרעה האווירית להגנה על מתקנים אסטרטגיים.",
+        "summary_hebrew": "טהראן דיווחה על שדרוג משמעותי במערכי ההתרעה האווירית להגנה על מתקנים אסטרטגיים מפני איומים אסימטריים.",
         "published_at": (now_t - timedelta(minutes=2)).strftime("%Y-%m-%d %H:%M"),
         "image_url": "https://images.unsplash.com/photo-1508614589041-895b88991e3e?w=1000",
         "sentiment": "צבאי וביטחוני"
@@ -69,7 +79,7 @@ FULL_ARTICLES_POOL = [
         "source_name": "Reuters",
         "country": "תימן",
         "title_hebrew": "תימן: הלחימה העצימה הביאה למאות הרוגים ולעקור רבים בשבוע האחרון",
-        "summary_hebrew": "עימותים קשים מדווחים במספר מחוזות, תוך פגיעה קשה בתשתיות אזרחיות.",
+        "summary_hebrew": "עימותים קשים מדווחים במספר מחוזות במדינה, תוך פגיעה קשה בתשתיות אזרחיות ובאוכלוסייה המקומית.",
         "published_at": (now_t - timedelta(minutes=10)).strftime("%Y-%m-%d %H:%M"),
         "image_url": "https://images.unsplash.com/photo-1509316975850-ff9c5deb0cd9?w=1000",
         "sentiment": "צבאי וביטחוני"
@@ -79,7 +89,7 @@ FULL_ARTICLES_POOL = [
         "source_name": "Middle East Eye",
         "country": "לבנון",
         "title_hebrew": "כוחות צה\"ל ביצעו ירי ארטילרי באזור קו העימות בדרום לבנון",
-        "summary_hebrew": "חילופי אש וירי ארטילרי נרשמו בסמוך לקו העימות בעקבות תנועות חשודות בגזרה.",
+        "summary_hebrew": "חילופי אש וירי ארטילרי נרשמו בסמוך לקו העימות בדרום לבנון בעקבות תנועות חשודות בגזרה.",
         "published_at": (now_t - timedelta(minutes=20)).strftime("%Y-%m-%d %H:%M"),
         "image_url": "https://images.unsplash.com/photo-1534447677768-be436bb09401?w=1000",
         "sentiment": "צבאי וביטחוני"
@@ -89,7 +99,7 @@ FULL_ARTICLES_POOL = [
         "source_name": "Wafa News",
         "country": "איו\"ש",
         "title_hebrew": "פעילות כוחות הביטחון באיו\"ש: מעצר מבוקשים וסריקות מבצעיות",
-        "summary_hebrew": "כוחות צה\"ל פעלו הלילה בגזרות השונות לסיכול תשתיות טרור ולמעצר מבוקשים.",
+        "summary_hebrew": "כוחות צה\"ל פעלו הלילה בגזרות השונות לסיכול תשתיות טרור ולמעצר מבוקשים לחקירה.",
         "published_at": (now_t - timedelta(minutes=35)).strftime("%Y-%m-%d %H:%M"),
         "image_url": "https://images.unsplash.com/photo-1595590424283-b8f17842773f?w=1000",
         "sentiment": "צבאי וביטחוני"
@@ -99,7 +109,7 @@ FULL_ARTICLES_POOL = [
         "source_name": "Al Arabiya",
         "country": "סעודיה",
         "title_hebrew": "יירוט נרחב של כטב\"מים עוינים מעל נתיבי השיט הבינלאומיים בים האדום",
-        "summary_hebrew": "מערכי ההגנה של הקואליציה סיכלו מתקפה מכיוון תימן שנועדה לשבש את התנועה הימית.",
+        "summary_hebrew": "מערכי ההגנה של הקואליציה סיכלו מתקפה מכיוון תימן שנועדה לשבש את התנועה הימית המסחרית.",
         "published_at": (now_t - timedelta(minutes=50)).strftime("%Y-%m-%d %H:%M"),
         "image_url": "https://images.unsplash.com/photo-1527977966376-1c8408f9f108?w=1000",
         "sentiment": "צבאי וביטחוני"
@@ -119,7 +129,7 @@ FULL_ARTICLES_POOL = [
         "source_name": "IRNA",
         "country": "איראן",
         "title_hebrew": "איראן: מדגישה את חשיבות שיתוף הפעולה האזורי לחיזוק הביטחון",
-        "summary_hebrew": "בכירי משרד החוץ בטהראן קיימו פגישות עבודה עם נציגים דיפלומטיים זרים.",
+        "summary_hebrew": "בכירי משרד החוץ בטהראן קיימו פגישות עבודה עם נציגים דיפלומטיים זרים לקידום אינטרסים משותפים.",
         "published_at": (now_t - timedelta(minutes=80)).strftime("%Y-%m-%d %H:%M"),
         "image_url": "https://images.unsplash.com/photo-1584551246679-0daf3d275d0f?w=1000",
         "sentiment": "מדיני ודיפלומטי"
@@ -129,21 +139,10 @@ FULL_ARTICLES_POOL = [
         "source_name": "Safa Press",
         "country": "רצועת עזה",
         "title_hebrew": "רצועת עזה: עדכונים שוטפים מהשטח על פעילות צוותי החירום",
-        "summary_hebrew": "דיווחים מקומיים מעדכנים על מאמצי שיקום תשתיות חיוניות במוקדים השונים.",
+        "summary_hebrew": "דיווחים מקומיים מעדכנים על מאמצי שיקום תשתיות חיוניות במוקדים השונים ברצועה.",
         "published_at": (now_t - timedelta(minutes=95)).strftime("%Y-%m-%d %H:%M"),
         "image_url": "https://images.unsplash.com/photo-1579783902614-a3fb3927b675?w=1000",
         "sentiment": "שוטף"
-    },
-    {
-        "url": "https://www.nytimes.com",
-        "source_name": "NY Times",
-        "country": "ארה\"ב",
-        "title_original": "Washington evaluates regional deterrence posture amid developments",
-        "title_hebrew": "וושינגטון בוחנת מחדש את עמדת ההרתעה האזורית מול איומי הציר",
-        "summary_hebrew": "גורמים מדיניים בארה\"ב דנים בצעדים לחיזוק שיתוף הפעולה הביטחוני במזרח התיכון.",
-        "published_at": (now_t - timedelta(minutes=110)).strftime("%Y-%m-%d %H:%M"),
-        "image_url": "https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=1000",
-        "sentiment": "מדיני ודיפלומטי"
     }
 ]
 
@@ -153,10 +152,10 @@ st.markdown("<h1 style='font-size: 2.2rem; font-weight: 900;'>🌐 דסק מוד
 st.caption("ניטור נרטיבים ודיווחים בזמן אמת ממאגרי התקשורת המובילים בעולם 24/7")
 st.markdown("<hr style='border-color: rgba(56, 189, 248, 0.3);'>", unsafe_allow_html=True)
 
-# פריסה ראשית: כתבה ראשית ומבזקים
-col1, col2 = st.columns([7, 5])
+# סידור נכון של העמודות: כתבה ראשית גדולה בצד ימין, דיווחים חמים בצד שמאל
+col_main, col_side = st.columns([7, 5])
 
-with col1:
+with col_main:
     main_art = df.iloc[0]
     st.markdown(f"""
     <div class="card">
@@ -167,27 +166,27 @@ with col1:
             <span class="tag" style="background:#0369a1;">{main_art['sentiment']}</span>
         </div>
         <h2 style="margin: 10px 0; font-size: 1.45rem;">{main_art['title_hebrew']}</h2>
-        <p style="color: #94a3b8; font-size: 0.95rem;">{main_art['summary_hebrew']}</p>
+        <p style="color: #94a3b8; font-size: 0.95rem; line-height: 1.5;">{main_art['summary_hebrew']}</p>
         <a class="read-btn" href="{main_art['url']}" target="_blank">לקריאת הדיווח המלא במקור ←</a>
     </div>
     """, unsafe_allow_html=True)
 
-with col2:
+with col_side:
     st.markdown("### ⚡ דיווחים חמים נוספים", unsafe_allow_html=True)
     for idx, row in df.iloc[1:4].iterrows():
         st.markdown(f"""
-        <div class="card" style="display: flex; gap: 12px; align-items: center; padding: 10px; margin-bottom: 10px;">
-            <img src="{row['image_url']}" style="width: 90px; height: 75px; object-fit: cover; border-radius: 4px; flex-shrink: 0;" />
-            <div>
-                <div><span class="tag">{row['source_name']}</span><span style="font-size: 0.7rem; color: #64748b;">{row['published_at']}</span></div>
-                <div style="font-weight: 700; font-size: 0.9rem; margin: 4px 0;">{row['title_hebrew']}</div>
+        <div class="card" style="display: flex; gap: 12px; align-items: center; padding: 12px; margin-bottom: 12px;">
+            <img src="{row['image_url']}" style="width: 95px; height: 75px; object-fit: cover; border-radius: 4px; flex-shrink: 0;" />
+            <div style="width: 100%;">
+                <div><span class="tag">{row['source_name']}</span><span style="font-size: 0.7rem; color: #64748b; margin-right: 6px;">{row['published_at']}</span></div>
+                <div style="font-weight: 700; font-size: 0.9rem; margin: 6px 0; line-height: 1.3;">{row['title_hebrew']}</div>
                 <a href="{row['url']}" target="_blank" style="color: #38bdf8; font-size: 0.75rem; text-decoration: none; font-weight: 700;">לקריאה ←</a>
             </div>
         </div>
         """, unsafe_allow_html=True)
 
 # גריד רחב של כל שאר הכתבות להשלמת האתר
-st.markdown("<h3 style='margin: 30px 0 15px 0; font-weight: 800;'>📰 כל הדיווחים והכתבות מהזירות העולמיות</h3>", unsafe_allow_html=True)
+st.markdown("<h3 style='margin: 35px 0 15px 0; font-weight: 800;'>📰 כל הדיווחים והכתבות מהזירות העולמיות</h3>", unsafe_allow_html=True)
 grid_cols = st.columns(3)
 
 for idx, row in df.iloc[4:].iterrows():
