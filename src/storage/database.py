@@ -1,73 +1,69 @@
 import sqlite3
 import os
 
-DB_PATH = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "data", "osint.db")
+DB_PATH = "osint.db"
 
 def get_connection():
-    os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)
     conn = sqlite3.connect(DB_PATH, check_same_thread=False)
-    conn.row_factory = sqlite3.Row
     return conn
 
 def init_db():
     conn = get_connection()
     cursor = conn.cursor()
-    cursor.execute("""
-    CREATE TABLE IF NOT EXISTS articles (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        url TEXT UNIQUE,
-        source_name TEXT,
-        country TEXT,
-        title_original TEXT,
-        content_original TEXT,
-        published_at TEXT,
-        image_url TEXT,
-        title_hebrew TEXT,
-        summary_hebrew TEXT,
-        sentiment TEXT,
-        sentiment_score REAL,
-        mentioned_countries TEXT DEFAULT 'ישראל',
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-    );
-    """)
-    # הוספת העמודה במידה והטבלה כבר הייתה קיימת
-    try:
-        cursor.execute("ALTER TABLE articles ADD COLUMN mentioned_countries TEXT DEFAULT 'ישראל'")
-    except Exception:
-        pass
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS articles (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            url TEXT UNIQUE,
+            source_name TEXT,
+            country TEXT,
+            title_original TEXT,
+            content_original TEXT,
+            published_at TEXT,
+            image_url TEXT,
+            title_hebrew TEXT,
+            summary_hebrew TEXT,
+            sentiment TEXT,
+            sentiment_score REAL,
+            mentioned_countries TEXT
+        )
+    ''')
     conn.commit()
     conn.close()
 
 def is_article_exists(url: str) -> bool:
-    conn = get_connection()
-    cursor = conn.cursor()
-    cursor.execute("SELECT 1 FROM articles WHERE url = ?", (url,))
-    exists = cursor.fetchone() is not None
-    conn.close()
-    return exists
+    try:
+        conn = get_connection()
+        cursor = conn.cursor()
+        cursor.execute("SELECT 1 FROM articles WHERE url = ?", (url,))
+        exists = cursor.fetchone() is not None
+        conn.close()
+        return exists
+    except Exception:
+        return False
 
-def save_article(art: dict):
-    conn = get_connection()
-    cursor = conn.cursor()
-    cursor.execute("""
-    INSERT OR IGNORE INTO articles (
-        url, source_name, country, title_original,
-        content_original, published_at, image_url,
-        title_hebrew, summary_hebrew, sentiment, sentiment_score, mentioned_countries
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    """, (
-        art.get("url"),
-        art.get("source_name"),
-        art.get("country"),
-        art.get("title_original"),
-        art.get("content_original"),
-        art.get("published_at"),
-        art.get("image_url"),
-        art.get("title_hebrew"),
-        art.get("summary_hebrew"),
-        art.get("sentiment"),
-        art.get("sentiment_score", 0.0),
-        art.get("mentioned_countries", "ישראל")
-    ))
-    conn.commit()
-    conn.close()
+def save_article(article: dict):
+    try:
+        conn = get_connection()
+        cursor = conn.cursor()
+        cursor.execute('''
+            OR IGNORE INTO articles 
+            (url, source_name, country, title_original, content_original, published_at, image_url, title_hebrew, summary_hebrew, sentiment, sentiment_score, mentioned_countries)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ''', (
+            article.get('url'),
+            article.get('source_name'),
+            article.get('country'),
+            article.get('title_original'),
+            article.get('content_original'),
+            article.get('published_at'),
+            article.get('image_url'),
+            article.get('title_hebrew'),
+            article.get('summary_hebrew'),
+            article.get('sentiment'),
+            article.get('sentiment_score', 0.0),
+            article.get('mentioned_countries')
+        ))
+        conn.commit()
+        conn.close()
+    except Exception as e:
+        print(f"Database save error: {e}")
