@@ -4,29 +4,33 @@ import email.utils
 import pytz
 
 FEEDS = [
-    # --- חדשות מתפרצות עולמיות ומזרח תיכון ---
-    {"url": "https://feeds.bbci.co.uk/news/world/middle_east/rss.xml", "source": "BBC News", "country": "בריטניה", "tz": "Europe/London"},
+    # --- ארה"ב ומערב (סינון מזרח תיכון / ישראל) ---
+    {"url": "https://rss.cnn.com/rss/edition_mideast.rss", "source": "CNN", "country": "ארה\"ב", "tz": "America/New_York"},
     {"url": "https://rss.nytimes.com/services/xml/rss/nyt/MiddleEast.xml", "source": "NY Times", "country": "ארה\"ב", "tz": "America/New_York"},
-    {"url": "https://www.aljazeera.com/xml/rss/all.xml", "source": "Al Jazeera", "country": "קטר", "tz": "Asia/Qatar"},
-    {"url": "https://english.alarabiya.net/rss", "source": "Al Arabiya", "country": "סעודיה", "tz": "Asia/Riyadh"},
-    
+    {"url": "https://feeds.bbci.co.uk/news/world/middle_east/rss.xml", "source": "BBC News", "country": "בריטניה", "tz": "Europe/London"},
+    {"url": "https://www.reutersagency.com/feed/?best-topics=middle-east&post_type=best", "source": "Reuters", "country": "בריטניה", "tz": "Europe/London"},
+    {"url": "https://www.france24.com/en/middle-east/rss", "source": "France 24", "country": "צרפת", "tz": "Europe/Paris"},
+
     # --- איראן והציר ---
     {"url": "https://www.tehrantimes.com/rss", "source": "Tehran Times", "country": "איראן", "tz": "Asia/Tehran"},
     {"url": "https://en.irna.ir/rss", "source": "IRNA", "country": "איראן", "tz": "Asia/Tehran"},
     {"url": "https://www.tasnimnews.com/en/rss/feed/0/7/0/", "source": "Tasnim News", "country": "איראן", "tz": "Asia/Tehran"},
     {"url": "https://en.almayadeen.net/rss", "source": "Al Mayadeen", "country": "לבנון", "tz": "Asia/Beirut"},
 
-    # --- זירה מקומית (עזה, איו"ש, ירדן, עיראק) ---
-    {"url": "https://wafa.ps/ar/Rss/GetRss", "source": "Wafa News", "country": "איו\"ש", "tz": "Asia/Hebron"},
-    {"url": "https://safa.ps/rss", "source": "Safa Press", "country": "רצועת עזה", "tz": "Asia/Gaza"},
+    # --- סעודיה ומפרץ ---
+    {"url": "https://english.alarabiya.net/rss", "source": "Al Arabiya", "country": "סעודיה", "tz": "Asia/Riyadh"},
+    {"url": "https://www.spa.gov.sa/rss/rss_all.xml", "source": "SPA Saudi", "country": "סעודיה", "tz": "Asia/Riyadh"},
+    {"url": "https://www.thenationalnews.com/arc/outbound/rss/?outputType=xml", "source": "The National", "country": "איחוד האמירויות", "tz": "Asia/Dubai"},
+
+    # --- ירדן, עיראק ומצרים ---
+    {"url": "https://petra.gov.jo/Rss/RssHandler.ashx?catId=1", "source": "Petra News", "country": "ירדן", "tz": "Asia/Amman"},
     {"url": "https://www.ina.iq/en/rss.xml", "source": "INA Iraq", "country": "עיראק", "tz": "Asia/Baghdad"},
     {"url": "https://shafaq.com/en/rss", "source": "Shafaq News", "country": "עיראק", "tz": "Asia/Baghdad"},
-    {"url": "https://en.ammonnews.net/rss.php", "source": "Ammon News", "country": "ירדן", "tz": "Asia/Amman"},
 
-    # --- סוכנויות בינלאומיות נוספות ---
-    {"url": "https://www.france24.com/en/middle-east/rss", "source": "France 24", "country": "צרפת", "tz": "Europe/Paris"},
-    {"url": "https://www.theguardian.com/world/middleeast/rss", "source": "The Guardian", "country": "בריטניה", "tz": "Europe/London"},
-    {"url": "https://www.middleeasteye.net/rss", "source": "Middle East Eye", "country": "בריטניה", "tz": "Europe/London"}
+    # --- עזה, איו"ש וקטר ---
+    {"url": "https://wafa.ps/ar/Rss/GetRss", "source": "Wafa News", "country": "איו\"ש", "tz": "Asia/Hebron"},
+    {"url": "https://safa.ps/rss", "source": "Safa Press", "country": "רצועת עזה", "tz": "Asia/Gaza"},
+    {"url": "https://www.aljazeera.com/xml/rss/all.xml", "source": "Al Jazeera", "country": "קטר", "tz": "Asia/Qatar"}
 ]
 
 def normalize_timezone(published_dt, source_tz_str):
@@ -53,12 +57,9 @@ def parse_date(entry, tz_str):
             dt = email.utils.parsedate_to_datetime(entry.published)
         except Exception:
             pass
-            
     if not dt:
         dt = datetime.now()
-        
-    normalized_dt = normalize_timezone(dt, tz_str)
-    return normalized_dt.strftime("%Y-%m-%d %H:%M")
+    return normalize_timezone(dt, tz_str).strftime("%Y-%m-%d %H:%M")
 
 def extract_image(entry):
     if hasattr(entry, 'media_content') and entry.media_content:
@@ -71,13 +72,13 @@ def extract_image(entry):
 
 def fetch_relevant_articles():
     articles = []
-    # רשימת מילות מפתח רחבה מאוד כך ששום דיווח חשוב לא יפספס
+    # מילות מפתח לוודא רלוונטיות מבצעית ואזורית
     keywords = [
         "israel", "netanyahu", "gaza", "lebanon", "hezbollah", "beirut", "iran", 
         "tehran", "hamas", "tel aviv", "idf", "houthi", "yemen", "west bank", 
         "jerusalem", "syria", "damascus", "palestin", "middle east", "ceasefire",
         "strike", "military", "missile", "war", "drone", "hostage", "saudi", "iraq",
-        "israeli", "idf", "quds", "jenin", "nablus", "ramallah", "border", "conflict"
+        "israeli", "quds", "jenin", "nablus", "ramallah", "border", "conflict", "persian gulf"
     ]
     
     for f in FEEDS:
@@ -86,19 +87,21 @@ def fetch_relevant_articles():
             for entry in feed.entries[:20]:
                 title = entry.get('title', '')
                 summary = entry.get('summary', '') or entry.get('description', '')
+                link = entry.get('link', '')
                 full_text = f"{title} {summary}".lower()
                 
-                # אם יש התאמה או שהפיד כולו ממוקד מזרח תיכון
-                if any(k in full_text for k in keywords) or "middle_east" in f['url'] or "middle-east" in f['url']:
-                    articles.append({
-                        "url": entry.get('link', ''),
-                        "source_name": f['source'],
-                        "country": f['country'],
-                        "title_original": title,
-                        "content_original": summary,
-                        "published_at": parse_date(entry, f['tz']),
-                        "image_url": extract_image(entry)
-                    })
+                # סינון חכם: אם מדובר בערוץ ייעודי למזרח התיכון או שיש מילת מפתח רלוונטית
+                if any(k in full_text for k in keywords) or "middle" in f['url'] or "mideast" in f['url']:
+                    if link:
+                        articles.append({
+                            "url": link,
+                            "source_name": f['source'],
+                            "country": f['country'],
+                            "title_original": title,
+                            "content_original": summary,
+                            "published_at": parse_date(entry, f['tz']),
+                            "image_url": extract_image(entry)
+                        })
         except Exception as e:
             print(f"Fetch error {f['source']}: {e}")
             
