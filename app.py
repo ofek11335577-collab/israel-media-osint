@@ -2,12 +2,22 @@ import streamlit as st
 import pandas as pd
 from datetime import datetime, timedelta
 import sqlite3
+import os
 
 DB_PATH = "osint_desk.db"
 
 def init_db():
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
+    
+    # בדיקה האם העמודה החדשה קיימת, אם לא - ניצור מחדש את הטבלה בצורה נקייה ומלאה
+    cursor.execute("PRAGMA table_info(articles)")
+    columns = [col[1] for col in cursor.fetchall()]
+    
+    if "full_content_hebrew" not in columns:
+        cursor.execute("DROP TABLE IF EXISTS articles")
+        conn.commit()
+
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS articles (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -47,7 +57,7 @@ def init_db():
             ("בחינת מעטפת ההגנה האווירית והיערכות טכנולוגית חדשה בגזרה", "צבאי וביטחוני", 9),
             ("הודעה רשמית מטעם בכירי הממשל על מהלכים דיפלומטיים עתידיים", "מדיני ודיפלומטי", 7),
             ("דוח כלכלי מיוחד: השפעת הלחץ הבינלאומי על שווקי האנרגיה באזור", "כלכלה וסנקציות", 5),
-            ("פריסת כוחות רחבה ות고בות מבצעיות במוקדי החיכוך המרכזיים", "צבאי וביטחוני", 8),
+            ("פריסת כוחות רחבה ותגובות מבצעיות במוקדי החיכוך המרכזיים", "צבאי וביטחוני", 8),
             ("ועידת חירום סגורה לתיאום עמדות אסטרטגיות בין נציגי הציר", "מדיני ודיפלומטי", 6),
             ("תיעוד וניתוח תנועות חריגות במרחב הימי והאווירי", "צבאי וביטחוני", 10),
             ("הצהרות דוברות רשמיות סביב עיצוב מחדש של משוואת ההרתעה", "מדיני ודיפלומטי", 8)
@@ -388,7 +398,7 @@ else:
         </div>
         """, unsafe_allow_html=True)
         
-        if st.button("קרא כתבה מלאה ותרוגום עומק בדסק ←", key=f"main_read_{main_art['id']}", type="primary"):
+        if st.button("קרא כתבה מלאה ותרגום עומק בדסק ←", key=f"main_read_{main_art['id']}", type="primary"):
             st.session_state['reading_article_id'] = main_art['id']
             st.rerun()
 
