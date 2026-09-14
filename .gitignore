@@ -2,4 +2,3 @@
 osint-env/
 __pycache__/
 *.pyc
-data/osint.db
