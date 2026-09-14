@@ -317,7 +317,7 @@ def get_smart_image(row):
         return TOPIC_IMAGE_POOLS["drone"][0]
     return TOPIC_IMAGE_POOLS["general"][0]
 
-# מאגר גיבוי קבוע בזיכרון שמבטיח שפע כתבות שלא נמחקות לעולם
+# מאגר חירום קבוע ועשיר שלא יתרוקן לעולם
 now_t = datetime.now()
 PERSISTENT_BOOTSTRAP_POOL = [
     {
@@ -340,7 +340,7 @@ PERSISTENT_BOOTSTRAP_POOL = [
         "country": "תימן",
         "title_original": "Yemen fighting kills 504 and displaces nearly 78,000 in one week",
         "content_original": "Intense clashes across frontline governorates result in heavy casualties.",
-        "published_at": (now_t - timedelta(minutes=18)).strftime("%Y-%m-%d %H:%M"),
+        "published_at": (now_t - timedelta(minutes=15)).strftime("%Y-%m-%d %H:%M"),
         "image_url": TOPIC_IMAGE_POOLS["artillery_missiles"][0],
         "title_hebrew": "תימן: הלחימה העצימה הביאה למאות הרוגים ולעקור רבים בשבוע האחרון",
         "summary_hebrew": "עימותים קשים מדווחים במספר מחוזות, תוך פגיעה קשה בתשתיות אזרחיות.",
@@ -354,7 +354,7 @@ PERSISTENT_BOOTSTRAP_POOL = [
         "country": "לבנון",
         "title_original": "Israeli forces fire shells near residents approaching Lebanon's Kfar Tebnit",
         "content_original": "Artillery shelling targeted areas adjacent to southern Lebanese villages.",
-        "published_at": (now_t - timedelta(minutes=35)).strftime("%Y-%m-%d %H:%M"),
+        "published_at": (now_t - timedelta(minutes=30)).strftime("%Y-%m-%d %H:%M"),
         "image_url": TOPIC_IMAGE_POOLS["lebanon"][0],
         "title_hebrew": "כוחות צה\"ל ביצעו ירי ארטילרי לעבר חשודים שהתקרבו לכפר תבנית בדרום לבנון",
         "summary_hebrew": "חילופי אש וירי ארטילרי נרשמו בסמוך לקו העימות בדרום לבנון בעקבות תנועות חשודות בגזרה.",
@@ -368,7 +368,7 @@ PERSISTENT_BOOTSTRAP_POOL = [
         "country": "איו\"ש",
         "title_original": "Palestinian man injured in Israeli gunfire, two detained in West Bank",
         "content_original": "Security operations and search activities carried out across Jenin and Nablus.",
-        "published_at": (now_t - timedelta(minutes=50)).strftime("%Y-%m-%d %H:%M"),
+        "published_at": (now_t - timedelta(minutes=45)).strftime("%Y-%m-%d %H:%M"),
         "image_url": TOPIC_IMAGE_POOLS["soldiers"][0],
         "title_hebrew": "פעילות כוחות הביטחון באיו\"ש: מעצר מבוקשים וסריקות מבצעיות",
         "summary_hebrew": "כוחות צה\"ל ומשמר הגבול פעלו הלילה בגזרות ג'נין ושכם לסיכול תשתיות טרור ולמעצר מבוקשים.",
@@ -382,7 +382,7 @@ PERSISTENT_BOOTSTRAP_POOL = [
         "country": "סעודיה",
         "title_original": "Naval coalition forces intercept suspicious drone wave in Red Sea",
         "content_original": "Air defense systems destroyed hostile unmanned aerial vehicles.",
-        "published_at": (now_t - timedelta(minutes=70)).strftime("%Y-%m-%d %H:%M"),
+        "published_at": (now_t - timedelta(minutes=60)).strftime("%Y-%m-%d %H:%M"),
         "image_url": TOPIC_IMAGE_POOLS["drone"][0],
         "title_hebrew": "יירוט נרחב של כטב\"מים עוינים מעל נתיבי השיט הבינלאומיים בים האדום",
         "summary_hebrew": "מערכי ההגנה של הקואליציה סיכלו מתקפה מכיוון תימן שנועדה לשבש את התנועה הימית לאילת.",
@@ -394,11 +394,9 @@ PERSISTENT_BOOTSTRAP_POOL = [
 
 def load_data():
     conn = get_connection()
-    # ודא תחילה שהמאגר המקומי מכיל את נתוני הבוטסטראפ הקבועים אם הוא ריק
     cursor = conn.cursor()
     cursor.execute("SELECT COUNT(*) FROM articles")
-    count = cursor.fetchone()[0]
-    if count == 0:
+    if cursor.fetchone()[0] == 0:
         for art in PERSISTENT_BOOTSTRAP_POOL:
             try:
                 cursor.execute('''
@@ -418,7 +416,6 @@ def load_data():
     db_df = pd.read_sql_query("SELECT * FROM articles ORDER BY published_at DESC, id DESC", conn)
     conn.close()
     
-    # הסרת כפילויות מוחלטת
     if not db_df.empty:
         db_df = db_df.drop_duplicates(subset=['title_hebrew'], keep='first')
         db_df = db_df.drop_duplicates(subset=['url'], keep='first')
