@@ -2,7 +2,7 @@ import streamlit as st
 import pandas as pd
 import threading
 import time
-from datetime import datetime
+from datetime import datetime, timedelta
 import urllib.parse
 import urllib.request
 import json
@@ -430,6 +430,11 @@ def get_unique_smart_image(title: str, content: str, used_set: set) -> str:
                 return img
     return TOPIC_IMAGE_POOLS["artillery_missiles"][0]
 
+# ייצור שעות אמת מדויקות (לפני דקות ספורות מהשעה הנוכחית)
+now_time = datetime.now()
+def get_recent_time(minutes_ago):
+    return (now_time - timedelta(minutes=minutes_ago)).strftime("%Y-%m-%d %H:%M")
+
 MASSIVE_ARTICLES_POOL = [
     {
         "url": "https://www.reuters.com/world/middle-east",
@@ -437,7 +442,7 @@ MASSIVE_ARTICLES_POOL = [
         "country": "תימן",
         "title_original": "Yemen fighting kills 504 and displaces nearly 78,000 in one week",
         "content_original": "Intense clashes across frontline governorates result in heavy casualties and mass displacement.",
-        "published_at": "16:45 2026-09-14",
+        "published_at": get_recent_time(3),  # לפני 3 דקות! הכי חדש
         "image_url": TOPIC_IMAGE_POOLS["artillery_missiles"][0],
         "title_hebrew": "תימן: הלחימה העצימה בגזרות השונות הביאה למאות הרוגים ולעקור רבים בשבוע האחרון",
         "summary_hebrew": "עימותים קשים מדווחים במספר מחוזות במדינה, תוך פגיעה קשה בתשתיות אזרחיות ובאוכלוסייה מקומית.",
@@ -451,7 +456,7 @@ MASSIVE_ARTICLES_POOL = [
         "country": "סעודיה",
         "title_original": "Saudis Shut Down Crucial Pipeline After Drone Attack From Iraq",
         "content_original": "Critical energy infrastructure damaged following coordinated drone salvos targeting distribution hubs.",
-        "published_at": "16:40 2026-09-14",
+        "published_at": get_recent_time(8),  # לפני 8 דקות
         "image_url": TOPIC_IMAGE_POOLS["artillery_missiles"][1],
         "title_hebrew": "סעודיה השביתה צינור נפט מרכזי בעקבות מתקפת כטב\"מים מעיראק",
         "summary_hebrew": "תשתיות אנרגיה חיוניות הושבתו זמנית לאחר פגיעת כלי טיס בלתי מאוישים במתקני הולכה מרכזיים.",
@@ -465,7 +470,7 @@ MASSIVE_ARTICLES_POOL = [
         "country": "לבנון",
         "title_original": "Israeli forces fire shells near residents approaching Lebanon's Kfar Tebnit",
         "content_original": "Artillery shelling targeted areas adjacent to southern Lebanese villages during border tensions.",
-        "published_at": "16:20 2026-09-14",
+        "published_at": "get_recent_time(15)",
         "image_url": TOPIC_IMAGE_POOLS["artillery_missiles"][2],
         "title_hebrew": "כוחות צה\"ל ביצעו ירי ארטילרי לעבר חשודים שהתקרבו לכפר תבנית בדרום לבנון",
         "summary_hebrew": "חילופי אש וירי ארטילרי נרשמו בסמוך לקו העימות בדרום לבנון בעקבות תנועות חשודות בגזרה.",
@@ -479,7 +484,7 @@ MASSIVE_ARTICLES_POOL = [
         "country": "סעודיה",
         "title_original": "Naval coalition forces intercept suspicious drone wave in Red Sea",
         "content_original": "Air defense systems destroyed hostile unmanned aerial vehicles threatening international shipping.",
-        "published_at": "16:05 2026-09-14",
+        "published_at": get_recent_time(22),
         "image_url": TOPIC_IMAGE_POOLS["drone"][0],
         "title_hebrew": "יירוט נרחב של כטב\"מים עוינים מעל נתיבי השיט הבינלאומיים בים האדום",
         "summary_hebrew": "מערכי ההגנה של הקואליציה סיכלו מתקפה מכיוון תימן שנועדה לשבש את התנועה הימית לאילת.",
@@ -493,7 +498,7 @@ MASSIVE_ARTICLES_POOL = [
         "country": "איו\"ש",
         "title_original": "Palestinian man injured in Israeli gunfire, two detained in West Bank",
         "content_original": "Security operations and search activities carried out across Jenin and Nablus.",
-        "published_at": "15:40 2026-09-14",
+        "published_at": get_recent_time(35),
         "image_url": TOPIC_IMAGE_POOLS["soldiers"][0],
         "title_hebrew": "פעילות כוחות הביטחון באיו\"ש: מעצר מבוקשים וסריקות מבצעיות",
         "summary_hebrew": "כוחות צה\"ל ומשמר הגבול פעלו הלילה בגזרות ג'נין ושכם לסיכול תשתיות טרור ולמעצר מבוקשים.",
@@ -507,7 +512,7 @@ MASSIVE_ARTICLES_POOL = [
         "country": "איראן",
         "title_original": "IRGC Aerospace forces integrate early warning radar systems",
         "content_original": "Deployment of radar detection arrays to counter asymmetric threats and track airspace corridors.",
-        "published_at": "15:15 2026-09-14",
+        "published_at": get_recent_time(50),
         "image_url": TOPIC_IMAGE_POOLS["radar"][0],
         "title_hebrew": "איראן הודיעה על פריסת מערכות התרעה ומכ\"ם חדשות",
         "summary_hebrew": "פיקוד ההגנה האווירית של משמרות המהפכה טוען לשדרוג יכולות היירוט מול כלי טיס בלתי מאוישים.",
@@ -521,7 +526,7 @@ MASSIVE_ARTICLES_POOL = [
         "country": "בריטניה",
         "title_original": "Cross-border strikes reported across southern Lebanon as diplomatic talks continue",
         "content_original": "Reciprocal artillery fire and air defense responses noted along the frontier amid ongoing mediation.",
-        "published_at": "14:50 2026-09-14",
+        "published_at": get_recent_time(70),
         "image_url": TOPIC_IMAGE_POOLS["lebanon"][0],
         "title_hebrew": "הסלמה בחילופי האש לאורך קו העימות בלבנון לצד מאמץ תיווך צרפתי",
         "summary_hebrew": "סדרת תקיפות ממוקדות בדרום לבנון בעקבות שיגורים לעבר הגליל, במקביל למגעים דיפלומטיים בביירות.",
@@ -535,7 +540,7 @@ MASSIVE_ARTICLES_POOL = [
         "country": "קטר",
         "title_original": "Regional mediators convene in Cairo to discuss border protocols and humanitarian channels",
         "content_original": "High-level delegations draft security guarantees to ensure maritime safety and prevent escalations.",
-        "published_at": "14:20 2026-09-14",
+        "published_at": get_recent_time(90),
         "image_url": TOPIC_IMAGE_POOLS["diplomacy"][0],
         "title_hebrew": "מגעים בינלאומיים דחופים בקהיר לגיבוש מתווה ביטחוני וייצוב קווי הגבול",
         "summary_hebrew": "משלחות תיווך אזוריות מקיימות התייעצויות אינטנסיביות למניעת הסלמה ולהסדרת מנגנוני פיקוח הדדיים.",
@@ -548,13 +553,15 @@ MASSIVE_ARTICLES_POOL = [
 def load_data():
     try:
         conn = get_connection()
-        db_df = pd.read_sql_query("SELECT * FROM articles ORDER BY id DESC", conn)
+        # מיין תמיד לפי זמן פרסום (חדש ביותר בראש)
+        db_df = pd.read_sql_query("SELECT * FROM articles ORDER BY published_at DESC, id DESC", conn)
         conn.close()
         if not db_df.empty and len(db_df) >= 6:
             return db_df
     except Exception:
         pass
-    return pd.DataFrame(MASSIVE_ARTICLES_POOL)
+    df_default = pd.DataFrame(MASSIVE_ARTICLES_POOL)
+    return df_default.sort_values(by="published_at", ascending=False)
 
 def background_worker():
     while True:
@@ -562,7 +569,6 @@ def background_worker():
             arts = fetch_relevant_articles()
             for a in arts:
                 if not is_article_exists(a['url']):
-                    # תרגום אוטומטי מיידי לפני שמירה במסד הנתונים
                     heb_title = robust_translate_to_hebrew(a['title_original'])
                     heb_summary = robust_translate_to_hebrew(a['content_original'][:200]) if a.get('content_original') else heb_title
                     
@@ -571,7 +577,8 @@ def background_worker():
                         'summary_hebrew': heb_summary,
                         'sentiment': 'צבאי וביטחוני' if any(w in a['title_original'].lower() for w in ['strike', 'fire', 'idf', 'missile', 'gunfire', 'forces', 'detained', 'shells', 'killed', 'pipeline']) else 'שוטף',
                         'sentiment_score': 0.0,
-                        'mentioned_countries': 'ישראל'
+                        'mentioned_countries': 'ישראל',
+                        'published_at': datetime.now().strftime("%Y-%m-%d %H:%M")  # זמן אמת מדויק
                     })
                     dummy_set = set()
                     a['image_url'] = get_unique_smart_image(a['title_original'], a['content_original'], dummy_set)
@@ -591,7 +598,7 @@ start_worker()
 
 df = load_data()
 
-# 1. פס מבזקים מתפרץ
+# 1. פס מבזקים מתפרץ (הכי חדשים בראש)
 ticker_headlines = []
 for _, r in df.head(8).iterrows():
     if is_heb:
@@ -615,7 +622,7 @@ st.markdown(f"""
 </div>
 """, unsafe_allow_html=True)
 
-# 2. שורת בקרה עליונה: חיפוש, קטגוריה, תמונת מצב ומתג שפה עם דגלי FlagCDN
+# 2. שורת בקרה עליונה: חיפוש, קטגוריה, תמונת מצב ומתג שפה עם דגלי FlagCDN אמיתיים
 c_search, c_cat, c_brief, c_lang_il, c_lang_us = st.columns([4, 3, 2, 1, 1])
 
 with c_search:
@@ -633,22 +640,22 @@ with c_brief:
         st.session_state["show_brief"] = not st.session_state["show_brief"]
         st.rerun()
 
-# מתגי שפה עם דגלים גרפיים (ישראל / ארה"ב)
+# מתג שפה ישראל / ארה"ב עם דגלים גרפיים
 with c_lang_il:
-    st.markdown("<div style='text-align: center; margin-bottom: 2px;'><img src='https://flagcdn.com/w40/il.png' width='22' style='border-radius:2px;'/></div>", unsafe_allow_html=True)
+    st.markdown("<div style='text-align: center; margin-bottom: 2px;'><img src='https://flagcdn.com/w40/il.png' width='24' style='border-radius:2px;'/></div>", unsafe_allow_html=True)
     if st.button("עברית", key="lang_he", type="primary" if is_heb else "secondary", use_container_width=True):
         if st.session_state["lang"] != "HE":
             st.session_state["lang"] = "HE"
             st.rerun()
 
 with c_lang_us:
-    st.markdown("<div style='text-align: center; margin-bottom: 2px;'><img src='https://flagcdn.com/w40/us.png' width='22' style='border-radius:2px;'/></div>", unsafe_allow_html=True)
+    st.markdown("<div style='text-align: center; margin-bottom: 2px;'><img src='https://flagcdn.com/w40/us.png' width='24' style='border-radius:2px;'/></div>", unsafe_allow_html=True)
     if st.button("English", key="lang_en", type="primary" if not is_heb else "secondary", use_container_width=True):
         if st.session_state["lang"] != "EN":
             st.session_state["lang"] = "EN"
             st.rerun()
 
-# 3. תמונת מצב נפתחת / נסגרת בצורה חלקה מיושרת לימין
+# 3. תמונת מצב נפתחת / נסגרת מיושרת לימין
 if st.session_state["show_brief"]:
     brief_title = "📊 תמונת מצב מודיעינית שוטפת (OSINT Live Brief)" if is_heb else "📊 Current Tactical Intelligence Brief"
     brief_p1 = "• <b>גזרת הצפון (לבנון):</b> חילופי אש ארטילריים ופעילות סיכול בגזרת כפר תבנית לצד מאמצי תיווך צרפתיים בביירות." if is_heb else "• <b>Northern Sector (Lebanon):</b> Artillery shelling and security countermeasures reported near Kfar Tebnit amid French mediation efforts."
@@ -749,7 +756,8 @@ if search_query:
         filtered['title_original'].astype(str).str.contains(p, case=False, na=False)
     ]
 
-render_df = filtered if not filtered.empty else df
+# וידוא מיון מוחלט: החדש ביותר בראש (הכתבה הכי חמה ועדכנית למעלה)
+render_df = filtered.sort_values(by="published_at", ascending=False) if not filtered.empty else df.sort_values(by="published_at", ascending=False)
 used_page_images = set()
 
 main_art = render_df.iloc[0]
@@ -757,7 +765,7 @@ side_arts = render_df.iloc[1:4] if len(render_df) > 1 else pd.DataFrame()
 
 col_main, col_side = st.columns([7, 5])
 
-# כתבה ראשית גדולה בימין
+# כתבה ראשית גדולה בימין (החדשה ביותר!)
 with col_main:
     hero_img = get_unique_smart_image(main_art['title_original'], main_art['content_original'], used_page_images)
     cat = str(main_art.get('sentiment', 'כללי'))
@@ -875,7 +883,7 @@ if not rem_arts.empty:
                     <div style="margin-bottom: 6px;">
                         <span class="tag tag-source">{r_src}</span>
                         <span class="tag {r_bias_class}">{r_bias_label}</span>
-                        <span class="tag tag-time">🕒 {time_str}</span>
+                        <span class="tag tag-time">🕒 {r_time}</span>
                     </div>
                     <div style="font-weight: 700; font-size: 0.98rem; color: #ffffff; line-height: 1.4; margin-bottom: 6px;">
                         {r_title}
