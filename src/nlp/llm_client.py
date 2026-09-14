@@ -19,16 +19,17 @@ def analyze_article(title: str, text: str) -> dict:
     client = get_client()
     
     prompt = f"""
-אתה אנליסט דסק מודיעין תקשורת. נתח את הכתבה הבאה:
+אתה אנליסט דסק מודיעין תקשורת. נתח את הכתבה הבאה בצורה מדויקת:
 כותרת: {title}
 תוכן: {text}
 
-החזר תשובה אך ורק בפורמט JSON תקני במבנה הבא (ללא Markdown מסביב):
+החזר אך ורק פורמט JSON תקני ללא Markdown:
 {{
-  "title_hebrew": "כותרת קולעת בעברית",
-  "summary_hebrew": "תמצית הידיעה ב-2-3 משפטים בעברית ברורה",
-  "category": "בחר אחד בלבד: צבאי וביטחוני | מדיני ודיפלומטי | כלכלה וסנקציות | פנים וחברה",
-  "urgency": "בחר אחד בלבד: מתפרצת | שוטף | ניתוח עומק"
+  "title_hebrew": "כותרת קולעת ועניינית בעברית",
+  "summary_hebrew": "תמצית הידיעה ב-2 משפטים בעברית ברורה ומקצועית",
+  "category": "בחר אחד: צבאי וביטחוני | מדיני ודיפלומטי | כלכלה וסנקציות | פנים וחברה",
+  "urgency": "בחר אחד: מתפרצת | שוטף | ניתוח עומק",
+  "mentioned_countries": ["רשימת כל המדינות או הישויות המרכזיות שמוזכרות או שהכתבה נוגעת אליהן בעברית, למשל: ישראל, איראן, לבנון, ארה\"ב, סוריה, תימן, בריטניה"]
 }}
 """
     try:
@@ -37,15 +38,20 @@ def analyze_article(title: str, text: str) -> dict:
             contents=prompt,
             config=types.GenerateContentConfig(
                 response_mime_type="application/json",
-                temperature=0.2
+                temperature=0.1
             )
         )
-        return json.loads(response.text)
+        data = json.loads(response.text)
+        # הפיכת רשימת המדינות למחרוזת מופרדת בפסיקים
+        countries = data.get("mentioned_countries", [])
+        data["mentioned_countries_str"] = ", ".join(countries) if isinstance(countries, list) else str(countries)
+        return data
     except Exception as e:
         print(f"LLM Processing error: {e}")
         return {
             "title_hebrew": title,
-            "summary_hebrew": text[:200] if text else "לא ניתן לחלץ תקציר",
+            "summary_hebrew": text[:180] if text else "תקציר אינו זמין",
             "category": "שוטף",
-            "urgency": "שוטף"
+            "urgency": "שוטף",
+            "mentioned_countries_str": "ישראל"
         }

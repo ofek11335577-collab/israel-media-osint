@@ -26,9 +26,15 @@ def init_db():
         summary_hebrew TEXT,
         sentiment TEXT,
         sentiment_score REAL,
+        mentioned_countries TEXT DEFAULT 'ישראל',
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );
     """)
+    # הוספת העמודה במידה והטבלה כבר הייתה קיימת
+    try:
+        cursor.execute("ALTER TABLE articles ADD COLUMN mentioned_countries TEXT DEFAULT 'ישראל'")
+    except Exception:
+        pass
     conn.commit()
     conn.close()
 
@@ -47,8 +53,8 @@ def save_article(art: dict):
     INSERT OR IGNORE INTO articles (
         url, source_name, country, title_original,
         content_original, published_at, image_url,
-        title_hebrew, summary_hebrew, sentiment, sentiment_score
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        title_hebrew, summary_hebrew, sentiment, sentiment_score, mentioned_countries
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     """, (
         art.get("url"),
         art.get("source_name"),
@@ -60,7 +66,8 @@ def save_article(art: dict):
         art.get("title_hebrew"),
         art.get("summary_hebrew"),
         art.get("sentiment"),
-        art.get("sentiment_score", 0.0)
+        art.get("sentiment_score", 0.0),
+        art.get("mentioned_countries", "ישראל")
     ))
     conn.commit()
     conn.close()
