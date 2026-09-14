@@ -14,7 +14,7 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# פונטים מודרניים - Assistant & Rubik ועיצוב פורטל כהה
+# פונטים מודרניים - Assistant & Rubik ועיצוב פורטל ספורט כהה
 st.markdown("""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Assistant:wght@300;400;600;700;800&family=Rubik:wght@700;800;900&display=swap');
@@ -39,6 +39,7 @@ st.markdown("""
         display: none !important;
     }
 
+    /* שדות קלט עליונים */
     div[data-baseweb="input"] {
         background-color: #111827 !important;
         border: 1px solid #1f2937 !important;
@@ -55,6 +56,44 @@ st.markdown("""
         color: #f8fafc !important;
     }
 
+    /* עיצוב סרגל כפתורי המדינות (Navbar) כמו באתר ספורט */
+    div[data-testid="stRadio"] > div {
+        gap: 10px !important;
+        justify-content: flex-start !important;
+        flex-wrap: wrap !important;
+    }
+
+    /* הפיכת אפשרויות הרדיו לכרטיסי כפתור מודרניים ללא נקודות רדיו מכוערות */
+    div[data-testid="stRadio"] label {
+        background-color: #111827 !important;
+        border: 1px solid #1f2937 !important;
+        border-radius: 25px !important;
+        padding: 8px 18px !important;
+        cursor: pointer !important;
+        transition: all 0.2s ease !important;
+    }
+    div[data-testid="stRadio"] label:hover {
+        border-color: #0284c7 !important;
+        background-color: #1e293b !important;
+    }
+
+    /* הסתרת עיגול הרדיו */
+    div[data-testid="stRadio"] label > div:first-child {
+        display: none !important;
+    }
+
+    /* עיצוב הטקסט בתוך הכפתור - לבן, גדול ובולט */
+    div[data-testid="stRadio"] label p {
+        color: #ffffff !important;
+        font-size: 1.05rem !important;
+        font-weight: 700 !important;
+        margin: 0 !important;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    /* כרטיס ראשי בסגנון אתר ספורט */
     .main-hero-card {
         background: #111827;
         border: 1px solid #1f2937;
@@ -81,6 +120,7 @@ st.markdown("""
         flex-grow: 1;
     }
 
+    /* כרטיסי הרשימה הצדדית */
     .side-item-card {
         background: #111827;
         border: 1px solid #1f2937;
@@ -105,6 +145,7 @@ st.markdown("""
         flex-shrink: 0;
     }
 
+    /* כרטיסי גריד תחתונים */
     .grid-card {
         background: #111827;
         border: 1px solid #1f2937;
@@ -303,25 +344,46 @@ def start_worker():
 
 start_worker()
 
-# 1. שורת חיפוש וסינון
+# --- 1. שורת סינון וחיפוש עליונה ---
 c_search, c_cat = st.columns([7, 3])
 with c_search:
     search_query = st.text_input("חיפוש", placeholder="🔎 חפש בידיעות: נתניהו, טילים, הפסקת אש, ביירות...", label_visibility="collapsed")
 with c_cat:
     cat_filter = st.selectbox("תחום", ["כל התחומים", "צבאי וביטחוני", "מדיני ודיפלומטי", "כלכלה וסנקציות"], label_visibility="collapsed")
 
-# 2. כותרת ראשית
+# --- 2. כותרת ראשית ---
 st.markdown("<h1 style='margin: 10px 0 4px 0; font-size: 2.2rem; font-weight: 900; color: #ffffff;'>🌐 דסק מודיעין תקשורת עולמי</h1>", unsafe_allow_html=True)
 st.caption("ניטור נרטיבים ודיווחים בזמן אמת ממאגרי התקשורת המובילים בעולם")
 
-# 3. תפריט מדינות בסגנון ספורט 1
-COUNTRIES_NAV = ["כל הדיווחים", "ישראל", "ארה\"ב", "איראן", "לבנון", "רצועת עזה", "איו\"ש"]
-selected_country = st.radio(
+# --- 3. תפריט מדינות עם דגלים וכתב לבן מוגדל ללא נקודות רדיו ---
+COUNTRIES_NAV = [
+    "🌐 כל הדיווחים",
+    "🇮🇱 ישראל",
+    "🇺🇸 ארה\"ב",
+    "🇮🇷 איראן",
+    "🇱🇧 לבנון",
+    "🇵🇸 רצועת עזה",
+    "🛡️ איו\"ש"
+]
+
+selected_nav = st.radio(
     "בחר מדינה",
     COUNTRIES_NAV,
     horizontal=True,
     label_visibility="collapsed"
 )
+
+# מיפוי הבחירה לשם המדינה לסינון נקי
+nav_to_clean = {
+    "🌐 כל הדיווחים": "כל הדיווחים",
+    "🇮🇱 ישראל": "ישראל",
+    "🇺🇸 ארה\"ב": "ארה\"ב",
+    "🇮🇷 איראן": "איראן",
+    "🇱🇧 לבנון": "לבנון",
+    "🇵🇸 רצועת עזה": "רצועת עזה",
+    "🛡️ איו\"ש": "איו\"ש"
+}
+selected_country = nav_to_clean.get(selected_nav, "כל הדיווחים")
 
 st.markdown("<hr style='border-color: #1f2937; margin: 12px 0 24px 0;'>", unsafe_allow_html=True)
 
@@ -356,7 +418,7 @@ if search_query:
         filtered['title_original'].astype(str).str.contains(p, case=False, na=False)
     ]
 
-# 4. מבנה דף הבית
+# 4. מבנה דף הבית (Main Hero + Side Feed)
 if filtered.empty:
     st.info(f"לא נמצאו דיווחים התואמים לקריטריון עבור '{selected_country}'.")
 else:
