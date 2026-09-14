@@ -5,7 +5,7 @@ import pytz
 import re
 
 FEEDS = [
-    # --- איראן (מורחב במיוחד) ---
+    # --- איראן (מורחב מאוד) ---
     {"url": "https://www.tehrantimes.com/rss", "source": "Tehran Times", "country": "איראן", "tz": "Asia/Tehran"},
     {"url": "https://en.irna.ir/rss", "source": "IRNA", "country": "איראן", "tz": "Asia/Tehran"},
     {"url": "https://www.tasnimnews.com/en/rss/feed/0/7/0/", "source": "Tasnim News", "country": "איראן", "tz": "Asia/Tehran"},
@@ -113,7 +113,7 @@ def fetch_relevant_articles():
                             "country": f['country'],
                             "title_original": title,
                             "content_original": summary,
-                            "published_at": datetime.now().strftime("%Y-%m-%d %H:%M"), # מנורמל תמיד לדקת האמת
+                            "published_at": datetime.now().strftime("%Y-%m-%d %H:%M"),
                             "image_url": extract_real_image(entry)
                         })
         except Exception as e:

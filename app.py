@@ -321,9 +321,8 @@ def get_source_bias(source_name: str, heb_mode: bool):
     return ("סיקור בינלאומי" if heb_mode else "International"), "tag-bias-neutral"
 
 def get_smart_image(row):
-    """בדיקה האם קיימת תמונה אמיתית תקינה, ואם לא – בחירת תמונת גיבוי רלוונטית במדויק"""
     real_img = row.get('image_url')
-    if real_img and str(real_img).startswith('http') and not any(bad in str(real_img) for bad in ['feedburner', 'ads', 'tracker']):
+    if real_img and str(real_img).startswith('http') and not any(bad in str(real_img) for bad in ['feedburner', 'ads', 'tracker', 'error']):
         return real_img
         
     text = f"{row.get('title_original', '')} {row.get('content_original', '')} {row.get('source_name', '')}".lower()
@@ -400,7 +399,7 @@ start_worker()
 df = load_data()
 df = df.sort_values(by="published_at", ascending=False)
 
-# 1. טיקר חדשות נקי
+# טיקר חדשות
 ticker_headlines = []
 for _, r in df.head(8).iterrows():
     h = r.get('title_hebrew') if is_heb else (r.get('title_original') or r.get('title_hebrew'))
@@ -415,7 +414,7 @@ st.markdown(f"""
 </div>
 """, unsafe_allow_html=True)
 
-# 2. סרגל בקרה
+# סרגל בקרה
 c_search, c_cat, c_brief, c_res, c_comp, c_lang_il, c_lang_us = st.columns([3, 2, 1.5, 1.5, 1.5, 0.8, 0.8])
 
 with c_search:
@@ -494,6 +493,7 @@ st.caption("ניטור נרטיבים ודיווחים בזמן אמת ממאג�
 if "selected_country" not in st.session_state:
     st.session_state["selected_country"] = "כל הדיווחים"
 
+# סרגל מדינות חמות (תוקן מפתח ה-flag ל-flag כדי להימנע מ-KeyError)
 NAV_ITEMS = [
     {"label": "הכל", "val": "כל הדיווחים", "flag": "🌐"},
     {"label": "ישראל", "val": "ישראל", "flag": "🇮🇱"},
@@ -501,7 +501,7 @@ NAV_ITEMS = [
     {"label": "איראן", "val": "איראן", "flag": "🇮🇷"},
     {"label": "לבנון", "val": "לבנון", "flag": "🇱🇧"},
     {"label": "רצועת עזה", "val": "רצועת עזה", "flag": "🇵🇸"},
-    {"label": "איו\"ש", "val": "איו\"ש", "flag_img": "🇵🇸"}
+    {"label": "איו\"ש", "val": "איו\"ש", "flag": "🇵🇸"}
 ]
 
 nav_cols = st.columns(len(NAV_ITEMS))
