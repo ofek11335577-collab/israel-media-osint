@@ -20,7 +20,7 @@ st.set_page_config(
 
 # ניהול מצב שפה ותמונת מצב ב-session_state
 if "lang" not in st.session_state:
-    st.session_state["lang"] = "HE"  # ברירת מחדל: עברית
+    st.session_state["lang"] = "HE"  # ברירת מחדל: עברית מלאה
 
 if "show_brief" not in st.session_state:
     st.session_state["show_brief"] = False
@@ -29,7 +29,7 @@ is_heb = (st.session_state["lang"] == "HE")
 direction = "rtl" if is_heb else "ltr"
 align = "right" if is_heb else "left"
 
-# עיצוב מותאם: תמונת לוויין ברקע, כרטיס תמונת מצב כהה מיושר לימין, תמיכה מלאה ב-RTL/LTR
+# עיצוב מותאם: מפת לוויין ברקע, כרטיס תמונת מצב כהה מיושר לימין, תמיכה מלאה ב-RTL/LTR
 st.markdown(f"""
 <div class="tactical-satellite-background"></div>
 <style>
@@ -122,7 +122,7 @@ st.markdown(f"""
         100% {{ transform: translateX(100%); }}
     }}
 
-    /* כרטיס תמונת מצב מעוצב ואינטראקטיבי */
+    /* כרטיס תמונת מצב מעוצב */
     .brief-card {{
         background: rgba(15, 23, 42, 0.94);
         border: 1px solid rgba(56, 189, 248, 0.4);
@@ -155,7 +155,7 @@ st.markdown(f"""
         backdrop-filter: blur(8px);
     }}
 
-    /* סרגל מדינות */
+    /* סרגל כפתורי מדינות ושפה */
     div[data-testid="stHorizontalBlock"] button {{
         background-color: rgba(15, 23, 42, 0.82) !important;
         border: 1px solid rgba(56, 189, 248, 0.25) !important;
@@ -351,13 +351,11 @@ BAD_IMAGE_URLS = ["photo-1517486808906", "photo-1541872703", "photo-1579546929"]
 def is_clean_hebrew(text: str) -> bool:
     if not text:
         return False
-    # בדיקה שיש לפחות אות עברית אחת ושאין יותר מ-2 מילים באנגלית
     has_heb = any("\u0590" <= c <= "\u05ea" for c in str(text))
     eng_words = re.findall(r'[a-zA-Z]{3,}', str(text))
     return has_heb and len(eng_words) <= 1
 
 def robust_translate_to_hebrew(text: str) -> str:
-    """מנוע תרגום מהיר ועמיד לעברית עם fallback מובטח"""
     if not text:
         return ""
     if is_clean_hebrew(text):
@@ -374,8 +372,9 @@ def robust_translate_to_hebrew(text: str) -> str:
     except Exception:
         pass
         
-    # מילון תרגום הקשרי מלא (לא מחליף מילים גולמיות, אלא משפטים ומונחי מפתח)
     t_low = str(text).lower()
+    if "yemen" in t_low or "78,000" in t_low:
+        return "תימן: הלחימה גבתה את חיי הרוב והביאה לעקירת אלפים בשבוע האחרון"
     if "crucial pipeline" in t_low or "pipeline after drone" in t_low:
         return "סעודיה השביתה צינור נפט מרכזי בעקבות מתקפת כטב\"מים מעיראק"
     if "ancient lebanese city" in t_low:
@@ -390,8 +389,6 @@ def robust_translate_to_hebrew(text: str) -> str:
         return "פעילות כוחות הביטחון באיו\"ש: מעצר מבוקשים וסריקות מבצעיות"
     if "drone wave" in t_low or "intercept" in t_low:
         return "יירוט נרחב של כטב\"מים עוינים מעל נתיבי השיט הבינלאומיים בים האדום"
-    if "radar" in t_low or "air defense" in t_low:
-        return "איראן הודיעה על פריסת מערכות התרעה ומכ\"ם חדשות"
         
     return str(text)
 
@@ -405,7 +402,7 @@ def get_source_bias(source_name: str, heb_mode: bool):
 
 def get_unique_smart_image(title: str, content: str, used_set: set) -> str:
     text = f"{title} {content}".lower()
-    if any(w in text for w in ["pipeline", "fire shells", "shells", "artillery", "missile", "rocket", "strike", "blast", "attack", "gunfire", "צינור", "ארטילר", "פגז", "ירי", "טיל", "יירוט", "תקיפה"]):
+    if any(w in text for w in ["pipeline", "yemen", "fire shells", "shells", "artillery", "missile", "rocket", "strike", "blast", "attack", "gunfire", "צינור", "ארטילר", "פגז", "ירי", "טיל", "יירוט", "תקיפה"]):
         pool = TOPIC_IMAGE_POOLS["artillery_missiles"]
     elif any(w in text for w in ["soldier", "army", "idf", "tank", "troops", "military", "operation", "west bank", "jenin", "nablus", "צה\"ל", "צהל", "לוחמ", "חיילים", "סריקות", "איו\"ש", "מעצר", "שכם", "ג'נין"]):
         pool = TOPIC_IMAGE_POOLS["soldiers"]
@@ -435,13 +432,27 @@ def get_unique_smart_image(title: str, content: str, used_set: set) -> str:
 
 MASSIVE_ARTICLES_POOL = [
     {
+        "url": "https://www.reuters.com/world/middle-east",
+        "source_name": "Reuters",
+        "country": "תימן",
+        "title_original": "Yemen fighting kills 504 and displaces nearly 78,000 in one week",
+        "content_original": "Intense clashes across frontline governorates result in heavy casualties and mass displacement.",
+        "published_at": "16:45 2026-09-14",
+        "image_url": TOPIC_IMAGE_POOLS["artillery_missiles"][0],
+        "title_hebrew": "תימן: הלחימה העצימה בגזרות השונות הביאה למאות הרוגים ולעקור רבים בשבוע האחרון",
+        "summary_hebrew": "עימותים קשים מדווחים במספר מחוזות במדינה, תוך פגיעה קשה בתשתיות אזרחיות ובאוכלוסייה מקומית.",
+        "sentiment": "צבאי וביטחוני",
+        "sentiment_score": 1.0,
+        "mentioned_countries": "תימן, סעודיה"
+    },
+    {
         "url": "https://www.nytimes.com/world/middleeast",
         "source_name": "NY Times",
         "country": "סעודיה",
         "title_original": "Saudis Shut Down Crucial Pipeline After Drone Attack From Iraq",
         "content_original": "Critical energy infrastructure damaged following coordinated drone salvos targeting distribution hubs.",
         "published_at": "16:40 2026-09-14",
-        "image_url": TOPIC_IMAGE_POOLS["artillery_missiles"][0],
+        "image_url": TOPIC_IMAGE_POOLS["artillery_missiles"][1],
         "title_hebrew": "סעודיה השביתה צינור נפט מרכזי בעקבות מתקפת כטב\"מים מעיראק",
         "summary_hebrew": "תשתיות אנרגיה חיוניות הושבתו זמנית לאחר פגיעת כלי טיס בלתי מאוישים במתקני הולכה מרכזיים.",
         "sentiment": "צבאי וביטחוני",
@@ -455,7 +466,7 @@ MASSIVE_ARTICLES_POOL = [
         "title_original": "Israeli forces fire shells near residents approaching Lebanon's Kfar Tebnit",
         "content_original": "Artillery shelling targeted areas adjacent to southern Lebanese villages during border tensions.",
         "published_at": "16:20 2026-09-14",
-        "image_url": TOPIC_IMAGE_POOLS["artillery_missiles"][1],
+        "image_url": TOPIC_IMAGE_POOLS["artillery_missiles"][2],
         "title_hebrew": "כוחות צה\"ל ביצעו ירי ארטילרי לעבר חשודים שהתקרבו לכפר תבנית בדרום לבנון",
         "summary_hebrew": "חילופי אש וירי ארטילרי נרשמו בסמוך לקו העימות בדרום לבנון בעקבות תנועות חשודות בגזרה.",
         "sentiment": "צבאי וביטחוני",
@@ -531,20 +542,6 @@ MASSIVE_ARTICLES_POOL = [
         "sentiment": "מדיני ודיפלומטי",
         "sentiment_score": 0.0,
         "mentioned_countries": "ישראל, ארה\"ב, קטר"
-    },
-    {
-        "url": "https://www.washingtonpost.com/world",
-        "source_name": "Washington Post",
-        "country": "ארה\"ב",
-        "title_original": "Behind the Scenes, Washington Gathers Unvarnished Views on Deterrence Strategy",
-        "content_original": "Policy advisers evaluate posture deployment shifts across Eastern Mediterranean stations.",
-        "published_at": "13:10 2026-09-14",
-        "image_url": TOPIC_IMAGE_POOLS["soldiers"][1],
-        "title_hebrew": "מאחורי הקלעים בוושינגטון: גיבוש תוכניות הרתעה חדשות במזרח התיכון",
-        "summary_hebrew": "יועצי ביטחון לאומי בוחנים את פריסת נושאות המטוסים וכוחות התגובה המהירה באזור.",
-        "sentiment": "מדיני ודיפלומטי",
-        "sentiment_score": 1.0,
-        "mentioned_countries": "ארה\"ב, ישראל, איראן"
     }
 ]
 
@@ -565,6 +562,7 @@ def background_worker():
             arts = fetch_relevant_articles()
             for a in arts:
                 if not is_article_exists(a['url']):
+                    # תרגום אוטומטי מיידי לפני שמירה במסד הנתונים
                     heb_title = robust_translate_to_hebrew(a['title_original'])
                     heb_summary = robust_translate_to_hebrew(a['content_original'][:200]) if a.get('content_original') else heb_title
                     
@@ -593,7 +591,7 @@ start_worker()
 
 df = load_data()
 
-# 1. פס מבזקים מתפרץ (100% בעברית כברירת מחדל, או באנגלית בהתאם לבחירה)
+# 1. פס מבזקים מתפרץ
 ticker_headlines = []
 for _, r in df.head(8).iterrows():
     if is_heb:
@@ -602,7 +600,6 @@ for _, r in df.head(8).iterrows():
             h = robust_translate_to_hebrew(r.get('title_original', ''))
     else:
         h = r.get('title_original') or r.get('title_hebrew')
-        
     src = r.get('source_name', 'דיווח')
     ticker_headlines.append(f"⚡ [{src}] {h}")
 
@@ -618,8 +615,9 @@ st.markdown(f"""
 </div>
 """, unsafe_allow_html=True)
 
-# 2. שורת בקרה עליונה: חיפוש, קטגוריה, תמונת מצב ומתג שפה
-c_search, c_cat, c_brief, c_lang = st.columns([5, 3, 2, 2])
+# 2. שורת בקרה עליונה: חיפוש, קטגוריה, תמונת מצב ומתג שפה עם דגלי FlagCDN
+c_search, c_cat, c_brief, c_lang_il, c_lang_us = st.columns([4, 3, 2, 1, 1])
+
 with c_search:
     search_query = st.text_input(
         "חיפוש", 
@@ -634,18 +632,27 @@ with c_brief:
     if st.button(brief_btn_text, use_container_width=True):
         st.session_state["show_brief"] = not st.session_state["show_brief"]
         st.rerun()
-with c_lang:
-    lang_choice = st.selectbox("שפה / Language", ["🇮🇱 עברית", "🇺🇸 English"], index=0 if is_heb else 1, label_visibility="collapsed")
-    new_lang = "HE" if "עברית" in lang_choice else "EN"
-    if new_lang != st.session_state["lang"]:
-        st.session_state["lang"] = new_lang
-        st.rerun()
 
-# 3. תמונת מצב נפתחת / נסגרת בצורה חלקה (מיושרת לימין ומעוצבת טקטית)
+# מתגי שפה עם דגלים גרפיים (ישראל / ארה"ב)
+with c_lang_il:
+    st.markdown("<div style='text-align: center; margin-bottom: 2px;'><img src='https://flagcdn.com/w40/il.png' width='22' style='border-radius:2px;'/></div>", unsafe_allow_html=True)
+    if st.button("עברית", key="lang_he", type="primary" if is_heb else "secondary", use_container_width=True):
+        if st.session_state["lang"] != "HE":
+            st.session_state["lang"] = "HE"
+            st.rerun()
+
+with c_lang_us:
+    st.markdown("<div style='text-align: center; margin-bottom: 2px;'><img src='https://flagcdn.com/w40/us.png' width='22' style='border-radius:2px;'/></div>", unsafe_allow_html=True)
+    if st.button("English", key="lang_en", type="primary" if not is_heb else "secondary", use_container_width=True):
+        if st.session_state["lang"] != "EN":
+            st.session_state["lang"] = "EN"
+            st.rerun()
+
+# 3. תמונת מצב נפתחת / נסגרת בצורה חלקה מיושרת לימין
 if st.session_state["show_brief"]:
     brief_title = "📊 תמונת מצב מודיעינית שוטפת (OSINT Live Brief)" if is_heb else "📊 Current Tactical Intelligence Brief"
     brief_p1 = "• <b>גזרת הצפון (לבנון):</b> חילופי אש ארטילריים ופעילות סיכול בגזרת כפר תבנית לצד מאמצי תיווך צרפתיים בביירות." if is_heb else "• <b>Northern Sector (Lebanon):</b> Artillery shelling and security countermeasures reported near Kfar Tebnit amid French mediation efforts."
-    brief_p2 = "• <b>ציר איראן והים האדום:</b> פגיעות כטב\"מים במתקני תשתית ויירוטי קואליציה; איראן מגבירה פריסת מערכות גילוי ומכ\"ם." if is_heb else "• <b>Iran & Red Sea Axis:</b> Drone strikes on infrastructure and coalition naval intercepts; IRGC deploys upgraded radar grids."
+    brief_p2 = "• <b>ציר איראן והים האדום:</b> פגיעות כטב\"מים במתקני תשתית ויירוטי קואליציה; איראן מגבירה פריסת מערכי גילוי ומכ\"ם." if is_heb else "• <b>Iran & Red Sea Axis:</b> Drone strikes on infrastructure and coalition naval intercepts; IRGC deploys upgraded radar grids."
     brief_p3 = "• <b>יהודה ושומרון (איו\"ש):</b> פעילות מעצרים ממוקדת של כוחות צה\"ל וסיכול תשתיות טרור במוקדי חיכוך בג'נין ובשכם." if is_heb else "• <b>West Bank:</b> Targeted IDF counter-terror operations and suspect detentions across Jenin and Nablus sectors."
     
     st.markdown(f"""
@@ -868,7 +875,7 @@ if not rem_arts.empty:
                     <div style="margin-bottom: 6px;">
                         <span class="tag tag-source">{r_src}</span>
                         <span class="tag {r_bias_class}">{r_bias_label}</span>
-                        <span class="tag tag-time">🕒 {r_time}</span>
+                        <span class="tag tag-time">🕒 {time_str}</span>
                     </div>
                     <div style="font-weight: 700; font-size: 0.98rem; color: #ffffff; line-height: 1.4; margin-bottom: 6px;">
                         {r_title}
