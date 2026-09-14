@@ -6,7 +6,6 @@ FEEDS = [
     {"url": "https://www.tehrantimes.com/rss", "source": "Tehran Times", "country": "איראן"},
     {"url": "https://en.irna.ir/rss", "source": "IRNA", "country": "איראן"},
     {"url": "https://www.tasnimnews.com/en/rss/feed/0/7/0/", "source": "Tasnim News", "country": "איראן"},
-    {"url": "https://en.mehrnews.com/rss", "source": "Mehr News", "country": "איראן"},
     {"url": "https://en.almayadeen.net/rss", "source": "Al Mayadeen", "country": "לבנון"},
     {"url": "https://english.alarabiya.net/rss", "source": "Al Arabiya", "country": "סעודיה"},
     {"url": "https://www.aljazeera.com/xml/rss/all.xml", "source": "Al Jazeera", "country": "קטר"},
@@ -17,35 +16,16 @@ FEEDS = [
     {"url": "https://www.reutersagency.com/feed/?best-topics=middle-east&post_type=best", "source": "Reuters", "country": "בריטניה"}
 ]
 
-def extract_real_image(entry):
-    if hasattr(entry, 'media_content') and entry.media_content:
-        for m in entry.media_content:
-            if 'url' in m and m.get('url', '').endswith(('jpg', 'jpeg', 'png', 'webp')):
-                return m['url']
-        return entry.media_content[0].get('url')
-    summary = entry.get('summary', '') or entry.get('description', '')
-    img_match = re.search(r'src=["\'](https?://[^"\']+\.(?:jpg|jpeg|png|webp))["\']', summary, re.I)
-    if img_match:
-        return img_match.group(1)
-    return None
-
 def fetch_relevant_articles():
     articles = []
-    seen = set()
     for f in FEEDS:
         try:
             feed = feedparser.parse(f['url'])
-            # שאיפה של עד 25 כתבות מכל פיד כדי להבטיח שפע עצום של תוכן
-            for entry in feed.entries[:25]:
+            for entry in feed.entries[:10]:
                 title = entry.get('title', '').strip()
-                clean_key = re.sub(r'[^a-zA-Z0-9\u0590-\u05ea]', '', title.lower())
-                if not clean_key or clean_key in seen:
-                    continue
-                seen.add(clean_key)
-                
                 link = entry.get('link', '')
                 summary = entry.get('summary', '') or entry.get('description', '')
-                if link:
+                if title and link:
                     articles.append({
                         "url": link,
                         "source_name": f['source'],
@@ -53,7 +33,7 @@ def fetch_relevant_articles():
                         "title_original": title,
                         "content_original": summary,
                         "published_at": datetime.now().strftime("%Y-%m-%d %H:%M"),
-                        "image_url": extract_real_image(entry)
+                        "image_url": "https://images.unsplash.com/photo-1506703719100-a0f3a48c0f86?w=1000"
                     })
         except Exception as e:
             print(f"Error {f['source']}: {e}")

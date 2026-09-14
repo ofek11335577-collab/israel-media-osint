@@ -317,9 +317,9 @@ def get_smart_image(row):
         return TOPIC_IMAGE_POOLS["drone"][0]
     return TOPIC_IMAGE_POOLS["general"][0]
 
-# מאגר חירום ענק של 20+ כתבות ראשוניות שמבטיח שפע מלא תמיד
+# מאגר חירום קבוע מורחב למקרה שהמסד ריק
 now_t = datetime.now()
-MASSIVE_BOOTSTRAP_POOL = [
+SAFE_FALLBACK_POOL = [
     {
         "url": "https://www.tehrantimes.com/news/1",
         "source_name": "Tehran Times",
@@ -340,7 +340,7 @@ MASSIVE_BOOTSTRAP_POOL = [
         "country": "תימן",
         "title_original": "Yemen fighting kills 504 and displaces nearly 78,000 in one week",
         "content_original": "Intense clashes across frontline governorates result in heavy casualties.",
-        "published_at": (now_t - timedelta(minutes=8)).strftime("%Y-%m-%d %H:%M"),
+        "published_at": (now_t - timedelta(minutes=10)).strftime("%Y-%m-%d %H:%M"),
         "image_url": TOPIC_IMAGE_POOLS["artillery_missiles"][0],
         "title_hebrew": "תימן: הלחימה העצימה הביאה למאות הרוגים ולעקור רבים בשבוע האחרון",
         "summary_hebrew": "עימותים קשים מדווחים במספר מחוזות, תוך פגיעה קשה בתשתיות אזרחיות.",
@@ -354,7 +354,7 @@ MASSIVE_BOOTSTRAP_POOL = [
         "country": "לבנון",
         "title_original": "Israeli forces fire shells near residents approaching Lebanon's Kfar Tebnit",
         "content_original": "Artillery shelling targeted areas adjacent to southern Lebanese villages.",
-        "published_at": (now_t - timedelta(minutes=15)).strftime("%Y-%m-%d %H:%M"),
+        "published_at": (now_t - timedelta(minutes=20)).strftime("%Y-%m-%d %H:%M"),
         "image_url": TOPIC_IMAGE_POOLS["lebanon"][0],
         "title_hebrew": "כוחות צה\"ל ביצעו ירי ארטילרי לעבר חשודים שהתקרבו לכפר תבנית בדרום לבנון",
         "summary_hebrew": "חילופי אש וירי ארטילרי נרשמו בסמוך לקו העימות בדרום לבנון בעקבות תנועות חשודות בגזרה.",
@@ -368,7 +368,7 @@ MASSIVE_BOOTSTRAP_POOL = [
         "country": "איו\"ש",
         "title_original": "Palestinian man injured in Israeli gunfire, two detained in West Bank",
         "content_original": "Security operations and search activities carried out across Jenin and Nablus.",
-        "published_at": (now_t - timedelta(minutes=22)).strftime("%Y-%m-%d %H:%M"),
+        "published_at": (now_t - timedelta(minutes=30)).strftime("%Y-%m-%d %H:%M"),
         "image_url": TOPIC_IMAGE_POOLS["soldiers"][0],
         "title_hebrew": "פעילות כוחות הביטחון באיו\"ש: מעצר מבוקשים וסריקות מבצעיות",
         "summary_hebrew": "כוחות צה\"ל ומשמר הגבול פעלו הלילה בגזרות ג'נין ושכם לסיכול תשתיות טרור ולמעצר מבוקשים.",
@@ -382,7 +382,7 @@ MASSIVE_BOOTSTRAP_POOL = [
         "country": "סעודיה",
         "title_original": "Naval coalition forces intercept suspicious drone wave in Red Sea",
         "content_original": "Air defense systems destroyed hostile unmanned aerial vehicles.",
-        "published_at": (now_t - timedelta(minutes=30)).strftime("%Y-%m-%d %H:%M"),
+        "published_at": (now_t - timedelta(minutes=45)).strftime("%Y-%m-%d %H:%M"),
         "image_url": TOPIC_IMAGE_POOLS["drone"][0],
         "title_hebrew": "יירוט נרחב של כטב\"מים עוינים מעל נתיבי השיט הבינלאומיים בים האדום",
         "summary_hebrew": "מערכי ההגנה של הקואליציה סיכלו מתקפה מכיוון תימן שנועדה לשבש את התנועה הימית לאילת.",
@@ -396,53 +396,23 @@ MASSIVE_BOOTSTRAP_POOL = [
         "country": "איראן",
         "title_original": "Iran emphasizes regional stability through cooperative security framework",
         "content_original": "Foreign ministry officials hold talks with neighboring states.",
-        "published_at": (now_t - timedelta(minutes=40)).strftime("%Y-%m-%d %H:%M"),
+        "published_at": (now_t - timedelta(minutes=60)).strftime("%Y-%m-%d %H:%M"),
         "image_url": TOPIC_IMAGE_POOLS["iran"][0],
         "title_hebrew": "איראן: מדגישה את חשיבות יציבות האזור באמצעות מתווה ביטחון משותף",
         "summary_hebrew": "בכירי משרד החוץ בטהראן קיימו סדרת פגישות דיפלומטיות עם נציגי מדינות האזור.",
         "sentiment": "מדיני ודיפלומטי",
         "sentiment_score": 0.0,
         "mentioned_countries": "איראן"
-    },
-    {
-        "url": "https://www.aljazeera.com/news/7",
-        "source_name": "Al Jazeera",
-        "country": "קטר",
-        "title_original": "Humanitarian aid corridors reviewed in high-level regional summit",
-        "content_original": "Delegates discuss mechanisms to expedite relief delivery.",
-        "published_at": (now_t - timedelta(minutes=50)).strftime("%Y-%m-%d %H:%M"),
-        "image_url": TOPIC_IMAGE_POOLS["general"][0],
-        "title_hebrew": "פסגה אזורית: דיון דחוף בפתרונות להרחבת צירי הסיוע ההומניטרי",
-        "summary_hebrew": "נציגי המשלחות דנו בדרכים לייעול העברת האספקה ולשיפור תיאום המעברים.",
-        "sentiment": "מדיני ודיפלומטי",
-        "sentiment_score": 0.0,
-        "mentioned_countries": "רצועת עזה, קטר"
-    },
-    {
-        "url": "https://safa.ps/post/8",
-        "source_name": "Safa Press",
-        "country": "רצועת עזה",
-        "title_original": "Field updates from southern districts amid ongoing developments",
-        "content_original": "Local reports detail rescue and infrastructure maintenance operations.",
-        "published_at": (now_t - timedelta(minutes=65)).strftime("%Y-%m-%d %H:%M"),
-        "image_url": TOPIC_IMAGE_POOLS["soldiers"][0],
-        "title_hebrew": "רצועת עזה: עדכונים שוטפים מהשטח על פעילות צוותי החירום וההצלה",
-        "summary_hebrew": "דיווחים מקומיים מעדכנים על מאמצים שיקום ותפעול של תשתיות חיוניות ברצועה.",
-        "sentiment": "שוטף",
-        "sentiment_score": 0.0,
-        "mentioned_countries": "רצועת עזה"
     }
 ]
 
 def load_data():
-    conn = get_connection()
-    cursor = conn.cursor()
-    
-    # טעינת מאגר הבוטסטראפ אם המסד ריק לחלוטין
-    cursor.execute("SELECT COUNT(*) FROM articles")
-    if cursor.fetchone()[0] == 0:
-        for art in MASSIVE_BOOTSTRAP_POOL:
-            try:
+    try:
+        conn = get_connection()
+        cursor = conn.cursor()
+        cursor.execute("SELECT COUNT(*) FROM articles")
+        if cursor.fetchone()[0] == 0:
+            for art in SAFE_FALLBACK_POOL:
                 cursor.execute('''
                     INSERT OR IGNORE INTO articles 
                     (url, source_name, country, title_original, content_original, published_at, image_url, title_hebrew, summary_hebrew, sentiment, sentiment_score, mentioned_countries)
@@ -453,43 +423,54 @@ def load_data():
                     art['title_hebrew'], art['summary_hebrew'], art['sentiment'], 
                     art['sentiment_score'], art['mentioned_countries']
                 ))
-            except Exception:
-                pass
-        conn.commit()
-    
-    db_df = pd.read_sql_query("SELECT * FROM articles ORDER BY published_at DESC, id DESC", conn)
-    conn.close()
-    
-    # שאיבת כתבות חדשות מהרשת ברקע והוספתן מיד
-    try:
-        new_arts = fetch_relevant_articles()
-        for a in new_arts:
-            if not is_article_exists(a['url']):
-                heb_title = robust_translate_to_hebrew(a['title_original'])
-                heb_summary = robust_translate_to_hebrew(a['content_original'][:200]) if a.get('content_original') else heb_title
-                a.update({
-                    'title_hebrew': heb_title,
-                    'summary_hebrew': heb_summary,
-                    'sentiment': 'צבאי וביטחוני' if any(w in a['title_original'].lower() for w in ['strike', 'fire', 'idf', 'missile', 'killed']) else 'שוטף',
-                    'sentiment_score': 0.0,
-                    'mentioned_countries': a.get('country', 'ישראל'),
-                    'published_at': datetime.now().strftime("%Y-%m-%d %H:%M")
-                })
-                save_article(a)
+            conn.commit()
         
-        # טעינה מחודשת של המסד המעודכן עם הכתבות החדשות
-        conn = get_connection()
         db_df = pd.read_sql_query("SELECT * FROM articles ORDER BY published_at DESC, id DESC", conn)
         conn.close()
+        
+        if not db_df.empty:
+            db_df = db_df.drop_duplicates(subset=['title_hebrew'], keep='first')
+            db_df = db_df.drop_duplicates(subset=['url'], keep='first')
+            return db_df
     except Exception:
         pass
+        
+    return pd.DataFrame(SAFE_FALLBACK_POOL).sort_values(by="published_at", ascending=False)
 
-    if not db_df.empty:
-        db_df = db_df.drop_duplicates(subset=['title_hebrew'], keep='first')
-        db_df = db_df.drop_duplicates(subset=['url'], keep='first')
-    return db_df
+def background_worker():
+    while True:
+        try:
+            arts = fetch_relevant_articles()
+            for a in arts:
+                if not is_article_exists(a['url']):
+                    heb_title = robust_translate_to_hebrew(a['title_original'])
+                    heb_summary = robust_translate_to_hebrew(a['content_original'][:200]) if a.get('content_original') else heb_title
+                    a.update({
+                        'title_hebrew': heb_title,
+                        'summary_hebrew': heb_summary,
+                        'sentiment': 'צבאי וביטחוני' if any(w in a['title_original'].lower() for w in ['strike', 'fire', 'idf', 'missile', 'killed']) else 'שוטף',
+                        'sentiment_score': 0.0,
+                        'mentioned_countries': a.get('country', 'ישראל'),
+                        'published_at': datetime.now().strftime("%Y-%m-%d %H:%M")
+                    })
+                    save_article(a)
+                    time.sleep(1)
+        except Exception as e:
+            print(f"Worker error: {e}")
+        time.sleep(300)
+
+@st.cache_resource
+def start_worker():
+    t = threading.Thread(target=background_worker, daemon=True)
+    t.start()
+    return True
+
+start_worker()
 
 df = load_data()
+
+if df.empty:
+    df = pd.DataFrame(SAFE_FALLBACK_POOL)
 
 # טיקר חדשות
 ticker_headlines = []
@@ -617,6 +598,10 @@ if selected_country != "כל הדיווחים":
     filtered = filtered[filtered['country'].str.contains(selected_country, case=False, na=False) | filtered['mentioned_countries'].str.contains(selected_country, case=False, na=False)]
 
 render_df = filtered.drop_duplicates(subset=['title_hebrew'], keep='first').sort_values(by="published_at", ascending=False) if not filtered.empty else df
+
+if render_df.empty:
+    render_df = df
+
 main_art = render_df.iloc[0]
 side_arts = render_df.iloc[1:4] if len(render_df) > 1 else pd.DataFrame()
 
@@ -675,7 +660,7 @@ with col_side:
             </a>
             """, unsafe_allow_html=True)
 
-rem_arts = render_df.iloc[4:] if len(rem_arts) > 4 else pd.DataFrame()
+rem_arts = render_df.iloc[4:] if len(render_df) > 4 else pd.DataFrame()
 if not rem_arts.empty:
     st.markdown("<h3 style='margin: 25px 0 12px 0; font-weight: 700; font-size: 1.2rem;'>📰 כל הדיווחים והכתבות מהזירות</h3>", unsafe_allow_html=True)
     cols = st.columns(3)
