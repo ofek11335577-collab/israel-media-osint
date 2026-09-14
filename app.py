@@ -126,6 +126,31 @@ st.markdown("""
 
 init_db()
 
+with st.sidebar:
+    st.markdown("### ⚡ פעולות מהירות")
+    if st.button("🔄 עדכן כתבות עכשיו"):
+        with st.spinner("אוסף ומנתח 5 ידיעות אחרונות..."):
+            arts = fetch_relevant_articles()
+            count = 0
+            for a in arts:
+                if not is_article_exists(a['url']):
+                    try:
+                        res = analyze_article(a['title_original'], a['content_original'])
+                        a.update({
+                            'title_hebrew': res.get('title_hebrew'),
+                            'summary_hebrew': res.get('summary_hebrew'),
+                            'sentiment': res.get('category'),
+                            'sentiment_score': 1.0 if res.get('urgency') == 'מתפרצת' else 0.0
+                        })
+                    except Exception as e:
+                        a.update({'title_hebrew': a['title_original'], 'summary_hebrew': a['content_original'][:150], 'sentiment': 'כללי', 'sentiment_score': 0.0})
+                    save_article(a)
+                    count += 1
+                    if count >= 5:
+                        break
+            st.success(f"נוספו {count} כתבות!")
+            st.rerun()
+
 # --- מנוע סריקה שקט ברקע (אינו מעכב את האתר כלל) ---
 def background_worker():
     while True:
