@@ -29,8 +29,18 @@ st.set_page_config(
 # =========================================================
 
 def render_html(content):
+    cleaned = textwrap.dedent(content).strip()
+
+    # הופך את כל ה-HTML לשורה אחת כדי ש-Streamlit
+    # לא יפרש הזחות פנימיות כ-Markdown code blocks
+    cleaned = " ".join(
+        line.strip()
+        for line in cleaned.splitlines()
+        if line.strip()
+    )
+
     st.markdown(
-        textwrap.dedent(content).strip(),
+        cleaned,
         unsafe_allow_html=True,
     )
 
