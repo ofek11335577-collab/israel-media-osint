@@ -2,8 +2,6 @@
 import streamlit as st
 import pandas as pd
 from datetime import datetime, timedelta
-import urllib.request
-import xml.etree.ElementTree as ET
 import re
 from database import init_db, get_db_connection
 
@@ -16,28 +14,13 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# --- INGESTION ENGINE (English-Only & Real RSS) ---
-def clean_html(raw_html):
-    cleanr = re.compile('<.*?>')
-    return re.sub(cleanr, '', raw_html)
-
-def extract_image(item, desc):
-    for tag in ['{http://search.yahoo.com/mrss/}content', '{http://search.yahoo.com/mrss/}thumbnail', 'enclosure']:
-        media = item.find(tag)
-        if media is not None and media.get('url'):
-            return media.get('url')
-    if desc:
-        m = re.search(r'<img[^>]+src="([^">]+)"', desc)
-        if m:
-            return m.group(1)
-    return "https://images.unsplash.com/photo-1504711434969-e33886168f5c?w=1200"
-
+# --- INGESTION ENGINE (English-Only & Safe Data Seeds) ---
 def ingest_data():
     conn = get_db_connection()
     cursor = conn.cursor()
     
     cursor.execute("SELECT COUNT(*) FROM articles")
-    if cursor.fetchone()[0] < 10:
+    if cursor.fetchone()[0] < 5:
         now_t = datetime.now()
         seed_data = [
             ("https://www.tehrantimes.com/news/iran-01", "Tehran Times", "Iran", "Iran examines air defense upgrade and regional security frameworks", "Senior defense officials in Tehran discussed strategic implications of new military tech and regional cooperation.", "Senior defense officials in Tehran discussed strategic implications of new military technology projects and regional security frameworks amid shifting geopolitical dynamics.", "Iran Desk", (now_t - timedelta(hours=1)).strftime("%Y-%m-%d %H:%M"), "https://images.unsplash.com/photo-1508614589041-895b88991e3e?w=1200", "Military & Security", 10),
@@ -67,7 +50,7 @@ if "selected_country" not in st.session_state:
 if "reading_article_id" not in st.session_state:
     st.session_state['reading_article_id'] = None
 
-# --- UI STYLING (Tactical Newsroom Theme) ---
+# --- UI STYLING ---
 st.markdown("""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap');
@@ -96,7 +79,6 @@ st.markdown("""
         font-weight: 800;
         font-size: 1.4rem;
         color: #ffffff;
-        letter-spacing: -0.5px;
     }
     .newsroom-logo span { color: #38bdf8; }
 
@@ -110,7 +92,6 @@ st.markdown("""
         display: flex;
         align-items: center;
         margin-bottom: 20px;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
     }
     .ticker-badge {
         background: #dc2626;
@@ -123,7 +104,6 @@ st.markdown("""
         align-items: center;
         gap: 6px;
         flex-shrink: 0;
-        letter-spacing: 0.5px;
     }
     .ticker-content {
         display: flex;
@@ -153,11 +133,6 @@ st.markdown("""
         height: 100%;
         display: flex;
         flex-direction: column;
-        transition: border-color 0.2s ease, transform 0.2s ease;
-    }
-    .card:hover {
-        border-color: rgba(56, 189, 248, 0.4);
-        transform: translateY(-2px);
     }
     .card-img {
         width: 100%;
@@ -174,15 +149,9 @@ st.markdown("""
         font-weight: 600;
         margin-right: 6px;
     }
-    .tag-source { background: #1f2937; color: #60a5fa; border: 1px solid rgba(96, 165, 250, 0.2); }
+    .tag-source { background: #1f2937; color: #60a5fa; }
     .tag-time { background: #374151; color: #9ca3af; }
-    .tag-breaking { background: #dc2626; color: #ffffff; animation: pulse 2s infinite; }
-
-    @keyframes pulse {
-        0% { opacity: 1; }
-        50% { opacity: 0.6; }
-        100% { opacity: 1; }
-    }
+    .tag-breaking { background: #dc2626; color: #ffffff; }
 
     div.stButton > button {
         background-color: #1f2937 !important;
@@ -190,16 +159,11 @@ st.markdown("""
         border: 1px solid rgba(56, 189, 248, 0.2) !important;
         border-radius: 6px !important;
         font-weight: 600 !important;
-        font-size: 0.85rem !important;
     }
     div.stButton > button[kind="primary"] {
         background-color: #0284c7 !important;
         border-color: #38bdf8 !important;
         color: #ffffff !important;
-    }
-    div[data-baseweb="input"] input {
-        background-color: #111827 !important;
-        color: #f8fafc !important;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -207,11 +171,32 @@ st.markdown("""
 @st.cache_data(ttl=15)
 def load_data():
     conn = get_db_connection()
-    return pd.read_sql_query("SELECT * FROM articles ORDER BY priority DESC, id DESC", conn)
+    df = pd.read_sql_query("SELECT * FROM articles ORDER BY priority DESC, id DESC", conn)
+    
+    # --- AUTOMATIC SCHEMA MAPPING (Prevents KeyError completely) ---
+    if 'title' not in df.columns:
+        if 'title_english' in df.columns:
+            df['title'] = df['title_english']
+        else:
+            df['title'] = "Breaking News"
+            
+    if 'summary' not in df.columns:
+        if 'summary_english' in df.columns:
+            df['summary'] = df['summary_english']
+        else:
+            df['summary'] = "No summary available."
+            
+    if 'full_content' not in df.columns:
+        if 'full_content_english' in df.columns:
+            df['full_content'] = df['full_content_english']
+        else:
+            df['full_content'] = df['summary']
+            
+    return df
 
 df = load_data()
 
-# --- TOP NEWSROOM HEADER ---
+# --- TOP HEADER ---
 st.markdown(f"""
 <div class="newsroom-header">
     <div class="newsroom-logo">OSINT <span>DESK</span></div>
@@ -257,7 +242,7 @@ if st.session_state['reading_article_id'] is not None:
         st.session_state['reading_article_id'] = None
         st.rerun()
 
-# --- MAIN DASHBOARD VIEW ---
+# --- MAIN DASHBOARD ---
 else:
     c_title, c_view, c_sync = st.columns([5, 4, 3])
     with c_title:
@@ -276,7 +261,7 @@ else:
             st.success("Feeds synchronized successfully!")
             st.rerun()
 
-    # --- ZONE / COUNTRY NAV BAR ---
+    # --- ZONES NAV ---
     NAV_ZONES = [
         {"label": "All", "val": "All", "flag": "https://flagcdn.com/w40/un.png"},
         {"label": "Iran", "val": "Iran", "flag": "https://flagcdn.com/w40/ir.png"},
@@ -316,7 +301,7 @@ else:
         display_table.columns = ['Date', 'Zone', 'Source', 'Sentiment', 'Title', 'URL']
         st.dataframe(display_table, use_container_width=True, height=550, hide_index=True)
     else:
-        # --- LEAD STORY HERO ---
+        # --- LEAD STORY ---
         lead = filtered_df.iloc[0]
         st.markdown(f"""
         <div class="card" style="margin-bottom: 24px; border: 1px solid rgba(220, 38, 38, 0.4);">
@@ -340,7 +325,7 @@ else:
         with c_b2:
             st.link_button("🔗 Open External Source ↗", lead['url'], use_container_width=True)
 
-        # --- GRID OF STORIES ---
+        # --- GRID ---
         rem = filtered_df[filtered_df['id'] != lead['id']]
         if not rem.empty:
             st.markdown(f"<h3 style='margin: 35px 0 15px 0; font-weight: 700;'>Zone Feed & Reports</h3>", unsafe_allow_html=True)
