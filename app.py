@@ -3,9 +3,10 @@ import streamlit as st
 import pandas as pd
 from datetime import datetime, timedelta
 from database import init_db, get_db_connection
+from ingestion.fetcher import fetch_live_web_articles
 
 init_db()
-
+fetch_live_web_articles() # מריץ שאיבה חיה מהאינטרנט אוטומטית!
 st.set_page_config(
     page_title="OSINT Global Desk | Tactical Intelligence Terminal",
     page_icon="🌐",
