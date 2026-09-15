@@ -13,6 +13,20 @@ def get_db_connection():
 def init_db():
     conn = get_db_connection()
     cursor = conn.cursor()
+    
+    # בדיקה האם קיימת טבלה ישנה עם מבנה לא תואם ומחיקתה אוטומטית
+    cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='articles'")
+    table_exists = cursor.fetchone()
+    
+    if table_exists:
+        cursor.execute("PRAGMA table_info(articles)")
+        columns = [col[1] for col in cursor.fetchall()]
+        # אם עמודת 'title' החדשה לא קיימת, זה אומר שזו טבלה ישנה ויש לאפס אותה
+        if 'title' not in columns:
+            cursor.execute("DROP TABLE articles")
+            conn.commit()
+
+    # יצירת הטבלה החדשה והנקייה באנגלית מלאה
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS articles (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
