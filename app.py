@@ -2,7 +2,6 @@
 import streamlit as st
 import pandas as pd
 from datetime import datetime, timedelta
-import re
 from database import init_db, get_db_connection
 
 init_db()
@@ -14,30 +13,55 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# --- INGESTION ENGINE (English-Only & Safe Data Seeds) ---
+# --- MASSIVE ENGLISH INTELLIGENCE ENGINE ---
 def ingest_data():
     conn = get_db_connection()
     cursor = conn.cursor()
     
     cursor.execute("SELECT COUNT(*) FROM articles")
-    if cursor.fetchone()[0] < 5:
+    if cursor.fetchone()[0] < 20:
         now_t = datetime.now()
-        seed_data = [
-            ("https://www.tehrantimes.com/news/iran-01", "Tehran Times", "Iran", "Iran examines air defense upgrade and regional security frameworks", "Senior defense officials in Tehran discussed strategic implications of new military tech and regional cooperation.", "Senior defense officials in Tehran discussed strategic implications of new military technology projects and regional security frameworks amid shifting geopolitical dynamics.", "Iran Desk", (now_t - timedelta(hours=1)).strftime("%Y-%m-%d %H:%M"), "https://images.unsplash.com/photo-1508614589041-895b88991e3e?w=1200", "Military & Security", 10),
-            ("https://english.alarabiya.net/news/gulf/saudi-02", "Al Arabiya", "Saudi Arabia", "Riyadh launches mega renewable energy project under Vision 2030", "Saudi Arabia announced massive investments in smart infrastructure and clean energy solutions.", "Saudi Arabia announced massive investments in smart infrastructure, AI integration, and clean energy solutions to establish a regional tech hub.", "Gulf Desk", (now_t - timedelta(hours=2)).strftime("%Y-%m-%d %H:%M"), "https://images.unsplash.com/photo-1527977966376-1c8408f9f108?w=1200", "Economy & Tech", 9),
-            ("https://www.wam.ae/en/details/uae-03", "WAM News Agency", "UAE", "Abu Dhabi hosts international AI and technological innovation summit", "Global executives and leaders gathered in Abu Dhabi to discuss future AI cooperation.", "Global executives, researchers, and industry leaders gathered in Abu Dhabi to discuss future AI cooperation, cybersecurity, and smart airspace management.", "UAE Desk", (now_t - timedelta(hours=3)).strftime("%Y-%m-%d %H:%M"), "https://images.unsplash.com/photo-1512453979798-5ea266f8880c?w=1200", "Technology", 8),
-            ("https://www.sabanews.net/en/yemen-04", "Saba News Agency", "Yemen", "Yemen: International discussions advance humanitarian and stability plans", "Local and international representatives reviewed plans to restore vital infrastructure.", "Local and international representatives reviewed comprehensive plans to restore vital infrastructure, healthcare, and water supply lines in friction zones.", "Yemen Intelligence", (now_t - timedelta(hours=4)).strftime("%Y-%m-%d %H:%M"), "https://images.unsplash.com/photo-1509316975850-ff9c5deb0cd9?w=1200", "Humanitarian", 8),
-            ("https://sana.sy/en/syria-05", "SANA News", "Syria", "Damascus reports progress in central provinces infrastructure rehabilitation", "Engineering teams report completion of major repairs in service supply to residents.", "Engineering teams report completion of major repairs in water and electricity distribution networks across central provinces.", "Syria Desk", (now_t - timedelta(hours=5)).strftime("%Y-%m-%d %H:%M"), "https://images.unsplash.com/photo-1541872703-74c5e44368f9?w=1200", "Infrastructure", 7),
-            ("https://www.ina.iq/eng/iraq-06", "INA News Agency", "Iraq", "Baghdad National Security Council tightens energy facilities protection", "Security forces in Iraq deployed additional units along border routes.", "Security forces in Iraq deployed additional tactical units along international border routes and strategic energy facilities to prevent sabotage.", "Iraq Desk", (now_t - timedelta(hours=6)).strftime("%Y-%m-%d %H:%M"), "https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=1200", "Security", 8),
-            ("https://english.wafa.ps/Pages/Details/gaza-07", "Wafa News Agency", "Gaza & WB", "Emergency teams coordinate humanitarian relief and supply entry", "Humanitarian organizations report intensified efforts to handle health and water infrastructure.", "Humanitarian organizations and local emergency committees report intensified efforts to handle health, sanitation, and water infrastructure across the territories.", "Palestine Desk", (now_t - timedelta(hours=7)).strftime("%Y-%m-%d %H:%M"), "https://images.unsplash.com/photo-1595590424283-b8f17842773f?w=1200", "Humanitarian", 9),
-            ("https://www.reuters.com/world/middle-east/un-08", "Reuters Middle East", "US & Global", "UN and Western states hold urgent talks on Middle East stability framework", "Senior diplomats call for reducing regional tension and advancing comprehensive solutions.", "Senior diplomats at the United Nations and Western capitals called for immediate de-escalation and the formulation of a comprehensive regional stability framework.", "Global Desk", (now_t - timedelta(hours=8)).strftime("%Y-%m-%d %H:%M"), "https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?w=1200", "Diplomacy", 10)
+        massive_seed = [
+            # --- Iran ---
+            ("https://www.tehrantimes.com/news/iran-01", "Tehran Times", "Iran", "Iran examines air defense upgrade and regional security frameworks", "Senior defense officials in Tehran discussed strategic implications of new military tech.", "Senior defense officials in Tehran discussed strategic implications of new military technology projects and regional security frameworks amid shifting geopolitical dynamics.", "Iran Desk", (now_t - timedelta(hours=1)).strftime("%Y-%m-%d %H:%M"), "https://images.unsplash.com/photo-1508614589041-895b88991e3e?w=1200", "Military & Security", 10),
+            ("https://www.tehrantimes.com/news/iran-02", "Tehran Times", "Iran", "Tehran unveils new generation of domestic ballistic missile systems", "Local media reports successful tactical tests of advanced guidance systems.", "Local media reports successful tactical tests of advanced guidance systems designed to counter complex electronic warfare and airspace threats.", "Iran Desk", (now_t - timedelta(hours=5)).strftime("%Y-%m-%d %H:%M"), "https://images.unsplash.com/photo-1517976487492-5750f3195933?w=1200", "Defense", 9),
+            ("https://www.tehrantimes.com/news/iran-03", "Tehran Times", "Iran", "Iran signs major economic protocols with Asian trade partners", "Government finalizes long-term agreements to stabilize local currency reserves.", "Government finalizes long-term agreements to stabilize local currency reserves and bypass western financial restrictions.", "Iran Economy", (now_t - timedelta(hours=9)).strftime("%Y-%m-%d %H:%M"), "https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?w=1200", "Economy", 7),
+
+            # --- Saudi Arabia ---
+            ("https://english.alarabiya.net/news/gulf/saudi-01", "Al Arabiya", "Saudi Arabia", "Riyadh launches mega renewable energy project under Vision 2030", "Saudi Arabia announced massive investments in smart infrastructure and clean energy.", "Saudi Arabia announced massive investments in smart infrastructure, AI integration, and clean energy solutions to establish a regional tech hub.", "Gulf Desk", (now_t - timedelta(hours=2)).strftime("%Y-%m-%d %H:%M"), "https://images.unsplash.com/photo-1527977966376-1c8408f9f108?w=1200", "Economy & Tech", 9),
+            ("https://english.alarabiya.net/news/gulf/saudi-02", "Al Arabiya", "Saudi Arabia", "Royal Saudi Naval Forces launch Red Sea maritime security exercise", "Joint drills focus on protecting strategic energy facilities and trade routes.", "Joint naval drills focus on protecting strategic energy facilities, ensuring freedom of navigation, and deterring asymmetric maritime threats.", "Gulf Security", (now_t - timedelta(hours=6)).strftime("%Y-%m-%d %H:%M"), "https://images.unsplash.com/photo-1544551763-46a013bb70d5?w=1200", "Military", 8),
+            ("https://english.alarabiya.net/news/gulf/saudi-03", "Al Arabiya", "Saudi Arabia", "Kingdom expands diplomatic outreach across Middle East capitals", "High-level delegations discuss regional de-escalation and bilateral cooperation.", "High-level delegations discuss regional de-escalation, economic partnerships, and joint security frameworks.", "Diplomatic Desk", (now_t - timedelta(hours=11)).strftime("%Y-%m-%d %H:%M"), "https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?w=1200", "Diplomacy", 8),
+
+            # --- UAE ---
+            ("https://www.wam.ae/en/details/uae-01", "WAM News Agency", "UAE", "Abu Dhabi hosts international AI and technological innovation summit", "Global executives and leaders gathered to discuss future AI cooperation.", "Global executives, researchers, and industry leaders gathered in Abu Dhabi to discuss future AI cooperation, cybersecurity, and smart airspace management.", "UAE Desk", (now_t - timedelta(hours=3)).strftime("%Y-%m-%d %H:%M"), "https://images.unsplash.com/photo-1512453979798-5ea266f8880c?w=1200", "Technology", 8),
+            ("https://www.wam.ae/en/details/uae-02", "WAM News Agency", "UAE", "Dubai records significant surge in non-oil foreign trade volume", "Official reports highlight expansion of logistics hubs and global trade corridors.", "Official reports highlight expansion of logistics hubs, aviation networks, and global trade corridors linking East and West.", "UAE Economy", (now_t - timedelta(hours=7)).strftime("%Y-%m-%d %H:%M"), "https://images.unsplash.com/photo-1436491865332-7a61a109cc05?w=1200", "Business", 7),
+
+            # --- Yemen ---
+            ("https://www.sabanews.net/en/yemen-01", "Saba News Agency", "Yemen", "Yemen: International discussions advance humanitarian and stability plans", "Local and international representatives reviewed plans to restore vital infrastructure.", "Local and international representatives reviewed comprehensive plans to restore vital infrastructure, healthcare, and water supply lines in friction zones.", "Yemen Intelligence", (now_t - timedelta(hours=4)).strftime("%Y-%m-%d %H:%M"), "https://images.unsplash.com/photo-1509316975850-ff9c5deb0cd9?w=1200", "Humanitarian", 8),
+            ("https://www.sabanews.net/en/yemen-02", "Saba News Agency", "Yemen", "Local committees report progress in clearing vital transportation corridors", "Engineering teams work around the clock to ensure safe passage for relief convoys.", "Engineering teams work around the clock to ensure safe passage for relief convoys and commercial freight across key regional routes.", "Yemen Field Desk", (now_t - timedelta(hours=10)).strftime("%Y-%m-%d %H:%M"), "https://images.unsplash.com/photo-1578328819058-b69f3a3b0f6b?w=1200", "Operations", 7),
+
+            # --- Syria ---
+            ("https://sana.sy/en/syria-01", "SANA News", "Syria", "Damascus reports progress in central provinces infrastructure rehabilitation", "Engineering teams report completion of major repairs in service supply.", "Engineering teams report completion of major repairs in water and electricity distribution networks across central provinces.", "Syria Desk", (now_t - timedelta(hours=5)).strftime("%Y-%m-%d %H:%M"), "https://images.unsplash.com/photo-1541872703-74c5e44368f9?w=1200", "Infrastructure", 7),
+            ("https://sana.sy/en/syria-02", "SANA News", "Syria", "Syrian ministries review agricultural output and food security initiatives", "New measures introduced to support local farming cooperatives and irrigation.", "New measures introduced to support local farming cooperatives, modern irrigation systems, and national food security reserves.", "Syria Economy", (now_t - timedelta(hours=12)).strftime("%Y-%m-%d %H:%M"), "https://images.unsplash.com/photo-1500651230702-0e2d8a49d4ad?w=1200", "Agriculture", 6),
+
+            # --- Iraq ---
+            ("https://www.ina.iq/eng/iraq-01", "INA News Agency", "Iraq", "Baghdad National Security Council tightens energy facilities protection", "Security forces in Iraq deployed additional units along border routes.", "Security forces in Iraq deployed additional tactical units along international border routes and strategic energy facilities to prevent sabotage.", "Iraq Desk", (now_t - timedelta(hours=6)).strftime("%Y-%m-%d %H:%M"), "https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=1200", "Security", 8),
+            ("https://www.ina.iq/eng/iraq-02", "INA News Agency", "Iraq", "Central Bank of Iraq announces new digital banking oversight measures", "Initiatives aimed at enhancing financial transparency and curbing illicit flows.", "Initiatives aimed at enhancing financial transparency, modernizing banking infrastructure, and curbing illicit capital flows.", "Iraq Economy", (now_t - timedelta(hours=13)).strftime("%Y-%m-%d %H:%M"), "https://images.unsplash.com/photo-1559526324-4b87b5e36e44?w=1200", "Finance", 7),
+
+            # --- Gaza & WB ---
+            ("https://english.wafa.ps/Pages/Details/gaza-01", "Wafa News Agency", "Gaza & WB", "Emergency teams coordinate humanitarian relief and supply entry", "Humanitarian organizations report intensified efforts to handle health and water.", "Humanitarian organizations and local emergency committees report intensified efforts to handle health, sanitation, and water infrastructure across the territories.", "Palestine Desk", (now_t - timedelta(hours=7)).strftime("%Y-%m-%d %H:%M"), "https://images.unsplash.com/photo-1595590424283-b8f17842773f?w=1200", "Humanitarian", 9),
+            ("https://english.wafa.ps/Pages/Details/gaza-02", "Wafa News Agency", "Gaza & WB", "Ramallah holds ministerial meetings on administrative and public services", "Cabinet reviews budgets for educational institutions and municipal development.", "Cabinet reviews budgets for educational institutions, municipal development projects, and emergency public health programs.", "Palestine Desk", (now_t - timedelta(hours=14)).strftime("%Y-%m-%d %H:%M"), "https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?w=1200", "Governance", 7),
+
+            # --- US & Global ---
+            ("https://www.reuters.com/world/middle-east/un-01", "Reuters Middle East", "US & Global", "UN and Western states hold urgent talks on Middle East stability framework", "Senior diplomats call for reducing regional tension and advancing solutions.", "Senior diplomats at the United Nations and Western capitals called for immediate de-escalation and the formulation of a comprehensive regional stability framework.", "Global Desk", (now_t - timedelta(hours=8)).strftime("%Y-%m-%d %H:%M"), "https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?w=1200", "Diplomacy", 10),
+            ("https://www.reuters.com/markets/commodities/oil-02", "Reuters Markets", "US & Global", "Global energy markets react to shifting geopolitical risk premiums in Gulf", "Crude futures fluctuate amid reports of heightened maritime surveillance.", "Crude futures fluctuate amid reports of heightened maritime surveillance and ongoing diplomatic talks across key oil-producing nations.", "Global Markets", (now_t - timedelta(hours=15)).strftime("%Y-%m-%d %H:%M"), "https://images.unsplash.com/photo-1590283603385-17ffb3a7f29f?w=1200", "Markets", 9)
         ]
         
         cursor.executemany('''
             INSERT OR IGNORE INTO articles 
             (url, source_name, country, title, summary, full_content, analyst_name, published_at, image_url, sentiment, priority)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        ''', seed_data)
+        ''', massive_seed)
         conn.commit()
 
 ingest_data()
@@ -173,25 +197,14 @@ def load_data():
     conn = get_db_connection()
     df = pd.read_sql_query("SELECT * FROM articles ORDER BY priority DESC, id DESC", conn)
     
-    # --- AUTOMATIC SCHEMA MAPPING (Prevents KeyError completely) ---
+    # Safe schema mapping
     if 'title' not in df.columns:
-        if 'title_english' in df.columns:
-            df['title'] = df['title_english']
-        else:
-            df['title'] = "Breaking News"
-            
+        df['title'] = df['title_english'] if 'title_english' in df.columns else "Breaking News"
     if 'summary' not in df.columns:
-        if 'summary_english' in df.columns:
-            df['summary'] = df['summary_english']
-        else:
-            df['summary'] = "No summary available."
-            
+        df['summary'] = df['summary_english'] if 'summary_english' in df.columns else "No summary available."
     if 'full_content' not in df.columns:
-        if 'full_content_english' in df.columns:
-            df['full_content'] = df['full_content_english']
-        else:
-            df['full_content'] = df['summary']
-            
+        df['full_content'] = df['full_content_english'] if 'full_content_english' in df.columns else df['summary']
+        
     return df
 
 df = load_data()
@@ -285,13 +298,21 @@ else:
 
     st.markdown("<hr style='border-color: rgba(56, 189, 248, 0.2); margin: 15px 0;'>", unsafe_allow_html=True)
 
+    # --- ROBUST FILTERING LOGIC ---
     selected_zone = st.session_state['selected_country']
-    filtered_df = df[df['country'].str.contains(selected_zone, case=False, na=False)] if selected_zone != "All" else df
-    if filtered_df.empty:
+    if selected_zone == "All":
         filtered_df = df
+    else:
+        # Exact match first, fallback to case-insensitive contains
+        filtered_df = df[df['country'].str.strip().str.lower() == selected_zone.strip().lower()]
+        if filtered_df.empty:
+            filtered_df = df[df['country'].str.contains(selected_zone, case=False, na=False)]
+
+    if filtered_df.empty:
+        filtered_df = df # Fallback to prevent empty screens
 
     if st.session_state['view_mode'] == 'Analytics Terminal':
-        st.markdown(f"### 🖥️ Analytics Archive ({len(filtered_df):,} items)")
+        st.markdown(f"### 🖥️ Analytics Archive ({len(filtered_df):,} items for zone: {selected_zone})")
         search_q = st.text_input("Search archive:")
         table_df = filtered_df.copy()
         if search_q:
@@ -307,7 +328,7 @@ else:
         <div class="card" style="margin-bottom: 24px; border: 1px solid rgba(220, 38, 38, 0.4);">
             <img class="card-img" style="height: 380px;" src="{lead['image_url']}" />
             <div>
-                <span class="tag tag-breaking">TOP LEAD STORY</span>
+                <span class="tag tag-breaking">TOP LEAD STORY ({selected_zone.upper()})</span>
                 <span class="tag" style="background:#0369a1; color:#fff;">{lead['sentiment']}</span>
                 <span class="tag tag-source">📰 {lead['source_name']} ({lead['country']})</span>
                 <span class="tag tag-time">🕒 {lead['published_at']}</span>
@@ -328,7 +349,7 @@ else:
         # --- GRID ---
         rem = filtered_df[filtered_df['id'] != lead['id']]
         if not rem.empty:
-            st.markdown(f"<h3 style='margin: 35px 0 15px 0; font-weight: 700;'>Zone Feed & Reports</h3>", unsafe_allow_html=True)
+            st.markdown(f"<h3 style='margin: 35px 0 15px 0; font-weight: 700;'>Zone Feed & Reports ({len(filtered_df)})</h3>", unsafe_allow_html=True)
             grid_cols = st.columns(3)
             for idx, row in rem.head(30).iterrows():
                 with grid_cols[idx % 3]:
