@@ -13,49 +13,102 @@ DIRECT_RSS_FEEDS = [
     {"name": "The Guardian Middle East", "url": "https://www.theguardian.com/world/middleeast/rss"}
 ]
 
+DEFAULT_IMAGE = (
+    "https://images.unsplash.com/"
+    "photo-1504711434969-e33886168f5c?w=1200"
+)
+
+
 def clean_html(raw_html):
-    cleanr = re.compile('<.*?>')
-    return re.sub(cleanr, '', raw_html)
+
+    if not raw_html:
+        return ""
+
+    text = re.sub(
+        r"<[^>]+>",
+        " ",
+        raw_html,
+    )
+
+    # לפעמים RSS מכיל encoding כפול:
+    # &amp;#039; -> &#039; -> '
+    for _ in range(2):
+        text = html.unescape(text)
+
+    text = re.sub(
+        r"\s+",
+        " ",
+        text,
+    )
+
+    return text.strip()
 
 def extract_real_image(item, raw_description, article_url=None):
-    """
-    Try to find the real article image from:
-    1. RSS media tags
-    2. enclosure
-    3. image inside RSS description
-    4. article page og:image
-    5. fallback image
-    """
 
-    # 1. RSS media tags
-    possible_tags = [
-        "{http://search.yahoo.com/mrss/}content",
-        "{http://search.yahoo.com/mrss/}thumbnail",
-        "enclosure",
-    ]
+    # 1. media:content
+    media_content = item.find(
+        "{http://search.yahoo.com/mrss/}content"
+    )
 
-    for tag in possible_tags:
-        media = item.find(tag)
+    if media_content is not None:
+        image_url = media_content.get("url")
 
-        if media is not None:
-            image_url = media.get("url")
-
-            if image_url:
-                return image_url
+        if image_url:
+            return html.unescape(image_url)
 
 
-    # 2. Image inside description
+    # 2. media:thumbnail
+    media_thumbnail = item.find(
+        "{http://search.yahoo.com/mrss/}thumbnail"
+    )
+
+    if media_thumbnail is not None:
+        image_url = media_thumbnail.get("url")
+
+        if image_url:
+            return html.unescape(image_url)
+
+
+    # 3. enclosure
+    enclosure = item.find("enclosure")
+
+    if enclosure is not None:
+
+        enclosure_url = enclosure.get("url", "")
+        enclosure_type = enclosure.get("type", "")
+
+        if (
+            enclosure_url
+            and (
+                enclosure_type.startswith("image/")
+                or any(
+                    ext in enclosure_url.lower()
+                    for ext in [
+                        ".jpg",
+                        ".jpeg",
+                        ".png",
+                        ".webp",
+                    ]
+                )
+            )
+        ):
+            return html.unescape(enclosure_url)
+
+
+    # 4. image embedded in RSS description
     if raw_description:
+
         patterns = [
             r'<img[^>]+src=["\']([^"\']+)["\']',
             r'<img[^>]+data-src=["\']([^"\']+)["\']',
         ]
 
         for pattern in patterns:
+
             match = re.search(
                 pattern,
                 raw_description,
-                flags=re.IGNORECASE
+                flags=re.IGNORECASE,
             )
 
             if match:
@@ -64,56 +117,71 @@ def extract_real_image(item, raw_description, article_url=None):
                 )
 
 
-    # 3. Try article OG image
+    # 5. Open the actual article and look for OG image
     if article_url:
+
         try:
+
             req = urllib.request.Request(
                 article_url,
                 headers={
-                    "User-Agent": "Mozilla/5.0"
-                }
+                    "User-Agent": (
+                        "Mozilla/5.0 "
+                        "(Windows NT 10.0; Win64; x64) "
+                        "AppleWebKit/537.36 "
+                        "(KHTML, like Gecko) "
+                        "Chrome/120.0 Safari/537.36"
+                    )
+                },
             )
 
             with urllib.request.urlopen(
                 req,
-                timeout=5
+                timeout=6,
             ) as response:
+
                 page_html = response.read().decode(
                     "utf-8",
-                    errors="ignore"
+                    errors="ignore",
                 )
 
-            og_patterns = [
-                r'<meta[^>]+property=["\']og:image["\'][^>]+content=["\']([^"\']+)["\']',
-                r'<meta[^>]+content=["\']([^"\']+)["\'][^>]+property=["\']og:image["\']',
-                r'<meta[^>]+name=["\']twitter:image["\'][^>]+content=["\']([^"\']+)["\']',
+
+            patterns = [
+                r'<meta[^>]*property=["\']og:image["\'][^>]*content=["\']([^"\']+)["\']',
+                r'<meta[^>]*content=["\']([^"\']+)["\'][^>]*property=["\']og:image["\']',
+                r'<meta[^>]*name=["\']twitter:image["\'][^>]*content=["\']([^"\']+)["\']',
+                r'<meta[^>]*content=["\']([^"\']+)["\'][^>]*name=["\']twitter:image["\']',
             ]
 
-            for pattern in og_patterns:
+            for pattern in patterns:
+
                 match = re.search(
                     pattern,
                     page_html,
-                    flags=re.IGNORECASE
+                    flags=re.IGNORECASE,
                 )
 
                 if match:
-                    return html.unescape(
+
+                    image_url = html.unescape(
                         match.group(1)
                     )
 
+                    if image_url.startswith("//"):
+                        image_url = "https:" + image_url
+
+                    return image_url
+
+
         except Exception as e:
+
             print(
-                f"Image extraction failed "
-                f"for {article_url}: {e}"
+                f"OG image error "
+                f"({article_url}): {e}"
             )
 
 
-    # 4. Final fallback
-    return (
-        "https://images.unsplash.com/"
-        "photo-1504711434969-e33886168f5c?w=1200"
-    )
-
+    return DEFAULT_IMAGE
 def parse_rss_date(pub_date_elem):
     if pub_date_elem is not None and pub_date_elem.text:
         try:
@@ -128,6 +196,65 @@ def parse_rss_date(pub_date_elem):
 def fetch_live_web_articles():
     conn = get_db_connection()
     cursor = conn.cursor()
+    cursor.execute(
+    """
+    SELECT id, image_url
+    FROM articles
+    WHERE url = ?
+    LIMIT 1
+    """,
+    (url,)
+)
+
+    existing_article = cursor.fetchone()
+    if existing_article:
+
+    current_image = (
+        existing_article["image_url"] or ""
+    )
+
+    # לנסות לתקן רק כתבות שיש להן
+    # fallback או שאין להן תמונה בכלל
+    if (
+        not current_image
+        or current_image == DEFAULT_IMAGE
+        or "photo-1504711434969-e33886168f5c" in current_image
+    ):
+
+        better_image = extract_real_image(
+            item,
+            raw_description,
+            url,
+        )
+
+        if (
+            better_image
+            and better_image != DEFAULT_IMAGE
+        ):
+
+            cursor.execute(
+                """
+                UPDATE articles
+                SET image_url = ?
+                WHERE id = ?
+                """,
+                (
+                    better_image,
+                    existing_article["id"],
+                ),
+            )
+
+    # הכתבה עצמה כבר קיימת,
+    # אז לא מוסיפים אותה שוב
+    continue
+
+
+
+image_url = extract_real_image(
+    item,
+    raw_description,
+    url,
+)
     
     total_added = 0
     for feed in DIRECT_RSS_FEEDS:
