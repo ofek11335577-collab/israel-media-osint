@@ -2,10 +2,10 @@
 import urllib.request
 import xml.etree.ElementTree as ET
 from datetime import datetime
+import email.utils
 from database import get_db_connection
 import re
 
-# פידים ישירים ויציבים מסוכנויות מובילות (ללא קישורים עקיפים שנופלים)
 DIRECT_RSS_CHANNELS = [
     {"name": "Reuters World", "url": "https://www.reuters.com/arc/outboundfeeds/v1/output/rss/?outputType=xml", "country": "US & Global"},
     {"name": "Al Jazeera", "url": "https://www.aljazeera.com/xml/rss/all.xml", "country": "US & Global"},
@@ -16,20 +16,33 @@ def clean_html(raw_html):
     cleanr = re.compile('<.*?>')
     return re.sub(cleanr, '', raw_html)
 
-def get_context_image(title, index):
-    title_lower = title.lower()
-    pools = [
-        "https://images.unsplash.com/photo-1517976487492-5750f3195933?w=1200",
-        "https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?w=1200",
-        "https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?w=1200",
-        "https://images.unsplash.com/photo-1509316975850-ff9c5deb0cd9?w=1200"
-    ]
-    return pools[index % len(pools)]
+def extract_real_image(item, raw_desc):
+    for tag in ['{http://search.yahoo.com/mrss/}content', '{http://search.yahoo.com/mrss/}thumbnail', 'enclosure']:
+        media = item.find(tag)
+        if media is not None and media.get('url'):
+            return media.get('url')
+    if raw_desc:
+        img_match = re.search(r'<img[^>]+src="([^">]+)"', raw_desc)
+        if img_match:
+            return img_match.group(1)
+    return "https://images.unsplash.com/photo-1504711434969-e33886168f5c?w=1200"
+
+def parse_rss_date(pub_date_elem):
+    if pub_date_elem is not None and pub_date_elem.text:
+        try:
+            parsed_tuple = email.utils.parsedate_tz(pub_date_elem.text)
+            if parsed_tuple:
+                dt = datetime.fromtimestamp(email.utils.mktime_tz(parsed_tuple))
+                return dt.strftime("%Y-%m-%d %H:%M")
+        except Exception:
+            pass
+    return datetime.utcnow().strftime("%Y-%m-%d %H:%M")
 
 def fetch_live_web_articles():
     conn = get_db_connection()
     cursor = conn.cursor()
     
+    total_added = 0
     for source in DIRECT_RSS_CHANNELS:
         try:
             req = urllib.request.Request(source['url'], headers={'User-Agent': 'Mozilla/5.0'})
@@ -37,22 +50,23 @@ def fetch_live_web_articles():
                 xml_data = response.read()
                 root = ET.fromstring(xml_data)
                 
-                for idx, item in enumerate(root.findall('.//item')[:15]):
+                for item in root.findall('.//item')[:15]:
                     title_elem = item.find('title')
                     link_elem = item.find('link')
+                    pub_date_elem = item.find('pubDate')
                     desc_elem = item.find('description')
                     
                     title = title_elem.text if title_elem is not None else "Breaking Intelligence Report"
                     url = link_elem.text if link_elem is not None else "https://www.reuters.com"
-                    published_at = datetime.utcnow().strftime("%Y-%m-%d %H:%M") # תאריך אחיד ומדויק למיון מושלם
                     
+                    published_at = parse_rss_date(pub_date_elem)
                     raw_desc = desc_elem.text if desc_elem is not None else ""
                     summary = clean_html(raw_desc)[:250] if raw_desc else title
                     full_content = f"Live verified report from {source['name']}:\n\n{clean_html(raw_desc)}\n\n[Direct Link: {url}]"
                     
-                    image_url = get_context_image(title, idx)
+                    image_url = extract_real_image(item, raw_desc)
                     
-                    # זיהוי אוטומטי של אזור לפי מילות מפתח בכותרת
+                    # סיווג גיאוגרפי
                     country = "US & Global"
                     t_low = title.lower()
                     if any(k in t_low for k in ['iran', 'tehran']): country = "Iran"
@@ -69,17 +83,21 @@ def fetch_live_web_articles():
                         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                     ''', (
                         url,
-                        f"{source['name']} [DIRECT]",
+                        f"{source['name']} [LIVE]",
                         country,
                         title,
                         summary,
                         full_content,
-                        "Live Direct Wire",
+                        "Live RSS Ingestor",
                         published_at,
                         image_url,
                         "Active Feed",
                         10
                     ))
+                    if cursor.rowcount > 0:
+                        total_added += 1
             conn.commit()
         except Exception as e:
             print(f"Feed error ({source['name']}): {e}")
+            
+    return total_added
