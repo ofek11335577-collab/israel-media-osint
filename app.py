@@ -4,6 +4,7 @@ import pandas as pd
 from datetime import datetime
 from database import init_db, get_db_connection
 from ingestion.fetcher import fetch_live_web_articles
+from streamlit_autorefresh import st_autorefresh
 
 init_db()
 
@@ -13,12 +14,31 @@ st.set_page_config(
     layout="wide",
     initial_sidebar_state="collapsed"
 )
+# Refresh Streamlit every 5 minutes
+st_autorefresh(
+    interval=5 * 60 * 1000,
+    key="rss_auto_refresh"
+)
 
 # שאיבה ראשונית אוטומטית בעליית הסשן
-if "initialized_fetch" not in st.session_state:
-    with st.spinner("Connecting to live intelligence feeds..."):
-        fetch_live_web_articles()
-    st.session_state["initialized_fetch"] = True
+if should_fetch():
+
+    try:
+        new_count = fetch_live_web_articles()
+
+        mark_fetch_complete()
+
+        st.cache_data.clear()
+
+        print(
+            f"Automatic RSS sync complete: "
+            f"{new_count} new articles"
+        )
+
+    except Exception as e:
+        print(
+            f"Automatic RSS sync failed: {e}"
+        )
 
 # --- STATE MANAGEMENT ---
 if "view_mode" not in st.session_state:
@@ -315,3 +335,64 @@ else:
                                 st.rerun()
                         with cb2:
                             st.link_button("Source ↗", row['url'], use_container_width=True)
+
+
+            from datetime import datetime, timezone, timedelta
+
+
+def should_fetch():
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    cursor.execute("""
+        SELECT value
+        FROM system_state
+        WHERE key = 'last_rss_fetch'
+    """)
+
+    row = cursor.fetchone()
+
+    if row is None:
+        return True
+
+    try:
+        last_fetch = datetime.fromisoformat(
+            row["value"]
+        )
+
+        now = datetime.now(timezone.utc)
+
+        return (
+            now - last_fetch
+            >= timedelta(minutes=5)
+        )
+
+    except Exception:
+        return True
+
+
+def mark_fetch_complete():
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    now = (
+        datetime.now(timezone.utc)
+        .replace(microsecond=0)
+        .isoformat()
+    )
+
+    cursor.execute("""
+        INSERT INTO system_state (
+            key,
+            value
+        )
+        VALUES (
+            'last_rss_fetch',
+            ?
+        )
+        ON CONFLICT(key)
+        DO UPDATE SET
+            value = excluded.value
+    """, (now,))
+
+    conn.commit()

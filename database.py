@@ -1,4 +1,5 @@
 # database.py
+
 import sqlite3
 import streamlit as st
 from datetime import datetime, timezone
@@ -11,21 +12,32 @@ def get_db_connection():
     conn = sqlite3.connect(
         DB_PATH,
         check_same_thread=False,
-        timeout=10
+        timeout=30
     )
 
     conn.row_factory = sqlite3.Row
 
-    # SQLite settings
     conn.execute("PRAGMA journal_mode=WAL;")
     conn.execute("PRAGMA foreign_keys=ON;")
 
     return conn
 
 
+def utc_now_iso():
+    return (
+        datetime.now(timezone.utc)
+        .replace(microsecond=0)
+        .isoformat()
+    )
+
+
 def init_db():
     conn = get_db_connection()
     cursor = conn.cursor()
+
+    # ------------------------------------------
+    # Main articles table
+    # ------------------------------------------
 
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS articles (
@@ -37,58 +49,66 @@ def init_db():
             summary TEXT,
             full_content TEXT,
             analyst_name TEXT,
-            published_at TEXT NOT NULL,
+            published_at TEXT,
             image_url TEXT,
             sentiment TEXT,
             priority INTEGER DEFAULT 0,
-            created_at TEXT NOT NULL
+            created_at TEXT
         )
     """)
 
-    # אינדקסים לשיפור ביצועי חיפוש ומיון
+    # ------------------------------------------
+    # Migration for older databases
+    # IMPORTANT: never DROP the table
+    # ------------------------------------------
+
+    cursor.execute(
+        "PRAGMA table_info(articles)"
+    )
+
+    columns = {
+        row[1]
+        for row in cursor.fetchall()
+    }
+
+    if "created_at" not in columns:
+        cursor.execute("""
+            ALTER TABLE articles
+            ADD COLUMN created_at TEXT
+        """)
+
+    # ------------------------------------------
+    # Indexes
+    # ------------------------------------------
+
     cursor.execute("""
-        CREATE INDEX IF NOT EXISTS idx_articles_published_at
-        ON articles(published_at DESC)
+        CREATE INDEX IF NOT EXISTS
+        idx_articles_published_at
+        ON articles(published_at)
     """)
 
     cursor.execute("""
-        CREATE INDEX IF NOT EXISTS idx_articles_country
+        CREATE INDEX IF NOT EXISTS
+        idx_articles_country
         ON articles(country)
     """)
 
     cursor.execute("""
-        CREATE INDEX IF NOT EXISTS idx_articles_source
+        CREATE INDEX IF NOT EXISTS
+        idx_articles_source
         ON articles(source_name)
     """)
 
+    # ------------------------------------------
+    # Fetch-state table
+    # lets us know when last RSS sync happened
+    # ------------------------------------------
+
     cursor.execute("""
-        CREATE INDEX IF NOT EXISTS idx_articles_priority
-        ON articles(priority DESC)
+        CREATE TABLE IF NOT EXISTS system_state (
+            key TEXT PRIMARY KEY,
+            value TEXT
+        )
     """)
 
     conn.commit()
-
-
-def utc_now_iso():
-    """
-    מחזיר זמן UTC בפורמט ISO אחיד.
-    דוגמה:
-    2026-09-15T10:35:00+00:00
-    """
-    return datetime.now(timezone.utc).replace(
-        microsecond=0
-    ).isoformat()
-
-
-def normalize_datetime(dt):
-    """
-    מקבל datetime ומחזיר ISO 8601 אחיד ב-UTC.
-    """
-    if dt.tzinfo is None:
-        dt = dt.replace(tzinfo=timezone.utc)
-
-    dt = dt.astimezone(timezone.utc)
-
-    return dt.replace(
-        microsecond=0
-    ).isoformat()
