@@ -1,126 +1,96 @@
 # ingestion/fetcher.py
-from datetime import datetime, timedelta
+import urllib.request
+import urllib.parse
+import xml.etree.ElementTree as ET
+from datetime import datetime
 from database import get_db_connection
+from services.translator import translate_to_hebrew
+import re
+
+# שאילתות חיפוש חיות ב-Google News לכל זירה ומדינה (מושך כתבות אמת בזמן אמת)
+RSS_SOURCES = [
+    {"name": "Google News (Iran)", "query": "Iran military politics", "country": "איראן"},
+    {"name": "Google News (Saudi Arabia)", "query": "Saudi Arabia news", "country": "סעודיה"},
+    {"name": "Google News (UAE)", "query": "UAE Dubai business news", "country": "איחוד האמירויות"},
+    {"name": "Google News (Yemen)", "query": "Yemen conflict news", "country": "תימן"},
+    {"name": "Google News (Syria)", "query": "Syria updates", "country": "סוריה"},
+    {"name": "Google News (Iraq)", "query": "Iraq security news", "country": "עיראק"},
+    {"name": "Google News (Gaza/Palestine)", "query": "Gaza Palestine news", "country": "רצועת עזה"},
+    {"name": "Google News (Middle East)", "query": "Middle East politics US", "country": "ארה\"ב"}
+]
+
+def clean_html(raw_html):
+    cleanr = re.compile('<.*?>')
+    return re.sub(cleanr, '', raw_html)
+
+def extract_image_from_item(item, description_text):
+    for tag in ['{http://search.yahoo.com/mrss/}content', '{http://search.yahoo.com/mrss/}thumbnail', 'enclosure']:
+        media = item.find(tag)
+        if media is not None and media.get('url'):
+            return media.get('url')
+    if description_text:
+        img_match = re.search(r'<img[^>]+src="([^">]+)"', description_text)
+        if img_match:
+            return img_match.group(1)
+    return "https://images.unsplash.com/photo-1504711434969-e33886168f5c?w=1200"
 
 def ingest_live_feeds():
     conn = get_db_connection()
     cursor = conn.cursor()
     
-    cursor.execute("SELECT COUNT(*) FROM articles")
-    if cursor.fetchone()[0] < 15:
-        now_t = datetime.now()
-        
-        # מאגר ענק ורב-זירתי המכסה את כל המדינות והמרחבים המבוקשים
-        global_intelligence_seeds = [
-            (
-                "https://www.tehrantimes.com/news/iran-defense", 
-                "Tehran Times", 
-                "איראן", 
-                "איראן: בחינת יוזמות משותפות לקידום יציבות אזורית מול לחצים זרים", 
-                "Iran examines joint regional stability initiatives against foreign pressures",
-                "בכירי מערך החוץ והביטחון באיראן דנו בהשלכות הגיאופוליטיות של מעורבות המעצמות במרחב המפרץ.",
-                "Senior foreign and security officials in Iran discussed the geopolitical implications of foreign powers' involvement in the Persian Gulf.",
-                (now_t - timedelta(minutes=15)).strftime("%Y-%m-%d %H:%M"), 
-                "https://images.unsplash.com/photo-1508614589041-895b88991e3e?w=1200", 
-                "מדיני ודיפלומטי", 9, "[דסק איראן]"
-            ),
-            (
-                "https://english.alarabiya.net/news/gulf/saudi", 
-                "Al Arabiya", 
-                "סעודיה", 
-                "סעודיה: היערכות ביטחונית ימית וסיכול איומים בנתיבי השיט בים האדום", 
-                "Saudi Arabia: Maritime security preparedness and thwarting threats in Red Sea shipping lanes",
-                "כוחות ההגנה של הקואליציה השלימו סדרת תרגילים משולבים לשמירה על חופש השיט והבטחת מתקני האנרגיה.",
-                "Coalition defense forces completed a series of joint exercises to protect freedom of navigation and secure energy facilities.",
-                (now_t - timedelta(hours=1)).strftime("%Y-%m-%d %H:%M"), 
-                "https://images.unsplash.com/photo-1527977966376-1c8408f9f108?w=1200", 
-                "צבאי וביטחוני", 8, "[דסק מפרץ]"
-            ),
-            (
-                "https://www.wam.ae/en/uae-news", 
-                "WAM News Agency", 
-                "איחוד האמירויות", 
-                "אבו דאבי: הסכמי שיתוף פעולה טכנולוגיים ואסטרטגיים לחיזוק הכלכלה האזורית", 
-                "Abu Dhabi: Technological and strategic cooperation agreements to boost regional economy",
-                "איחוד האמירויות הכריזה על חבילת השקעות חדשה בפרויקטים של תשתיות חכמות ואנרגיה מתחדשת.",
-                "The UAE announced a new investment package in smart infrastructure and renewable energy projects.",
-                (now_t - timedelta(hours=2)).strftime("%Y-%m-%d %H:%M"), 
-                "https://images.unsplash.com/photo-1512453979798-5ea266f8880c?w=1200", 
-                "כלכלה וטכנולוגיה", 7, "[דסק אמירויות]"
-            ),
-            (
-                "https://www.sabanews.net/en", 
-                "Saba News Agency", 
-                "תימן", 
-                "תימן: דיווחים על תנועות כוחות ועימותים סביב מוקדי החיכוך המרכזיים", 
-                "Yemen: Reports of troop movements and clashes around key friction zones",
-                "מקורות מקומיים מדווחים על מתיחות גוברת באזורי המפתח, לצד מאמצים בינלאומיים לחדש את תהליך ההסדרה.",
-                "Local sources report rising tension in key areas, alongside international efforts to renew the settlement process.",
-                (now_t - timedelta(hours=3)).strftime("%Y-%m-%d %H:%M"), 
-                "https://images.unsplash.com/photo-1509316975850-ff9c5deb0cd9?w=1200", 
-                "צבאי וביטחוני", 8, "[חוקר זרות - תימן]"
-            ),
-            (
-                "https://sana.sy/en", 
-                "SANA News", 
-                "סוריה", 
-                "דמשק: סקירת פעילות שיקום התשתיות והתפתחויות מדיניות בגזרה הצפונית", 
-                "Damascus: Review of infrastructure rehabilitation and political developments in northern sector",
-                "השלטונות בסוריה ממשיכים בתיאום הביטחוני המקומי ובבחינת צעדים דיפלומטיים מול מדינות האזור.",
-                "Syrian authorities continue local security coordination and review diplomatic steps with regional states.",
-                (now_t - timedelta(hours=4)).strftime("%Y-%m-%d %H:%M"), 
-                "https://images.unsplash.com/photo-1541872703-74c5e44368f9?w=1200", 
-                "מדיני ודיפלומטי", 6, "[דסק סוריה]"
-            ),
-            (
-                "https://www.ina.iq/eng", 
-                "INA News Agency", 
-                "עיראק", 
-                "בגדאד: ישיבת חירום של המועצה לביטחון לאומי לדיון בהיערכות הגבולות", 
-                "Baghdad: National Security Council emergency meeting to discuss border readiness",
-                "המועצה לביטחון לאומי בעיראק קיימה דיון דחוף בבחינת אמצעי האבטחה לאורך גבולות המדינה והמתקנים האסטרטגיים.",
-                "Iraq's National Security Council held an urgent meeting to review security measures along state borders and strategic facilities.",
-                (now_t - timedelta(hours=5)).strftime("%Y-%m-%d %H:%M"), 
-                "https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=1200", 
-                "צבאי וביטחוני", 7, "[דסק עיראק]"
-            ),
-            (
-                "https://english.wafa.ps", 
-                "Wafa News Agency", 
-                "רצועת עזה ואיו\"ש", 
-                "רמאללה ועזה: עדכונים שוטפים על מצב התשתיות ופעילות צוותי החירום", 
-                "Ramallah and Gaza: Continuous updates on infrastructure status and emergency teams activity",
-                "צוותים מקומיים פועלים סביב השעה לשיקום קווי אספקה חיוניים ולטיפול בפניות הומניטריות בשטח.",
-                "Local teams work around the clock to restore vital supply lines and handle humanitarian appeals on the ground.",
-                (now_t - timedelta(hours=6)).strftime("%Y-%m-%d %H:%M"), 
-                "https://images.unsplash.com/photo-1595590424283-b8f17842773f?w=1200", 
-                "הומניטרי ושוטף", 8, "[דסק זירות פלסטיניות]"
-            ),
-            (
-                "https://www.reuters.com/world/middle-east", 
-                "Reuters Middle East", 
-                "ארה\"ב ועולם", 
-                "וושינגטון וג'נבה: דיונים דיפלומטיים דחופים סביב משוואת הביטחון האזורית", 
-                "Washington and Geneva: Urgent diplomatic talks regarding regional security equation",
-                "סוכנויות הביון והממשל המערביות עוקבות אחר ההתפתחויות במזרח התיכון ומגבשות מתווה תגובה משותף.",
-                "Western intelligence agencies and governments monitor Middle East developments and formulate a joint response framework.",
-                (now_t - timedelta(hours=8)).strftime("%Y-%m-%d %H:%M"), 
-                "https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?w=1200", 
-                "מדיני ודיפלומטי", 9, "[דסק בינלאומי]"
-            )
-        ]
-
-        cursor.executemany('''
-            INSERT OR IGNORE INTO articles 
-            (url, source_name, country, title_hebrew, title_english, summary_hebrew, summary_english, full_content_hebrew, full_content_english, analyst_name, published_at, image_url, sentiment, priority)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        ''', [
-            (
-                item[0], item[1], item[2], item[3], item[4], item[5], item[6],
-                item[5] + "\n\n[ניתוח מודיעיני מקיף: הדיווח נאסף ונותח במערכת OSINT IL ומציג את עיקרי הנרטיב המקומי והבינלאומי בגזרה זו.]",
-                item[6] + "\n\n[Comprehensive Intelligence Analysis: Report collected and analyzed by OSINT IL system.]",
-                item[11], item[7], item[8], item[9], item[10]
-            )
-            for item in global_intelligence_seeds
-        ])
-        conn.commit()
+    for source in RSS_SOURCES:
+        try:
+            encoded_query = urllib.parse.quote(source['query'])
+            rss_url = f"https://news.google.com/rss/search?q={encoded_query}&hl=en-US&gl=US&ceid=US:en"
+            
+            req = urllib.request.Request(rss_url, headers={'User-Agent': 'Mozilla/5.0'})
+            with urllib.request.urlopen(req, timeout=8) as response:
+                xml_data = response.read()
+                root = ET.fromstring(xml_data)
+                
+                for item in root.findall('.//item')[:4]: # 4 כתבות חיות לכל קטגוריה
+                    title_elem = item.find('title')
+                    link_elem = item.find('link')
+                    pub_date_elem = item.find('pubDate')
+                    source_elem = item.find('source')
+                    desc_elem = item.find('description')
+                    
+                    title_en = title_elem.text if title_elem is not None else "Breaking Intelligence Report"
+                    link = link_elem.text if link_elem is not None else "https://news.google.com"
+                    pub_at = pub_date_elem.text if pub_date_elem is not None else datetime.now().strftime("%Y-%m-%d %H:%M")
+                    
+                    # זיהוי שם המקור המקורי (למשל Reuters, Al Jazeera וכו')
+                    real_source_name = source_elem.text if source_elem is not None else "Global Media"
+                    
+                    raw_desc = desc_elem.text if desc_elem is not None else ""
+                    desc_clean = clean_html(raw_desc)
+                    
+                    image_url = extract_image_from_item(item, raw_desc)
+                    
+                    # תרגום אוטומטי חם לעברית
+                    title_he = translate_to_hebrew(title_en)
+                    desc_he = translate_to_hebrew(desc_clean[:300] if desc_clean else title_en)
+                    
+                    cursor.execute('''
+                        INSERT OR IGNORE INTO articles 
+                        (url, source_name, country, title_hebrew, title_english, summary_hebrew, summary_english, full_content_hebrew, full_content_english, analyst_name, published_at, image_url, sentiment, priority)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    ''', (
+                        link,
+                        f"{real_source_name} [LIVE]",
+                        source['country'],
+                        title_he,
+                        title_en,
+                        desc_he,
+                        desc_clean,
+                        f"דיווח חי אמיתי מתוך {real_source_name}:\n\n{desc_clean}\n\n[קישור מקור חיצוני: {link}]",
+                        f"Live intelligence report from {real_source_name}:\n\n{desc_clean}",
+                        "מערכת אינגסטשן חיה",
+                        pub_at,
+                        image_url,
+                        "מבצעי חי",
+                        10
+                    ))
+            conn.commit()
+        except Exception as e:
+            print(f"Fetch Error ({source['name']}): {e}")
