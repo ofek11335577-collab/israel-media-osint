@@ -149,7 +149,7 @@ st.markdown("""
 @st.cache_data(ttl=30)
 def load_data():
     conn = get_db_connection()
-    # מיון כרונולוגי קפדני: הכתבות החדשות ביותר תמיד בטופ!
+    # שליפת כתבות טריות בלבד, ממוינות מהחדש לישן
     df = pd.read_sql_query("SELECT * FROM articles ORDER BY published_at DESC, id DESC", conn)
     return df
 

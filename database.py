@@ -1,6 +1,7 @@
 # database.py
 import sqlite3
 import streamlit as st
+from datetime import datetime, timedelta
 
 DB_PATH = "osint_desk.db"
 
@@ -13,6 +14,7 @@ def get_db_connection():
 def init_db():
     conn = get_db_connection()
     cursor = conn.cursor()
+    
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS articles (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -30,3 +32,11 @@ def init_db():
         )
     ''')
     conn.commit()
+    
+    # 🧹 מדיניות ניקוי אוטומטית: מחיקת כל הכתבות הישנות שגילן עולה על 14 יום (שלא יהיו כתבות ישנות מעופשות בדסק)
+    try:
+        cutoff_date = (datetime.utcnow() - timedelta(days=14)).strftime("%Y-%m-%d %H:%M")
+        cursor.execute("DELETE FROM articles WHERE published_at < ?", (cutoff_date,))
+        conn.commit()
+    except Exception as e:
+        print(f"Auto-purge note: {e}")
