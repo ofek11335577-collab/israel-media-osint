@@ -17,16 +17,102 @@ def clean_html(raw_html):
     cleanr = re.compile('<.*?>')
     return re.sub(cleanr, '', raw_html)
 
-def extract_real_image(item, raw_desc):
-    for tag in ['{http://search.yahoo.com/mrss/}content', '{http://search.yahoo.com/mrss/}thumbnail', 'enclosure']:
+def extract_real_image(item, raw_description, article_url=None):
+    """
+    Try to find the real article image from:
+    1. RSS media tags
+    2. enclosure
+    3. image inside RSS description
+    4. article page og:image
+    5. fallback image
+    """
+
+    # 1. RSS media tags
+    possible_tags = [
+        "{http://search.yahoo.com/mrss/}content",
+        "{http://search.yahoo.com/mrss/}thumbnail",
+        "enclosure",
+    ]
+
+    for tag in possible_tags:
         media = item.find(tag)
-        if media is not None and media.get('url'):
-            return media.get('url')
-    if raw_desc:
-        img_match = re.search(r'<img[^>]+src="([^">]+)"', raw_desc)
-        if img_match:
-            return img_match.group(1)
-    return "https://images.unsplash.com/photo-1504711434969-e33886168f5c?w=1200"
+
+        if media is not None:
+            image_url = media.get("url")
+
+            if image_url:
+                return image_url
+
+
+    # 2. Image inside description
+    if raw_description:
+        patterns = [
+            r'<img[^>]+src=["\']([^"\']+)["\']',
+            r'<img[^>]+data-src=["\']([^"\']+)["\']',
+        ]
+
+        for pattern in patterns:
+            match = re.search(
+                pattern,
+                raw_description,
+                flags=re.IGNORECASE
+            )
+
+            if match:
+                return html.unescape(
+                    match.group(1)
+                )
+
+
+    # 3. Try article OG image
+    if article_url:
+        try:
+            req = urllib.request.Request(
+                article_url,
+                headers={
+                    "User-Agent": "Mozilla/5.0"
+                }
+            )
+
+            with urllib.request.urlopen(
+                req,
+                timeout=5
+            ) as response:
+                page_html = response.read().decode(
+                    "utf-8",
+                    errors="ignore"
+                )
+
+            og_patterns = [
+                r'<meta[^>]+property=["\']og:image["\'][^>]+content=["\']([^"\']+)["\']',
+                r'<meta[^>]+content=["\']([^"\']+)["\'][^>]+property=["\']og:image["\']',
+                r'<meta[^>]+name=["\']twitter:image["\'][^>]+content=["\']([^"\']+)["\']',
+            ]
+
+            for pattern in og_patterns:
+                match = re.search(
+                    pattern,
+                    page_html,
+                    flags=re.IGNORECASE
+                )
+
+                if match:
+                    return html.unescape(
+                        match.group(1)
+                    )
+
+        except Exception as e:
+            print(
+                f"Image extraction failed "
+                f"for {article_url}: {e}"
+            )
+
+
+    # 4. Final fallback
+    return (
+        "https://images.unsplash.com/"
+        "photo-1504711434969-e33886168f5c?w=1200"
+    )
 
 def parse_rss_date(pub_date_elem):
     if pub_date_elem is not None and pub_date_elem.text:
@@ -69,8 +155,8 @@ def fetch_live_web_articles():
                     summary = clean_html(raw_desc)[:250] if raw_desc else title
                     full_content = f"Live verified intelligence report from {feed['name']}:\n\n{clean_html(raw_desc)}\n\n[Source URL: {url}]"
                     
-                    image_url = extract_real_image(item, raw_desc)
-                    
+                    image_url = extract_real_image(item,raw_description,url)
+
                     # סיווג גיאוגרפי אוטומטי לפי מילות מפתח בכותרת
                     country = "US & Global"
                     t_low = title.lower()
