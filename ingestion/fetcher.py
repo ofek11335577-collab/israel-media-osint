@@ -7,10 +7,14 @@ import urllib.request
 import xml.etree.ElementTree as ET
 
 from datetime import timezone
-from urllib.parse import urlsplit, urlunsplit
+from urllib.parse import urljoin, urlsplit, urlunsplit
 
 from database import get_db_connection, utc_now_iso
 
+
+# =========================================================
+# RSS SOURCES
+# =========================================================
 
 DIRECT_RSS_CHANNELS = [
     {
@@ -37,6 +41,10 @@ DEFAULT_IMAGE = (
 )
 
 
+# =========================================================
+# TEXT CLEANING
+# =========================================================
+
 def clean_html(raw_html):
     if not raw_html:
         return ""
@@ -47,7 +55,7 @@ def clean_html(raw_html):
         raw_html,
     )
 
-    # לפעמים RSS מגיע עם encoding כפול
+    # RSS sometimes contains double-encoded entities
     for _ in range(2):
         text = html.unescape(text)
 
@@ -59,6 +67,10 @@ def clean_html(raw_html):
 
     return text.strip()
 
+
+# =========================================================
+# URL NORMALIZATION
+# =========================================================
 
 def normalize_url(url):
     if not url:
@@ -83,26 +95,9 @@ def normalize_url(url):
         return url
 
 
-def normalize_title(title):
-    if not title:
-        return ""
-
-    normalized = title.lower()
-
-    normalized = re.sub(
-        r"[^\w\s]",
-        "",
-        normalized,
-    )
-
-    normalized = re.sub(
-        r"\s+",
-        " ",
-        normalized,
-    )
-
-    return normalized.strip()
-
+# =========================================================
+# DATE PARSING
+# =========================================================
 
 def parse_rss_date(pub_date_elem):
     if (
@@ -134,21 +129,106 @@ def parse_rss_date(pub_date_elem):
     return utc_now_iso()
 
 
+# =========================================================
+# IMAGE VALIDATION
+# =========================================================
+
+def is_valid_image_url(image_url):
+    if not image_url:
+        return False
+
+    try:
+        request = urllib.request.Request(
+            image_url,
+            headers={
+                "User-Agent": (
+                    "Mozilla/5.0 "
+                    "(Windows NT 10.0; Win64; x64)"
+                )
+            },
+            method="HEAD",
+        )
+
+        with urllib.request.urlopen(
+            request,
+            timeout=5,
+        ) as response:
+
+            content_type = response.headers.get(
+                "Content-Type",
+                ""
+            ).lower()
+
+            return content_type.startswith(
+                "image/"
+            )
+
+    except Exception:
+        return False
+
+
+def prepare_image_url(
+    image_url,
+    article_url,
+):
+    if not image_url:
+        return None
+
+    image_url = html.unescape(
+        image_url.strip()
+    )
+
+    if image_url.startswith("//"):
+        image_url = "https:" + image_url
+
+    elif image_url.startswith("/"):
+        image_url = urljoin(
+            article_url,
+            image_url,
+        )
+
+    elif not image_url.startswith(
+        ("http://", "https://")
+    ):
+        image_url = urljoin(
+            article_url,
+            image_url,
+        )
+
+    if is_valid_image_url(
+        image_url
+    ):
+        return image_url
+
+    return None
+
+
+# =========================================================
+# IMAGE EXTRACTION
+# =========================================================
+
 def extract_real_image(
     item,
     raw_description,
     article_url=None,
 ):
+    candidates = []
+
+
     # 1. media:content
     media_content = item.find(
         "{http://search.yahoo.com/mrss/}content"
     )
 
     if media_content is not None:
-        image_url = media_content.get("url")
+        candidate = media_content.get(
+            "url"
+        )
 
-        if image_url:
-            return html.unescape(image_url)
+        if candidate:
+            candidates.append(
+                candidate
+            )
 
 
     # 2. media:thumbnail
@@ -157,47 +237,33 @@ def extract_real_image(
     )
 
     if media_thumbnail is not None:
-        image_url = media_thumbnail.get("url")
+        candidate = media_thumbnail.get(
+            "url"
+        )
 
-        if image_url:
-            return html.unescape(image_url)
+        if candidate:
+            candidates.append(
+                candidate
+            )
 
 
     # 3. enclosure
-    enclosure = item.find("enclosure")
+    enclosure = item.find(
+        "enclosure"
+    )
 
     if enclosure is not None:
-        enclosure_url = enclosure.get(
-            "url",
-            "",
+        candidate = enclosure.get(
+            "url"
         )
 
-        enclosure_type = enclosure.get(
-            "type",
-            "",
-        )
-
-        if (
-            enclosure_url
-            and (
-                enclosure_type.startswith("image/")
-                or any(
-                    extension in enclosure_url.lower()
-                    for extension in [
-                        ".jpg",
-                        ".jpeg",
-                        ".png",
-                        ".webp",
-                    ]
-                )
-            )
-        ):
-            return html.unescape(
-                enclosure_url
+        if candidate:
+            candidates.append(
+                candidate
             )
 
 
-    # 4. image בתוך description
+    # 4. image inside RSS description
     if raw_description:
         patterns = [
             r'<img[^>]+src=["\']([^"\']+)["\']',
@@ -212,15 +278,15 @@ def extract_real_image(
             )
 
             if match:
-                return html.unescape(
+                candidates.append(
                     match.group(1)
                 )
 
 
-    # 5. ניסיון לשלוף og:image מדף הכתבה
+    # 5. og:image / twitter:image from article page
     if article_url:
         try:
-            req = urllib.request.Request(
+            request = urllib.request.Request(
                 article_url,
                 headers={
                     "User-Agent": (
@@ -234,9 +300,10 @@ def extract_real_image(
             )
 
             with urllib.request.urlopen(
-                req,
+                request,
                 timeout=6,
             ) as response:
+
                 page_html = (
                     response
                     .read()
@@ -261,25 +328,34 @@ def extract_real_image(
                 )
 
                 if match:
-                    image_url = html.unescape(
+                    candidates.append(
                         match.group(1)
                     )
 
-                    if image_url.startswith("//"):
-                        image_url = (
-                            "https:" + image_url
-                        )
-
-                    return image_url
-
         except Exception as e:
             print(
-                f"OG image error "
+                f"Article image scan failed "
                 f"({article_url}): {e}"
             )
 
+
+    # Validate all candidates
+    for candidate in candidates:
+        valid_image = prepare_image_url(
+            candidate,
+            article_url or "",
+        )
+
+        if valid_image:
+            return valid_image
+
+
     return DEFAULT_IMAGE
 
+
+# =========================================================
+# CLASSIFICATION
+# =========================================================
 
 def classify_country(
     title,
@@ -399,6 +475,7 @@ def classify_topic(
             "economic",
             "trade",
             "bank",
+            "bond",
         ]
     ):
         return "Economy"
@@ -429,6 +506,10 @@ def classify_topic(
 
     return "General"
 
+
+# =========================================================
+# FETCH PIPELINE
+# =========================================================
 
 def fetch_live_web_articles():
     conn = get_db_connection()
@@ -523,9 +604,9 @@ def fetch_live_web_articles():
                 )
 
 
-                # =========================================
-                # בדיקה אם הכתבה כבר קיימת
-                # =========================================
+                # -----------------------------------------
+                # Existing article check
+                # -----------------------------------------
 
                 cursor.execute(
                     """
@@ -542,11 +623,10 @@ def fetch_live_web_articles():
                 )
 
 
-                # =========================================
-                # אם קיימת:
-                # לא מוסיפים שוב,
-                # אבל כן מנסים לשפר תמונת fallback
-                # =========================================
+                # -----------------------------------------
+                # Existing article:
+                # repair image if needed
+                # -----------------------------------------
 
                 if existing_article:
                     current_image = (
@@ -554,15 +634,15 @@ def fetch_live_web_articles():
                         or ""
                     )
 
-                    if (
+                    image_needs_repair = (
                         not current_image
                         or current_image == DEFAULT_IMAGE
-                        or (
-                            "photo-1504711434969"
-                            in current_image
+                        or not is_valid_image_url(
+                            current_image
                         )
-                    ):
+                    )
 
+                    if image_needs_repair:
                         better_image = (
                             extract_real_image(
                                 item,
@@ -571,31 +651,26 @@ def fetch_live_web_articles():
                             )
                         )
 
-                        if (
-                            better_image
-                            and better_image
-                            != DEFAULT_IMAGE
-                        ):
-                            cursor.execute(
-                                """
-                                UPDATE articles
-                                SET image_url = ?
-                                WHERE id = ?
-                                """,
-                                (
-                                    better_image,
-                                    existing_article["id"],
-                                ),
-                            )
+                        cursor.execute(
+                            """
+                            UPDATE articles
+                            SET image_url = ?
+                            WHERE id = ?
+                            """,
+                            (
+                                better_image,
+                                existing_article["id"],
+                            ),
+                        )
 
-                            total_images_updated += 1
+                        total_images_updated += 1
 
                     continue
 
 
-                # =========================================
-                # כתבה חדשה
-                # =========================================
+                # -----------------------------------------
+                # New article
+                # -----------------------------------------
 
                 published_at = parse_rss_date(
                     pub_date_elem
