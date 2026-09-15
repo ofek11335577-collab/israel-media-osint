@@ -14,7 +14,7 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# שאיבה ראשונית אוטומטית בעליית הסשן אם המסד ריק
+# שאיבה ראשונית אוטומטית בעליית הסשן אם המסד עדיין מתחיל להתרענן
 if "initialized_fetch" not in st.session_state:
     with st.spinner("Connecting to live intelligence feeds..."):
         fetch_live_web_articles()
@@ -146,10 +146,10 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-@st.cache_data(ttl=60)
+@st.cache_data(ttl=30)
 def load_data():
     conn = get_db_connection()
-    # מיון כרונולוגי אמיתי מהחדש לישן לפי תאריך ה-RSS
+    # מיון כרונולוגי קפדני: הכתבות החדשות ביותר תמיד בטופ!
     df = pd.read_sql_query("SELECT * FROM articles ORDER BY published_at DESC, id DESC", conn)
     return df
 
@@ -159,7 +159,7 @@ df = load_data()
 st.markdown(f"""
 <div class="newsroom-header">
     <div class="newsroom-logo">OSINT <span>DESK</span></div>
-    <div>🟢 SYSTEM STATUS: SECURE &nbsp;|&nbsp; PIPELINE: LIVE RSS &nbsp;|&nbsp; {datetime.utcnow().strftime('%Y-%m-%d %H:%M')} UTC</div>
+    <div>🟢 SYSTEM STATUS: SECURE &nbsp;|&nbsp; PIPELINE: 100% LIVE RSS &nbsp;|&nbsp; {datetime.utcnow().strftime('%Y-%m-%d %H:%M')} UTC</div>
 </div>
 """, unsafe_allow_html=True)
 
@@ -207,7 +207,7 @@ else:
     c_title, c_view, c_sync = st.columns([5, 4, 3])
     with c_title:
         st.markdown(f"<h2 style='font-weight: 800; margin: 0;'>Global Intelligence Desk</h2>", unsafe_allow_html=True)
-        st.caption(f"Monitoring {len(df):,} verified global reports")
+        st.caption(f"Monitoring {len(df):,} verified live reports")
 
     with c_view:
         selected_view = st.radio("View", ['Main Dashboard', 'Analytics Terminal'], index=0 if st.session_state['view_mode'] == 'Main Dashboard' else 1, horizontal=True, label_visibility="collapsed")
@@ -266,7 +266,7 @@ else:
         if filtered_df.empty:
             st.info(f"No active intelligence reports found for zone: {selected_zone}. Click 'Sync & Refresh Feeds' above to fetch latest updates.")
         else:
-            # --- LEAD STORY ---
+            # --- LEAD STORY (הכתבה הכי חדשה בטופ!) ---
             lead = filtered_df.iloc[0]
             st.markdown(f"""
             <div class="card" style="margin-bottom: 24px; border: 1px solid rgba(220, 38, 38, 0.4);">
