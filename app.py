@@ -60,15 +60,28 @@ def safe(value):
 
 def image_html(
     image_url,
-    height="200px",
+    height="220px",
 ):
     """
-    Return image HTML only when URL exists.
+    Displays every article image as a full-width card image.
 
-    If browser cannot load the image,
-    onerror hides it completely instead of leaving
-    a broken/empty image area.
+    - Always fills the card width
+    - Keeps a consistent height
+    - Crops proportionally instead of stretching
+    - Hides itself if the image fails to load
     """
+
+    article_image = image_html(
+    article["image_url"],
+    height="220px",)
+
+
+    lead_image = image_html(
+    lead["image_url"],
+    height="380px",)
+
+
+
 
     if image_url is None:
         return ""
@@ -85,12 +98,27 @@ def image_html(
     )
 
     return (
+        f'<div style="'
+        f'width:100%;'
+        f'height:{height};'
+        f'overflow:hidden;'
+        f'border-radius:8px;'
+        f'margin-bottom:14px;'
+        f'background:#0f172a;'
+        f'">'
         f'<img '
-        f'class="card-img" '
         f'src="{safe_url}" '
-        f'style="height:{height};" '
-        f'onerror="this.style.display=\'none\';" '
+        f'style="'
+        f'width:100% !important;'
+        f'height:100% !important;'
+        f'display:block !important;'
+        f'object-fit:cover !important;'
+        f'object-position:center center !important;'
+        f'max-width:none !important;'
+        f'" '
+        f'onerror="this.parentElement.style.display=\'none\';" '
         f'/>'
+        f'</div>'
     )
 
 
