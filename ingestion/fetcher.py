@@ -23,10 +23,11 @@ from database import (
 
 
 # =========================================================
-# CONFIG
+# SOURCES
 # =========================================================
 
 RSS_CHANNELS = [
+
     {
         "name": "Reuters World",
         "url": (
@@ -37,6 +38,7 @@ RSS_CHANNELS = [
         "source_type": "international",
         "domestic_country": None,
     },
+
     {
         "name": "Al Jazeera English",
         "url": (
@@ -46,6 +48,7 @@ RSS_CHANNELS = [
         "source_type": "international",
         "domestic_country": None,
     },
+
     {
         "name": "BBC Middle East",
         "url": (
@@ -55,6 +58,7 @@ RSS_CHANNELS = [
         "source_type": "international",
         "domestic_country": None,
     },
+
     {
         "name": "The Guardian Middle East",
         "url": (
@@ -64,42 +68,55 @@ RSS_CHANNELS = [
         "source_type": "international",
         "domestic_country": None,
     },
+
     {
         "name": "IRNA English",
         "url": "https://en.irna.ir/rss",
         "source_type": "domestic",
         "domestic_country": "Iran",
     },
+
     {
         "name": "Saudi Press Agency",
-        "url": "https://www.spa.gov.sa/rss.xml",
+        "url": (
+            "https://www.spa.gov.sa/"
+            "rss.xml"
+        ),
         "source_type": "domestic",
         "domestic_country": "Saudi Arabia",
     },
+
     {
         "name": "SANA English",
-        "url": "https://www.sana.sy/en/syria/feed/",
+        "url": (
+            "https://www.sana.sy/"
+            "en/syria/feed/"
+        ),
         "source_type": "domestic",
         "domestic_country": "Syria",
     },
 ]
 
 
+# =========================================================
+# CONFIG
+# =========================================================
+
 RSS_TIMEOUT = 6
+
 ARTICLE_TIMEOUT = 3
 
 MAX_ITEMS_PER_SOURCE = 30
 
-# מספר כתבות שבכל Sync ננסה לשדרג להן
-# תמונה דרך העמוד המקורי.
 MAX_IMAGE_ENRICHMENTS_PER_SYNC = 15
+
 IMAGE_WORKERS = 6
 
 MIN_RELEVANCE_SCORE = 35
 
 
 # =========================================================
-# TEXT CLEANING
+# CLEAN TEXT
 # =========================================================
 
 def clean_html(raw_html):
@@ -109,7 +126,9 @@ def clean_html(raw_html):
     text = raw_html
 
     for _ in range(2):
-        text = html.unescape(text)
+        text = html.unescape(
+            text
+        )
 
     text = re.sub(
         r"<[^>]+>",
@@ -117,7 +136,9 @@ def clean_html(raw_html):
         text,
     )
 
-    text = html.unescape(text)
+    text = html.unescape(
+        text
+    )
 
     text = re.sub(
         r"\s+",
@@ -137,6 +158,7 @@ def normalize_url(url):
         return ""
 
     try:
+
         parts = urlsplit(
             url.strip()
         )
@@ -152,8 +174,13 @@ def normalize_url(url):
         )
 
     except Exception:
+
         return url.strip()
 
+
+# =========================================================
+# TITLE NORMALIZATION
+# =========================================================
 
 def normalize_title(title):
     if not title:
@@ -179,15 +206,20 @@ def normalize_title(title):
 
 
 # =========================================================
-# DATE PARSING
+# DATE
 # =========================================================
 
-def parse_rss_date(pub_date_elem):
+def parse_rss_date(
+    pub_date_elem,
+):
+
     if (
         pub_date_elem is not None
         and pub_date_elem.text
     ):
+
         try:
+
             parsed = (
                 email.utils
                 .parsedate_to_datetime(
@@ -195,34 +227,48 @@ def parse_rss_date(pub_date_elem):
                 )
             )
 
+
             if parsed is not None:
 
                 if parsed.tzinfo is None:
-                    parsed = parsed.replace(
-                        tzinfo=timezone.utc
+
+                    parsed = (
+                        parsed.replace(
+                            tzinfo=timezone.utc
+                        )
                     )
 
-                parsed = parsed.astimezone(
-                    timezone.utc
+
+                parsed = (
+                    parsed.astimezone(
+                        timezone.utc
+                    )
                 )
+
 
                 return (
                     parsed
-                    .replace(microsecond=0)
+                    .replace(
+                        microsecond=0
+                    )
                     .isoformat()
                 )
 
+
         except Exception:
+
             pass
+
 
     return utc_now_iso()
 
 
 # =========================================================
-# SPORTS / NOISE FILTER
+# SPORTS / NOISE
 # =========================================================
 
 SPORTS_KEYWORDS = [
+
     "football",
     "footballer",
     "footballers",
@@ -267,23 +313,39 @@ SPORTS_KEYWORDS = [
     "arsenal",
     "liverpool",
     "tottenham",
+
     "real madrid",
     "barcelona",
     "psg",
     "bayern",
+
+    "mbappe",
+    "vinicius",
+    "ronaldo",
+    "messi",
 ]
 
 
 OTHER_NOISE_KEYWORDS = [
+
     "celebrity gossip",
+
     "fashion show",
+
     "recipe",
+
     "restaurant review",
+
     "movie review",
+
     "film review",
+
     "album review",
+
     "horoscope",
+
     "lottery",
+
     "travel tips",
 ]
 
@@ -292,22 +354,28 @@ def is_noise_article(
     title,
     summary,
 ):
+
     text = (
         f" {title or ''} "
         f"{summary or ''} "
     ).lower()
 
+
     if any(
         term in text
         for term in SPORTS_KEYWORDS
     ):
+
         return True
+
 
     if any(
         term in text
         for term in OTHER_NOISE_KEYWORDS
     ):
+
         return True
+
 
     return False
 
@@ -316,7 +384,10 @@ def is_noise_article(
 # CLEAN OLD NOISE
 # =========================================================
 
-def cleanup_existing_noise(cursor):
+def cleanup_existing_noise(
+    cursor,
+):
+
     cursor.execute("""
         SELECT
             id,
@@ -325,9 +396,11 @@ def cleanup_existing_noise(cursor):
         FROM articles
     """)
 
+
     rows = cursor.fetchall()
 
     ids_to_delete = []
+
 
     for row in rows:
 
@@ -335,12 +408,18 @@ def cleanup_existing_noise(cursor):
             row["title"],
             row["summary"],
         ):
+
             ids_to_delete.append(
-                (row["id"],)
+                (
+                    row["id"],
+                )
             )
 
+
     if not ids_to_delete:
+
         return 0
+
 
     cursor.executemany(
         """
@@ -350,14 +429,18 @@ def cleanup_existing_noise(cursor):
         ids_to_delete,
     )
 
-    return len(ids_to_delete)
+
+    return len(
+        ids_to_delete
+    )
 
 
 # =========================================================
-# COUNTRY CLASSIFICATION
+# COUNTRY
 # =========================================================
 
 COUNTRY_KEYWORDS = {
+
     "Iran": [
         "iran",
         "iranian",
@@ -427,34 +510,59 @@ COUNTRY_KEYWORDS = {
 
 
 TARGET_COUNTRIES = {
+
     "Iran",
+
     "Saudi Arabia",
+
     "UAE",
+
     "Yemen",
+
     "Syria",
+
     "Iraq",
+
     "Gaza & WB",
+
     "Israel",
 }
 
 
 REGIONAL_KEYWORDS = [
+
     "iran",
+
     "israel",
+
     "gaza",
+
     "palestin",
+
     "west bank",
+
     "saudi",
+
     "yemen",
+
     "houthi",
+
     "syria",
+
     "iraq",
+
     "uae",
+
     "middle east",
+
     "red sea",
+
     "gulf",
+
     "hezbollah",
+
     "hamas",
+
     "irgc",
 ]
 
@@ -464,18 +572,23 @@ def classify_country(
     summary,
     domestic_country=None,
 ):
+
     text = (
         f"{title or ''} "
         f"{summary or ''}"
     ).lower()
 
+
     best_country = None
+
     best_score = 0
+
 
     for (
         country,
         keywords,
     ) in COUNTRY_KEYWORDS.items():
+
 
         score = sum(
             1
@@ -483,134 +596,243 @@ def classify_country(
             if keyword in text
         )
 
+
         if score > best_score:
+
             best_country = country
+
             best_score = score
 
+
     if best_country:
+
         return best_country
 
+
     if domestic_country:
+
         return domestic_country
+
 
     return "US & Global"
 
 
 # =========================================================
-# TOPIC CLASSIFICATION
+# TOPICS
 # =========================================================
 
 TOPIC_KEYWORDS = {
+
     "Security / Military": [
+
         "military",
+
         "army",
+
         "missile",
+
         "ballistic",
+
         "air defense",
+
         "air defence",
+
         "airstrike",
+
         "air strike",
+
         "drone",
+
         "armed forces",
+
         "navy",
+
         "naval",
+
         "weapon",
+
         "weapons",
+
         "security forces",
+
         "irgc",
+
         "revolutionary guard",
+
         "militia",
+
         "border security",
     ],
 
+
     "Politics / Regime": [
+
         "president",
+
         "prime minister",
+
         "government",
+
         "cabinet",
+
         "parliament",
+
         "minister",
+
         "election",
+
         "elections",
+
         "political",
+
         "leadership",
+
         "supreme leader",
+
         "resignation",
+
         "resigns",
+
         "appointed",
+
         "appointment",
+
         "dismissed",
+
         "opposition",
+
         "constitution",
     ],
 
+
     "Strategic Economy": [
+
         "oil",
+
         "gas",
+
         "currency",
+
         "rial",
+
         "inflation",
+
         "sanction",
+
         "sanctions",
+
         "central bank",
+
         "trade",
+
         "exports",
+
         "imports",
+
         "energy",
+
         "economic crisis",
+
         "budget",
+
         "debt",
+
         "opec",
+
         "refinery",
+
         "production",
     ],
 
+
     "Internal Stability": [
+
         "protest",
+
         "protests",
+
         "demonstration",
+
         "demonstrations",
+
         "riot",
+
         "riots",
+
         "unrest",
+
         "clashes",
+
         "arrest",
+
         "arrests",
+
         "detained",
+
         "ethnic",
+
         "minority",
+
         "separatist",
+
         "state of emergency",
     ],
 
+
     "Nuclear / Cyber / Technology": [
+
         "nuclear",
+
         "uranium",
+
         "enrichment",
+
         "centrifuge",
+
         "iaea",
+
         "cyber",
+
         "cyberattack",
+
         "cyber attack",
+
         "hacking",
+
         "military technology",
+
         "satellite",
+
         "space program",
     ],
 
+
     "Diplomacy": [
+
         "diplomatic",
+
         "diplomacy",
+
         "foreign minister",
+
         "foreign ministry",
+
         "negotiation",
+
         "negotiations",
+
         "agreement",
+
         "summit",
+
         "delegation",
+
         "ambassador",
+
         "relations",
+
         "ceasefire",
+
         "truce",
     ],
 }
@@ -620,18 +842,23 @@ def classify_topic(
     title,
     summary,
 ):
+
     text = (
         f"{title or ''} "
         f"{summary or ''}"
     ).lower()
 
+
     best_topic = "General"
+
     best_score = 0
+
 
     for (
         topic,
         keywords,
     ) in TOPIC_KEYWORDS.items():
+
 
         score = sum(
             1
@@ -639,9 +866,13 @@ def classify_topic(
             if keyword in text
         )
 
+
         if score > best_score:
+
             best_topic = topic
+
             best_score = score
+
 
     return best_topic
 
@@ -651,22 +882,39 @@ def classify_topic(
 # =========================================================
 
 HIGH_IMPACT_KEYWORDS = [
+
     "war",
+
     "attack",
+
     "missile",
+
     "airstrike",
+
     "nuclear",
+
     "sanctions",
+
     "government crisis",
+
     "resignation",
+
     "protest",
+
     "unrest",
+
     "coup",
+
     "election",
+
     "ceasefire",
+
     "currency crisis",
+
     "oil production",
+
     "central bank",
+
     "irgc",
 ]
 
@@ -678,33 +926,56 @@ def calculate_relevance_score(
     topic,
     source_type,
 ):
+
     text = (
         f"{title or ''} "
         f"{summary or ''}"
     ).lower()
 
+
     score = 0
 
+
     if country in TARGET_COUNTRIES:
+
         score += 25
 
+
     if source_type == "domestic":
+
         score += 15
 
+
     topic_scores = {
-        "Security / Military": 40,
-        "Politics / Regime": 32,
-        "Strategic Economy": 28,
-        "Internal Stability": 35,
-        "Nuclear / Cyber / Technology": 38,
-        "Diplomacy": 27,
-        "General": 0,
+
+        "Security / Military":
+            40,
+
+        "Politics / Regime":
+            32,
+
+        "Strategic Economy":
+            28,
+
+        "Internal Stability":
+            35,
+
+        "Nuclear / Cyber / Technology":
+            38,
+
+        "Diplomacy":
+            27,
+
+        "General":
+            0,
     }
+
 
     score += topic_scores.get(
         topic,
         0,
     )
+
 
     regional_hits = sum(
         1
@@ -712,11 +983,14 @@ def calculate_relevance_score(
         if keyword in text
     )
 
+
     if regional_hits:
+
         score += min(
             regional_hits * 8,
             24,
         )
+
 
     impact_hits = sum(
         1
@@ -724,31 +998,209 @@ def calculate_relevance_score(
         if keyword in text
     )
 
+
     score += min(
         impact_hits * 6,
         18,
     )
 
+
     if (
         country == "US & Global"
         and regional_hits == 0
     ):
+
         score -= 35
+
 
     if (
         country == "US & Global"
         and topic == "General"
     ):
+
         score -= 30
+
 
     return max(
         0,
-        min(score, 100),
+        min(
+            score,
+            100,
+        ),
     )
 
 
 # =========================================================
-# IMAGE QUALITY HELPERS
+# ISRAEL ARTICLE TONE
+# =========================================================
+#
+# Important:
+#
+# This estimates the framing/tone of the article text
+# toward Israel.
+#
+# It does NOT claim to know the author's personal beliefs.
+#
+# =========================================================
+
+ISRAEL_REFERENCE_KEYWORDS = [
+
+    "israel",
+
+    "israeli",
+
+    "idf",
+
+    "israel defense forces",
+
+    "israel defence forces",
+
+    "netanyahu",
+
+    "jerusalem",
+
+    "tel aviv",
+
+    "zionist",
+]
+
+
+ISRAEL_HOSTILE_FRAMING = [
+
+    "genocide",
+
+    "genocidal",
+
+    "apartheid",
+
+    "ethnic cleansing",
+
+    "war crime",
+
+    "war crimes",
+
+    "collective punishment",
+
+    "zionist regime",
+
+    "israeli aggression",
+
+    "israeli atrocities",
+
+    "israeli crimes",
+
+    "israeli massacre",
+
+    "massacre by israel",
+
+    "brutal occupation",
+]
+
+
+ISRAEL_POSITIVE_FRAMING = [
+
+    "right to defend itself",
+
+    "right to self-defense",
+
+    "right to self defence",
+
+    "israel's security",
+
+    "israeli security",
+
+    "defending israel",
+
+    "defend israel",
+
+    "terror threat against israel",
+
+    "terrorist threat against israel",
+
+    "protect israeli civilians",
+
+    "protecting israeli civilians",
+
+    "israeli hostages",
+
+    "hostages rescued",
+]
+
+
+def is_israel_related(
+    title,
+    summary,
+):
+
+    text = (
+        f"{title or ''} "
+        f"{summary or ''}"
+    ).lower()
+
+
+    return any(
+        keyword in text
+        for keyword
+        in ISRAEL_REFERENCE_KEYWORDS
+    )
+
+
+def classify_israel_tone(
+    title,
+    summary,
+):
+
+    if not is_israel_related(
+        title,
+        summary,
+    ):
+
+        return ""
+
+
+    text = (
+        f"{title or ''} "
+        f"{summary or ''}"
+    ).lower()
+
+
+    hostile_score = sum(
+        1
+        for phrase
+        in ISRAEL_HOSTILE_FRAMING
+        if phrase in text
+    )
+
+
+    positive_score = sum(
+        1
+        for phrase
+        in ISRAEL_POSITIVE_FRAMING
+        if phrase in text
+    )
+
+
+    if (
+        hostile_score
+        > positive_score
+    ):
+
+        return "hostile"
+
+
+    if (
+        positive_score
+        > hostile_score
+    ):
+
+        return "positive"
+
+
+    return "neutral"
+
+
+# =========================================================
+# IMAGE QUALITY
 # =========================================================
 
 def image_candidate_score(
@@ -756,23 +1208,28 @@ def image_candidate_score(
     width=None,
     height=None,
 ):
-    """
-    Gives preference to large/high-quality images.
-    """
 
     score = 0
 
+
     if width:
+
         try:
+
             score += min(
                 int(width),
                 2000,
             )
+
         except Exception:
+
             pass
 
+
     if height:
+
         try:
+
             score += (
                 min(
                     int(height),
@@ -780,44 +1237,70 @@ def image_candidate_score(
                 )
                 // 2
             )
+
         except Exception:
+
             pass
+
 
     low_url = (
         url or ""
     ).lower()
 
-    # Penalize thumbnail-like URLs
+
     bad_markers = [
+
         "thumbnail",
+
         "thumb",
+
         "small",
+
         "tiny",
+
         "120x",
+
         "150x",
+
         "200x",
+
         "240x",
+
         "300x",
+
         "320x",
     ]
 
+
     for marker in bad_markers:
+
         if marker in low_url:
+
             score -= 600
 
-    # Reward large-image hints
+
     good_markers = [
+
         "1200",
+
         "1600",
+
         "1920",
+
         "2048",
+
         "large",
+
         "original",
     ]
 
+
     for marker in good_markers:
+
         if marker in low_url:
+
             score += 400
+
 
     return score
 
@@ -825,20 +1308,18 @@ def image_candidate_score(
 def upgrade_common_image_url(
     image_url,
 ):
-    """
-    When URL explicitly asks for a tiny width,
-    try to request a larger version.
-
-    Only changes common width/size query params.
-    """
 
     if not image_url:
+
         return image_url
 
+
     try:
+
         parts = urlsplit(
             image_url
         )
+
 
         query = dict(
             parse_qsl(
@@ -847,28 +1328,45 @@ def upgrade_common_image_url(
             )
         )
 
+
         changed = False
 
+
         for key in [
+
             "w",
+
             "width",
+
             "imgWidth",
+
             "imageWidth",
         ]:
+
+
             if key in query:
+
                 try:
+
                     current = int(
                         query[key]
                     )
 
+
                     if current < 1000:
+
                         query[key] = "1200"
+
                         changed = True
 
+
                 except Exception:
+
                     pass
 
+
         if changed:
+
             return urlunsplit(
                 (
                     parts.scheme,
@@ -879,76 +1377,91 @@ def upgrade_common_image_url(
                 )
             )
 
+
     except Exception:
+
         pass
+
 
     return image_url
 
 
 # =========================================================
-# RSS IMAGE EXTRACTION
+# RSS IMAGE
 # =========================================================
 
 def extract_feed_image(
     item,
     raw_description,
 ):
-    """
-    Collect every image candidate from RSS
-    and prefer the largest one instead of
-    blindly taking the first thumbnail.
-    """
 
     candidates = []
 
 
-    # media:content can appear multiple times
     for media in item.findall(
         "{http://search.yahoo.com/mrss/}content"
     ):
+
         url = media.get(
             "url"
         )
 
+
         if url:
+
             candidates.append(
                 {
-                    "url": url,
-                    "width": media.get(
-                        "width"
-                    ),
-                    "height": media.get(
-                        "height"
-                    ),
+                    "url":
+                        url,
+
+                    "width":
+                        media.get(
+                            "width"
+                        ),
+
+                    "height":
+                        media.get(
+                            "height"
+                        ),
                 }
             )
 
 
-    # media:thumbnail can also appear multiple times
     for media in item.findall(
         "{http://search.yahoo.com/mrss/}thumbnail"
     ):
+
         url = media.get(
             "url"
         )
 
+
         if url:
+
             candidates.append(
                 {
-                    "url": url,
-                    "width": media.get(
-                        "width"
-                    ),
-                    "height": media.get(
-                        "height"
-                    ),
+                    "url":
+                        url,
+
+                    "width":
+                        media.get(
+                            "width"
+                        ),
+
+                    "height":
+                        media.get(
+                            "height"
+                        ),
                 }
             )
 
 
-    enclosure = item.find(
-        "enclosure"
+    enclosure = (
+        item.find(
+            "enclosure"
+        )
     )
+
 
     if enclosure is not None:
 
@@ -956,18 +1469,25 @@ def extract_feed_image(
             "url"
         )
 
+
         if url:
+
             candidates.append(
                 {
-                    "url": url,
-                    "width": None,
-                    "height": None,
+                    "url":
+                        url,
+
+                    "width":
+                        None,
+
+                    "height":
+                        None,
                 }
             )
 
 
-    # <img> and srcset inside RSS description
     if raw_description:
+
 
         img_matches = re.findall(
             r'<img[^>]+src=["\']([^"\']+)["\']',
@@ -975,13 +1495,19 @@ def extract_feed_image(
             flags=re.IGNORECASE,
         )
 
+
         for url in img_matches:
 
             candidates.append(
                 {
-                    "url": url,
-                    "width": None,
-                    "height": None,
+                    "url":
+                        url,
+
+                    "width":
+                        None,
+
+                    "height":
+                        None,
                 }
             )
 
@@ -995,20 +1521,21 @@ def extract_feed_image(
 
         for srcset in srcset_matches:
 
-            pieces = (
-                srcset.split(",")
-            )
 
-
-            for piece in pieces:
+            for piece in srcset.split(
+                ","
+            ):
 
                 piece = piece.strip()
 
+
                 if not piece:
+
                     continue
 
 
                 parts = piece.split()
+
 
                 url = parts[0]
 
@@ -1021,19 +1548,28 @@ def extract_feed_image(
                         "w"
                     )
                 ):
+
                     try:
+
                         width = int(
                             parts[1][:-1]
                         )
+
                     except Exception:
+
                         pass
 
 
                 candidates.append(
                     {
-                        "url": url,
-                        "width": width,
-                        "height": None,
+                        "url":
+                            url,
+
+                        "width":
+                            width,
+
+                        "height":
+                            None,
                     }
                 )
 
@@ -1042,6 +1578,7 @@ def extract_feed_image(
 
 
     for candidate in candidates:
+
 
         url = html.unescape(
             candidate[
@@ -1056,6 +1593,7 @@ def extract_feed_image(
                 "https://",
             )
         ):
+
             continue
 
 
@@ -1088,14 +1626,14 @@ def extract_feed_image(
 
 
     if not cleaned_candidates:
+
         return None
 
 
     best = max(
         cleaned_candidates,
-        key=lambda x: x[
-            "score"
-        ],
+        key=lambda x:
+            x["score"],
     )
 
 
@@ -1111,14 +1649,9 @@ def extract_feed_image(
 def extract_original_article_image(
     article_url,
 ):
-    """
-    Prefer og:image / twitter:image.
-
-    These are generally much larger than
-    RSS thumbnail images.
-    """
 
     if not article_url:
+
         return None
 
 
@@ -1130,10 +1663,12 @@ def extract_original_article_image(
                 headers={
                     "User-Agent": (
                         "Mozilla/5.0 "
-                        "(Windows NT 10.0; Win64; x64) "
+                        "(Windows NT 10.0; "
+                        "Win64; x64) "
                         "AppleWebKit/537.36 "
                         "(KHTML, like Gecko) "
-                        "Chrome/120.0 Safari/537.36"
+                        "Chrome/120.0 "
+                        "Safari/537.36"
                     ),
                 },
             )
@@ -1144,6 +1679,7 @@ def extract_original_article_image(
             request,
             timeout=ARTICLE_TIMEOUT,
         ) as response:
+
 
             page_html = (
                 response
@@ -1161,17 +1697,51 @@ def extract_original_article_image(
 
 
         patterns = [
-            r'<meta[^>]*property=["\']og:image:secure_url["\'][^>]*content=["\']([^"\']+)["\']',
-            r'<meta[^>]*property=["\']og:image["\'][^>]*content=["\']([^"\']+)["\']',
-            r'<meta[^>]*name=["\']twitter:image["\'][^>]*content=["\']([^"\']+)["\']',
 
-            r'<meta[^>]*content=["\']([^"\']+)["\'][^>]*property=["\']og:image:secure_url["\']',
-            r'<meta[^>]*content=["\']([^"\']+)["\'][^>]*property=["\']og:image["\']',
-            r'<meta[^>]*content=["\']([^"\']+)["\'][^>]*name=["\']twitter:image["\']',
+            (
+                r'<meta[^>]*'
+                r'property=["\']'
+                r'og:image:secure_url'
+                r'["\'][^>]*'
+                r'content=["\']'
+                r'([^"\']+)'
+                r'["\']'
+            ),
+
+            (
+                r'<meta[^>]*'
+                r'property=["\']'
+                r'og:image'
+                r'["\'][^>]*'
+                r'content=["\']'
+                r'([^"\']+)'
+                r'["\']'
+            ),
+
+            (
+                r'<meta[^>]*'
+                r'name=["\']'
+                r'twitter:image'
+                r'["\'][^>]*'
+                r'content=["\']'
+                r'([^"\']+)'
+                r'["\']'
+            ),
+
+            (
+                r'<meta[^>]*'
+                r'content=["\']'
+                r'([^"\']+)'
+                r'["\'][^>]*'
+                r'property=["\']'
+                r'og:image'
+                r'["\']'
+            ),
         ]
 
 
         for pattern in patterns:
+
 
             matches = re.findall(
                 pattern,
@@ -1182,14 +1752,18 @@ def extract_original_article_image(
 
             for image_url in matches:
 
-                image_url = html.unescape(
-                    image_url.strip()
+
+                image_url = (
+                    html.unescape(
+                        image_url.strip()
+                    )
                 )
 
 
                 if image_url.startswith(
                     "//"
                 ):
+
                     image_url = (
                         "https:"
                         + image_url
@@ -1199,6 +1773,7 @@ def extract_original_article_image(
                 elif image_url.startswith(
                     "/"
                 ):
+
                     image_url = (
                         urljoin(
                             article_url,
@@ -1213,6 +1788,7 @@ def extract_original_article_image(
                         "https://",
                     )
                 ):
+
                     continue
 
 
@@ -1229,10 +1805,10 @@ def extract_original_article_image(
 
 
         if not candidates:
+
             return None
 
 
-        # Prefer URL that appears to be higher resolution
         return max(
             candidates,
             key=lambda url:
@@ -1243,6 +1819,7 @@ def extract_original_article_image(
 
 
     except Exception as error:
+
 
         print(
             "Image enrichment error "
@@ -1255,21 +1832,15 @@ def extract_original_article_image(
 
 
 # =========================================================
-# LOW-QUALITY IMAGE DETECTION
+# LOW QUALITY IMAGE CHECK
 # =========================================================
 
 def image_looks_low_quality(
     image_url,
 ):
-    """
-    We cannot know actual pixel dimensions cheaply
-    without downloading every image.
-
-    Instead flag URLs that strongly resemble
-    small RSS thumbnails.
-    """
 
     if not image_url:
+
         return True
 
 
@@ -1279,16 +1850,27 @@ def image_looks_low_quality(
 
 
     low_quality_markers = [
+
         "thumbnail",
+
         "thumb",
+
         "tiny",
+
         "small",
+
         "120x",
+
         "150x",
+
         "180x",
+
         "200x",
+
         "240x",
+
         "300x",
+
         "320x",
     ]
 
@@ -1298,10 +1880,10 @@ def image_looks_low_quality(
         for marker
         in low_quality_markers
     ):
+
         return True
 
 
-    # Look at explicit width parameters
     try:
 
         query = dict(
@@ -1314,13 +1896,19 @@ def image_looks_low_quality(
 
 
         for key in [
+
             "w",
+
             "width",
+
             "imgWidth",
+
             "imageWidth",
         ]:
 
+
             if key not in query:
+
                 continue
 
 
@@ -1331,6 +1919,7 @@ def image_looks_low_quality(
                 ) < 700:
 
                     return True
+
 
             except Exception:
 
@@ -1346,7 +1935,7 @@ def image_looks_low_quality(
 
 
 # =========================================================
-# DUPLICATE CHECK
+# DUPLICATES
 # =========================================================
 
 def article_exists(
@@ -1354,6 +1943,7 @@ def article_exists(
     url,
     title,
 ):
+
     cursor.execute(
         """
         SELECT id
@@ -1361,11 +1951,14 @@ def article_exists(
         WHERE url = ?
         LIMIT 1
         """,
-        (url,),
+        (
+            url,
+        ),
     )
 
 
     if cursor.fetchone():
+
         return True
 
 
@@ -1377,6 +1970,7 @@ def article_exists(
 
 
     if not normalized_title:
+
         return False
 
 
@@ -1392,18 +1986,24 @@ def article_exists(
 
     for row in cursor.fetchall():
 
+
         existing_title = (
             normalize_title(
-                row["title"]
+                row[
+                    "title"
+                ]
             )
         )
 
 
         if (
             existing_title
-            and existing_title
-            == normalized_title
+            and
+            existing_title
+            ==
+            normalized_title
         ):
+
             return True
 
 
@@ -1414,7 +2014,10 @@ def article_exists(
 # RSS DOWNLOAD
 # =========================================================
 
-def fetch_feed_xml(source):
+def fetch_feed_xml(
+    source,
+):
+
     try:
 
         request = (
@@ -1424,7 +2027,7 @@ def fetch_feed_xml(source):
                     "User-Agent": (
                         "Mozilla/5.0 "
                         "(compatible; "
-                        "OSINTGlobalDesk/5.0)"
+                        "OSINTGlobalDesk/6.0)"
                     )
                 },
             )
@@ -1436,6 +2039,7 @@ def fetch_feed_xml(source):
             timeout=RSS_TIMEOUT,
         ) as response:
 
+
             return (
                 source,
                 response.read(),
@@ -1444,6 +2048,7 @@ def fetch_feed_xml(source):
 
 
     except Exception as error:
+
 
         return (
             source,
@@ -1460,7 +2065,9 @@ def enrich_images(
     conn,
     articles_to_enrich,
 ):
+
     if not articles_to_enrich:
+
         return 0
 
 
@@ -1474,8 +2081,11 @@ def enrich_images(
     updates = []
 
 
-    with concurrent.futures.ThreadPoolExecutor(
-        max_workers=IMAGE_WORKERS
+    with (
+        concurrent.futures
+        .ThreadPoolExecutor(
+            max_workers=IMAGE_WORKERS
+        )
     ) as executor:
 
 
@@ -1483,7 +2093,9 @@ def enrich_images(
 
             executor.submit(
                 extract_original_article_image,
-                article["url"],
+                article[
+                    "url"
+                ],
             ):
             article
 
@@ -1499,6 +2111,7 @@ def enrich_images(
             )
         ):
 
+
             article = (
                 future_map[
                     future
@@ -1508,6 +2121,7 @@ def enrich_images(
 
             try:
 
+
                 better_image = (
                     future.result()
                 )
@@ -1515,10 +2129,13 @@ def enrich_images(
 
                 if better_image:
 
+
                     updates.append(
                         (
                             better_image,
-                            article["id"],
+                            article[
+                                "id"
+                            ],
                         )
                     )
 
@@ -1529,6 +2146,7 @@ def enrich_images(
 
 
     if not updates:
+
         return 0
 
 
@@ -1556,7 +2174,82 @@ def enrich_images(
 
 
 # =========================================================
-# MAIN INGESTION
+# BACKFILL ISRAEL TONE
+# =========================================================
+
+def backfill_israel_tone(
+    conn,
+):
+
+    cursor = (
+        conn.cursor()
+    )
+
+
+    cursor.execute(
+        """
+        SELECT
+            id,
+            title,
+            summary
+        FROM articles
+        """
+    )
+
+
+    rows = (
+        cursor.fetchall()
+    )
+
+
+    updates = []
+
+
+    for row in rows:
+
+
+        tone = (
+            classify_israel_tone(
+                row[
+                    "title"
+                ],
+                row[
+                    "summary"
+                ],
+            )
+        )
+
+
+        updates.append(
+            (
+                tone,
+                row[
+                    "id"
+                ],
+            )
+        )
+
+
+    cursor.executemany(
+        """
+        UPDATE articles
+        SET analyst_name = ?
+        WHERE id = ?
+        """,
+        updates,
+    )
+
+
+    conn.commit()
+
+
+    return len(
+        updates
+    )
+
+
+# =========================================================
+# MAIN FETCH
 # =========================================================
 
 def fetch_live_web_articles():
@@ -1570,9 +2263,9 @@ def fetch_live_web_articles():
     )
 
 
-    # -----------------------------------------------------
-    # CLEAN OLD SPORTS
-    # -----------------------------------------------------
+    # =====================================================
+    # CLEAN OLD SPORTS / NOISE
+    # =====================================================
 
     deleted_noise = (
         cleanup_existing_noise(
@@ -1584,22 +2277,28 @@ def fetch_live_web_articles():
 
 
     total_added = 0
+
     total_duplicates = 0
+
     total_noise = 0
+
     total_low_relevance = 0
+
 
     images_to_enrich = []
 
 
     # =====================================================
-    # DOWNLOAD RSS IN PARALLEL
+    # FETCH FEEDS IN PARALLEL
     # =====================================================
 
     with (
         concurrent.futures
         .ThreadPoolExecutor(
             max_workers=min(
-                len(RSS_CHANNELS),
+                len(
+                    RSS_CHANNELS
+                ),
                 8,
             )
         )
@@ -1628,7 +2327,7 @@ def fetch_live_web_articles():
 
 
     # =====================================================
-    # PARSE FEEDS
+    # PARSE
     # =====================================================
 
     for (
@@ -1640,16 +2339,19 @@ def fetch_live_web_articles():
 
         if feed_error is not None:
 
+
             print(
                 f"Feed error "
                 f"({source['name']}): "
                 f"{feed_error}"
             )
 
+
             continue
 
 
         try:
+
 
             root = (
                 ET.fromstring(
@@ -1660,11 +2362,13 @@ def fetch_live_web_articles():
 
         except Exception as error:
 
+
             print(
                 f"XML error "
                 f"({source['name']}): "
                 f"{error}"
             )
+
 
             continue
 
@@ -1687,11 +2391,13 @@ def fetch_live_web_articles():
                 )
             )
 
+
             link_elem = (
                 item.find(
                     "link"
                 )
             )
+
 
             pub_date_elem = (
                 item.find(
@@ -1699,12 +2405,17 @@ def fetch_live_web_articles():
                 )
             )
 
+
             description_elem = (
                 item.find(
                     "description"
                 )
             )
 
+
+            # -------------------------------------------------
+            # TITLE
+            # -------------------------------------------------
 
             title = (
 
@@ -1715,7 +2426,8 @@ def fetch_live_web_articles():
                 if (
                     title_elem
                     is not None
-                    and title_elem.text
+                    and
+                    title_elem.text
                 )
 
                 else ""
@@ -1723,8 +2435,13 @@ def fetch_live_web_articles():
 
 
             if not title:
+
                 continue
 
+
+            # -------------------------------------------------
+            # URL
+            # -------------------------------------------------
 
             raw_url = (
 
@@ -1735,7 +2452,8 @@ def fetch_live_web_articles():
                 if (
                     link_elem
                     is not None
-                    and link_elem.text
+                    and
+                    link_elem.text
                 )
 
                 else ""
@@ -1743,6 +2461,7 @@ def fetch_live_web_articles():
 
 
             if not raw_url:
+
                 continue
 
 
@@ -1753,6 +2472,10 @@ def fetch_live_web_articles():
             )
 
 
+            # -------------------------------------------------
+            # SUMMARY
+            # -------------------------------------------------
+
             raw_description = (
 
                 description_elem.text
@@ -1760,7 +2483,8 @@ def fetch_live_web_articles():
                 if (
                     description_elem
                     is not None
-                    and description_elem.text
+                    and
+                    description_elem.text
                 )
 
                 else ""
@@ -1775,11 +2499,16 @@ def fetch_live_web_articles():
 
 
             if not summary:
-                summary = title
+
+                summary = (
+                    title
+                )
 
 
             summary = (
-                summary[:500]
+                summary[
+                    :500
+                ]
             )
 
 
@@ -1792,13 +2521,15 @@ def fetch_live_web_articles():
                 summary,
             ):
 
+
                 total_noise += 1
+
 
                 continue
 
 
             # -------------------------------------------------
-            # DUPLICATES
+            # DUPLICATE
             # -------------------------------------------------
 
             if article_exists(
@@ -1807,7 +2538,9 @@ def fetch_live_web_articles():
                 title,
             ):
 
+
                 total_duplicates += 1
+
 
                 continue
 
@@ -1858,12 +2591,27 @@ def fetch_live_web_articles():
 
             if (
                 relevance_score
-                < MIN_RELEVANCE_SCORE
+                <
+                MIN_RELEVANCE_SCORE
             ):
+
 
                 total_low_relevance += 1
 
+
                 continue
+
+
+            # -------------------------------------------------
+            # ISRAEL TONE
+            # -------------------------------------------------
+
+            israel_tone = (
+                classify_israel_tone(
+                    title,
+                    summary,
+                )
+            )
 
 
             # -------------------------------------------------
@@ -1878,6 +2626,10 @@ def fetch_live_web_articles():
             )
 
 
+            # -------------------------------------------------
+            # TIME
+            # -------------------------------------------------
+
             published_at = (
                 parse_rss_date(
                     pub_date_elem
@@ -1889,6 +2641,10 @@ def fetch_live_web_articles():
                 utc_now_iso()
             )
 
+
+            # -------------------------------------------------
+            # INSERT
+            # -------------------------------------------------
 
             cursor.execute(
                 """
@@ -1927,19 +2683,7 @@ def fetch_live_web_articles():
 
                     summary,
 
-                    (
-                        "Domestic RSS"
-
-                        if (
-                            source[
-                                "source_type"
-                            ]
-                            == "domestic"
-                        )
-
-                        else
-                        "International RSS"
-                    ),
+                    israel_tone,
 
                     published_at,
 
@@ -1956,25 +2700,27 @@ def fetch_live_web_articles():
 
             if (
                 cursor.rowcount
-                > 0
+                >
+                0
             ):
+
 
                 article_id = (
                     cursor.lastrowid
                 )
 
+
                 total_added += 1
 
 
-                # Even when RSS gave an image,
-                # enrich it if it looks tiny.
-
                 if (
                     not image_url
-                    or image_looks_low_quality(
+                    or
+                    image_looks_low_quality(
                         image_url
                     )
                 ):
+
 
                     images_to_enrich.append(
                         {
@@ -1991,18 +2737,17 @@ def fetch_live_web_articles():
 
 
     # =====================================================
-    # UPGRADE EXISTING LOW-QUALITY IMAGES
+    # UPGRADE OLD LOW QUALITY IMAGES
     # =====================================================
 
-    remaining_slots = (
-        MAX_IMAGE_ENRICHMENTS_PER_SYNC
-        - len(
+    if (
+        len(
             images_to_enrich
         )
-    )
+        <
+        MAX_IMAGE_ENRICHMENTS_PER_SYNC
+    ):
 
-
-    if remaining_slots > 0:
 
         cursor.execute(
             """
@@ -2015,7 +2760,7 @@ def fetch_live_web_articles():
 
             ORDER BY id DESC
 
-            LIMIT 100
+            LIMIT 120
             """
         )
 
@@ -2025,16 +2770,19 @@ def fetch_live_web_articles():
         )
 
 
-        already_queued = {
+        queued_ids = {
 
-            item["id"]
+            article[
+                "id"
+            ]
 
-            for item
+            for article
             in images_to_enrich
         }
 
 
         for row in existing_rows:
+
 
             if (
                 len(
@@ -2048,15 +2796,20 @@ def fetch_live_web_articles():
 
 
             if (
-                row["id"]
-                in already_queued
+                row[
+                    "id"
+                ]
+                in
+                queued_ids
             ):
 
                 continue
 
 
             if (
-                not row["image_url"]
+                not row[
+                    "image_url"
+                ]
                 or
                 image_looks_low_quality(
                     row[
@@ -2065,19 +2818,24 @@ def fetch_live_web_articles():
                 )
             ):
 
+
                 images_to_enrich.append(
                     {
                         "id":
-                            row["id"],
+                            row[
+                                "id"
+                            ],
 
                         "url":
-                            row["url"],
+                            row[
+                                "url"
+                            ],
                     }
                 )
 
 
     # =====================================================
-    # LIMITED ORIGINAL-IMAGE ENRICHMENT
+    # IMAGE ENRICHMENT
     # =====================================================
 
     images_updated = (
@@ -2088,6 +2846,21 @@ def fetch_live_web_articles():
     )
 
 
+    # =====================================================
+    # BACKFILL TONE FOR OLD ARTICLES
+    # =====================================================
+
+    tone_rows_updated = (
+        backfill_israel_tone(
+            conn
+        )
+    )
+
+
+    # =====================================================
+    # LOG
+    # =====================================================
+
     print(
         "RSS sync complete | "
         f"new={total_added} | "
@@ -2095,7 +2868,8 @@ def fetch_live_web_articles():
         f"sports/noise={total_noise} | "
         f"low_relevance={total_low_relevance} | "
         f"old_noise_removed={deleted_noise} | "
-        f"images_upgraded={images_updated}"
+        f"images_upgraded={images_updated} | "
+        f"tone_rows_updated={tone_rows_updated}"
     )
 
 
