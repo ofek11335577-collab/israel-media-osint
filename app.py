@@ -29,10 +29,6 @@ st.set_page_config(
 # =========================================================
 
 def render_html(content):
-    """
-    Prevent Streamlit from interpreting indented HTML
-    as Markdown code blocks.
-    """
     cleaned = textwrap.dedent(content).strip()
 
     cleaned = " ".join(
@@ -58,12 +54,6 @@ def safe(value):
 
 
 def image_html(image_url, height="230px"):
-    """
-    Full-width responsive image.
-
-    Broken image URLs are hidden completely.
-    """
-
     if image_url is None:
         return ""
 
@@ -88,40 +78,45 @@ def image_html(image_url, height="230px"):
 
 def israel_tone_html(value):
     """
-    UI badge for Israel-related article framing.
-    Empty value = article is not Israel-related.
+    Israel framing badge.
+
+    hostile  -> red
+    positive -> blue
+    neutral  -> gray
+    empty    -> gray "Israel: Not Mentioned"
     """
 
     if value is None:
-        return ""
+        value = ""
 
     value = str(value).strip().lower()
-
-    if not value:
-        return ""
 
     if value == "hostile":
         return (
             '<span class="tag tag-israel-hostile">'
-            '🇮🇱 טון כלפי ישראל: עוין'
+            'Israel Tone: Hostile'
             '</span>'
         )
 
     if value == "positive":
         return (
             '<span class="tag tag-israel-positive">'
-            '🇮🇱 טון כלפי ישראל: חיובי'
+            'Israel Tone: Positive'
             '</span>'
         )
 
     if value == "neutral":
         return (
             '<span class="tag tag-israel-neutral">'
-            '🇮🇱 טון כלפי ישראל: ניטרלי'
+            'Israel Tone: Neutral'
             '</span>'
         )
 
-    return ""
+    return (
+        '<span class="tag tag-israel-neutral">'
+        'Israel: Not Mentioned'
+        '</span>'
+    )
 
 
 # =========================================================
@@ -417,11 +412,11 @@ header[data-testid="stHeader"] {
 .tag {
     display: inline-block;
 
-    padding: 3px 8px;
-    border-radius: 4px;
+    padding: 4px 9px;
+    border-radius: 5px;
 
     font-size: 0.72rem;
-    font-weight: 600;
+    font-weight: 700;
 
     margin-right: 6px;
     margin-bottom: 5px;
@@ -455,16 +450,22 @@ header[data-testid="stHeader"] {
 .tag-israel-hostile {
     background: #dc2626;
     color: #ffffff;
+
+    border: 1px solid #ef4444;
 }
 
 .tag-israel-positive {
     background: #0284c7;
     color: #ffffff;
+
+    border: 1px solid #38bdf8;
 }
 
 .tag-israel-neutral {
     background: #4b5563;
     color: #ffffff;
+
+    border: 1px solid #6b7280;
 }
 
 
@@ -659,11 +660,6 @@ if st.session_state["reading_article_id"] is not None:
 
         <span class="tag tag-time">
             🕒 {safe(article['published_at'])}
-        </span>
-
-        <span class="tag tag-time">
-            Score:
-            {safe(article['priority'])}
         </span>
 
     </div>
@@ -982,9 +978,7 @@ else:
         )
 
 
-        table_df = (
-            filtered_df.copy()
-        )
+        table_df = filtered_df.copy()
 
 
         if search:
@@ -1032,7 +1026,6 @@ else:
                 "source_name",
                 "sentiment",
                 "analyst_name",
-                "priority",
                 "title",
                 "url",
             ]
@@ -1045,7 +1038,6 @@ else:
             "Source",
             "Topic",
             "Israel Tone",
-            "Score",
             "Title",
             "URL",
         ]
@@ -1079,9 +1071,7 @@ else:
             # LEAD STORY
             # =============================================
 
-            lead = (
-                filtered_df.iloc[0]
-            )
+            lead = filtered_df.iloc[0]
 
 
             lead_image = image_html(
@@ -1090,8 +1080,10 @@ else:
             )
 
 
-            lead_israel_tone = israel_tone_html(
-                lead["analyst_name"]
+            lead_israel_tone = (
+                israel_tone_html(
+                    lead["analyst_name"]
+                )
             )
 
 
@@ -1149,15 +1141,6 @@ else:
                     >
                         🕒
                         {safe(lead['published_at'])}
-                    </span>
-
-                    <span
-                        class="
-                            tag
-                            tag-time
-                        "
-                    >
-                        {safe(lead['priority'])}
                     </span>
 
                 </div>
@@ -1321,19 +1304,6 @@ else:
                                     {safe(
                                         article_row[
                                             'published_at'
-                                        ]
-                                    )}
-                                </span>
-
-                                <span
-                                    class="
-                                        tag
-                                        tag-time
-                                    "
-                                >
-                                    {safe(
-                                        article_row[
-                                            'priority'
                                         ]
                                     )}
                                 </span>
