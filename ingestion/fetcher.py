@@ -8,21 +8,13 @@ import urllib.request
 import xml.etree.ElementTree as ET
 
 from datetime import timezone
-from urllib.parse import urlsplit, urlunsplit
+from urllib.parse import urljoin, urlsplit, urlunsplit
 
 from database import get_db_connection, utc_now_iso
 
 
 # =========================================================
-# SOURCES
-# =========================================================
-#
-# domestic_country:
-# אם זה מקור מקומי, זו המדינה שהוא מכסה כברירת מחדל.
-#
-# source_type:
-# international / domestic
-#
+# CONFIG
 # =========================================================
 
 RSS_CHANNELS = [
@@ -50,33 +42,18 @@ RSS_CHANNELS = [
         "source_type": "international",
         "domestic_country": None,
     },
-
-    # -------------------------
-    # IRAN - DOMESTIC
-    # -------------------------
-
     {
         "name": "IRNA English",
         "url": "https://en.irna.ir/rss",
         "source_type": "domestic",
         "domestic_country": "Iran",
     },
-
-    # -------------------------
-    # SAUDI ARABIA - DOMESTIC
-    # -------------------------
-
     {
         "name": "Saudi Press Agency",
-        "url": "http://www.spa.gov.sa/rss.xml",
+        "url": "https://www.spa.gov.sa/rss.xml",
         "source_type": "domestic",
         "domestic_country": "Saudi Arabia",
     },
-
-    # -------------------------
-    # SYRIA - DOMESTIC
-    # -------------------------
-
     {
         "name": "SANA English",
         "url": "https://www.sana.sy/en/syria/feed/",
@@ -86,20 +63,19 @@ RSS_CHANNELS = [
 ]
 
 
-# =========================================================
-# NETWORK SETTINGS
-# =========================================================
-
-FETCH_TIMEOUT_SECONDS = 6
+RSS_TIMEOUT = 6
+ARTICLE_TIMEOUT = 4
 MAX_ITEMS_PER_SOURCE = 30
 
-# רק RSS.
-# לא פותחים דפי כתבות, לא HEAD לתמונות.
-# זה קריטי כדי שהאתר לא ייתקע.
+# כדי שתמונות לא יתקעו את האתר:
+MAX_IMAGE_ENRICHMENTS_PER_SYNC = 12
+IMAGE_WORKERS = 6
+
+MIN_RELEVANCE_SCORE = 30
 
 
 # =========================================================
-# TEXT CLEANING
+# CLEANING
 # =========================================================
 
 def clean_html(raw_html):
@@ -108,21 +84,17 @@ def clean_html(raw_html):
 
     text = raw_html
 
-    # לפעמים entity מגיע מקודד יותר מפעם אחת
     for _ in range(2):
         text = html.unescape(text)
 
-    # הסרת HTML
     text = re.sub(
         r"<[^>]+>",
         " ",
         text,
     )
 
-    # שוב unescape אחרי הסרת התגים
     text = html.unescape(text)
 
-    # whitespace normalization
     text = re.sub(
         r"\s+",
         " ",
@@ -132,18 +104,12 @@ def clean_html(raw_html):
     return text.strip()
 
 
-# =========================================================
-# URL NORMALIZATION
-# =========================================================
-
 def normalize_url(url):
     if not url:
         return ""
 
-    url = url.strip()
-
     try:
-        parts = urlsplit(url)
+        parts = urlsplit(url.strip())
 
         return urlunsplit(
             (
@@ -156,36 +122,32 @@ def normalize_url(url):
         )
 
     except Exception:
-        return url
+        return url.strip()
 
-
-# =========================================================
-# TITLE NORMALIZATION
-# =========================================================
 
 def normalize_title(title):
     if not title:
         return ""
 
-    title = html.unescape(title).lower()
+    text = html.unescape(title).lower()
 
-    title = re.sub(
+    text = re.sub(
         r"[^\w\s]",
         " ",
-        title,
+        text,
     )
 
-    title = re.sub(
+    text = re.sub(
         r"\s+",
         " ",
-        title,
+        text,
     )
 
-    return title.strip()
+    return text.strip()
 
 
 # =========================================================
-# RSS DATE
+# DATES
 # =========================================================
 
 def parse_rss_date(pub_date_elem):
@@ -199,6 +161,7 @@ def parse_rss_date(pub_date_elem):
             )
 
             if parsed is not None:
+
                 if parsed.tzinfo is None:
                     parsed = parsed.replace(
                         tzinfo=timezone.utc
@@ -219,84 +182,86 @@ def parse_rss_date(pub_date_elem):
 
 
 # =========================================================
-# FAST RSS IMAGE EXTRACTION
-# =========================================================
-#
-# חשוב:
-# לא פותחים את דף הכתבה.
-# אם הפיד לא נותן תמונה - מחזירים None.
-#
+# NOISE / SPORTS FILTER
 # =========================================================
 
-def extract_feed_image(item, raw_description):
-    candidates = []
+SPORTS_KEYWORDS = [
+    "football",
+    "soccer",
+    "premier league",
+    "champions league",
+    "europa league",
+    "world cup",
+    "stadium",
+    "var ",
+    " var",
+    "match",
+    "fixture",
+    "goalkeeper",
+    "striker",
+    "midfielder",
+    "coach",
+    "manager",
+    "fans",
+    "penalty",
+    "red card",
+    "yellow card",
 
-    media_content = item.find(
-        "{http://search.yahoo.com/mrss/}content"
-    )
-
-    if media_content is not None:
-        candidate = media_content.get("url")
-
-        if candidate:
-            candidates.append(candidate)
-
-
-    media_thumbnail = item.find(
-        "{http://search.yahoo.com/mrss/}thumbnail"
-    )
-
-    if media_thumbnail is not None:
-        candidate = media_thumbnail.get("url")
-
-        if candidate:
-            candidates.append(candidate)
-
-
-    enclosure = item.find("enclosure")
-
-    if enclosure is not None:
-        candidate = enclosure.get("url")
-
-        if candidate:
-            candidates.append(candidate)
-
-
-    if raw_description:
-        patterns = [
-            r'<img[^>]+src=["\']([^"\']+)["\']',
-            r'<img[^>]+data-src=["\']([^"\']+)["\']',
-        ]
-
-        for pattern in patterns:
-            match = re.search(
-                pattern,
-                raw_description,
-                flags=re.IGNORECASE,
-            )
-
-            if match:
-                candidates.append(
-                    match.group(1)
-                )
+    # common clubs / competitions
+    "manchester united",
+    "manchester city",
+    "chelsea",
+    "arsenal",
+    "liverpool",
+    "tottenham",
+    "real madrid",
+    "barcelona",
+    "psg",
+    "bayern",
+    "serie a",
+    "la liga",
+    "bundesliga",
+]
 
 
-    for candidate in candidates:
-        candidate = html.unescape(
-            candidate.strip()
-        )
+OTHER_NOISE_KEYWORDS = [
+    "celebrity",
+    "fashion",
+    "recipe",
+    "restaurant review",
+    "movie review",
+    "film review",
+    "album review",
+    "music festival",
+    "horoscope",
+    "lottery",
+    "travel tips",
+]
 
-        if candidate.startswith(
-            ("http://", "https://")
-        ):
-            return candidate
 
+def is_noise_article(title, summary):
+    text = (
+        f"{title or ''} "
+        f"{summary or ''}"
+    ).lower()
 
-    return None
+    if any(
+        keyword in text
+        for keyword in SPORTS_KEYWORDS
+    ):
+        return True
+
+    if any(
+        keyword in text
+        for keyword in OTHER_NOISE_KEYWORDS
+    ):
+        return True
+
+    return False
 
 
 # =========================================================
-# ARTICLE COUNTRY CLASSIFICATION
+# COUNTRY CLASSIFICATION
 # =========================================================
 
 COUNTRY_KEYWORDS = {
@@ -314,9 +279,8 @@ COUNTRY_KEYWORDS = {
         "saudi",
         "riyadh",
         "jeddah",
-        "kingdom",
         "bin salman",
-        "mbs",
+        "mohammed bin salman",
     ],
 
     "UAE": [
@@ -379,15 +343,11 @@ def classify_country(
         f"{summary or ''}"
     ).lower()
 
-
-    # מקור מקומי:
-    # ברירת המחדל היא המדינה שלו,
-    # אלא אם יש אינדיקציה חזקה למדינה אחרת.
-
     best_country = None
     best_score = 0
 
     for country, keywords in COUNTRY_KEYWORDS.items():
+
         score = sum(
             1
             for keyword in keywords
@@ -395,23 +355,20 @@ def classify_country(
         )
 
         if score > best_score:
-            best_country = country
             best_score = score
-
+            best_country = country
 
     if best_country:
         return best_country
 
-
     if domestic_country:
         return domestic_country
-
 
     return "US & Global"
 
 
 # =========================================================
-# TOPIC CLASSIFICATION
+# TOPICS
 # =========================================================
 
 TOPIC_KEYWORDS = {
@@ -423,19 +380,17 @@ TOPIC_KEYWORDS = {
         "air defense",
         "defence",
         "defense",
-        "strike",
-        "attack",
+        "airstrike",
+        "air strike",
         "drone",
         "armed forces",
         "navy",
         "naval",
-        "air force",
         "weapon",
         "weapons",
         "security forces",
         "irgc",
         "revolutionary guard",
-        "mobilization",
         "militia",
         "border security",
     ],
@@ -452,12 +407,11 @@ TOPIC_KEYWORDS = {
         "political",
         "leadership",
         "supreme leader",
-        "resigns",
         "resignation",
+        "resigns",
         "appointed",
         "appointment",
         "dismissed",
-        "government formation",
         "opposition",
         "constitution",
     ],
@@ -470,16 +424,12 @@ TOPIC_KEYWORDS = {
         "inflation",
         "sanction",
         "sanctions",
-        "bank",
         "central bank",
         "trade",
-        "export",
         "exports",
-        "import",
         "imports",
         "energy",
         "economic crisis",
-        "economy",
         "budget",
         "debt",
         "market",
@@ -495,18 +445,14 @@ TOPIC_KEYWORDS = {
         "demonstrations",
         "riot",
         "riots",
-        "strike",
-        "strikes",
         "unrest",
         "clashes",
         "arrest",
         "arrests",
         "detained",
-        "detainees",
         "ethnic",
         "minority",
         "separatist",
-        "internal security",
         "state of emergency",
     ],
 
@@ -519,9 +465,7 @@ TOPIC_KEYWORDS = {
         "cyber",
         "cyberattack",
         "cyber attack",
-        "hack",
         "hacking",
-        "artificial intelligence",
         "military technology",
         "satellite",
         "space program",
@@ -532,11 +476,9 @@ TOPIC_KEYWORDS = {
         "diplomacy",
         "foreign minister",
         "foreign ministry",
-        "talks",
         "negotiation",
         "negotiations",
         "agreement",
-        "deal",
         "summit",
         "delegation",
         "ambassador",
@@ -547,10 +489,7 @@ TOPIC_KEYWORDS = {
 }
 
 
-def classify_topic(
-    title,
-    summary,
-):
+def classify_topic(title, summary):
     text = (
         f"{title or ''} "
         f"{summary or ''}"
@@ -560,6 +499,7 @@ def classify_topic(
     best_score = 0
 
     for topic, keywords in TOPIC_KEYWORDS.items():
+
         score = sum(
             1
             for keyword in keywords
@@ -567,50 +507,21 @@ def classify_topic(
         )
 
         if score > best_score:
-            best_topic = topic
             best_score = score
+            best_topic = topic
 
     return best_topic
 
 
 # =========================================================
-# RELEVANCE SCORING
+# RELEVANCE
 # =========================================================
-#
-# 0-100
-#
-# הרעיון:
-# לא רק "קשור לישראל".
-# גם התפתחויות פנימיות משמעותיות במדינות היעד.
-#
-# =========================================================
-
-NOISE_KEYWORDS = [
-    "football",
-    "soccer",
-    "basketball",
-    "tennis",
-    "celebrity",
-    "fashion",
-    "recipe",
-    "restaurant",
-    "movie review",
-    "film review",
-    "music",
-    "singer",
-    "actor",
-    "actress",
-    "horoscope",
-    "lottery",
-    "travel tips",
-]
-
 
 HIGH_IMPACT_KEYWORDS = [
     "war",
     "attack",
     "missile",
-    "strike",
+    "airstrike",
     "nuclear",
     "sanctions",
     "government crisis",
@@ -620,7 +531,7 @@ HIGH_IMPACT_KEYWORDS = [
     "coup",
     "election",
     "ceasefire",
-    "currency collapse",
+    "currency crisis",
     "oil production",
     "central bank",
     "irgc",
@@ -641,25 +552,19 @@ def calculate_relevance_score(
 
     score = 0
 
-
-    # מדינות יעד מקבלות בסיס
     if country != "US & Global":
         score += 20
 
-
-    # מקור מקומי - נותן ערך להתפתחויות פנים
     if source_type == "domestic":
         score += 10
 
-
-    # נושאים מבצעיים / אסטרטגיים
     topic_scores = {
-        "Security / Military": 35,
-        "Politics / Regime": 30,
-        "Strategic Economy": 25,
-        "Internal Stability": 30,
-        "Nuclear / Cyber / Technology": 35,
-        "Diplomacy": 20,
+        "Security / Military": 40,
+        "Politics / Regime": 32,
+        "Strategic Economy": 27,
+        "Internal Stability": 35,
+        "Nuclear / Cyber / Technology": 38,
+        "Diplomacy": 25,
         "General": 0,
     }
 
@@ -668,8 +573,6 @@ def calculate_relevance_score(
         0,
     )
 
-
-    # מילות השפעה גבוהה
     impact_hits = sum(
         1
         for keyword in HIGH_IMPACT_KEYWORDS
@@ -677,26 +580,15 @@ def calculate_relevance_score(
     )
 
     score += min(
-        impact_hits * 7,
-        21,
+        impact_hits * 6,
+        18,
     )
 
-
-    # רעש
-    if any(
-        keyword in text
-        for keyword in NOISE_KEYWORDS
-    ):
-        score -= 40
-
-
-    # כתבה כללית בינלאומית בלי זירת יעד
     if (
         country == "US & Global"
         and topic == "General"
     ):
-        score -= 20
-
+        score -= 30
 
     return max(
         0,
@@ -705,23 +597,177 @@ def calculate_relevance_score(
 
 
 # =========================================================
-# SHOULD INGEST?
+# RSS IMAGE
 # =========================================================
 
-MIN_RELEVANCE_SCORE = 25
+def extract_feed_image(item, raw_description):
+    candidates = []
 
-
-def should_ingest_article(
-    relevance_score,
-):
-    return (
-        relevance_score
-        >= MIN_RELEVANCE_SCORE
+    media_content = item.find(
+        "{http://search.yahoo.com/mrss/}content"
     )
 
+    if media_content is not None:
+        candidate = media_content.get("url")
+
+        if candidate:
+            candidates.append(candidate)
+
+
+    media_thumbnail = item.find(
+        "{http://search.yahoo.com/mrss/}thumbnail"
+    )
+
+    if media_thumbnail is not None:
+        candidate = media_thumbnail.get("url")
+
+        if candidate:
+            candidates.append(candidate)
+
+
+    enclosure = item.find("enclosure")
+
+    if enclosure is not None:
+        candidate = enclosure.get("url")
+
+        if candidate:
+            candidates.append(candidate)
+
+
+    if raw_description:
+
+        patterns = [
+            r'<img[^>]+src=["\']([^"\']+)["\']',
+            r'<img[^>]+data-src=["\']([^"\']+)["\']',
+        ]
+
+        for pattern in patterns:
+
+            match = re.search(
+                pattern,
+                raw_description,
+                flags=re.IGNORECASE,
+            )
+
+            if match:
+                candidates.append(
+                    match.group(1)
+                )
+
+
+    for candidate in candidates:
+
+        candidate = html.unescape(
+            candidate.strip()
+        )
+
+        if candidate.startswith(
+            ("http://", "https://")
+        ):
+            return candidate
+
+    return None
+
 
 # =========================================================
-# DEDUPLICATION
+# ORIGINAL ARTICLE IMAGE
+# =========================================================
+#
+# מופעל רק על מספר קטן של כתבות בכל Sync.
+# לכן לא אמור לתקוע שוב את האתר.
+#
+# =========================================================
+
+def extract_original_article_image(article_url):
+    if not article_url:
+        return None
+
+    try:
+        request = urllib.request.Request(
+            article_url,
+            headers={
+                "User-Agent": (
+                    "Mozilla/5.0 "
+                    "(Windows NT 10.0; Win64; x64) "
+                    "AppleWebKit/537.36 "
+                    "(KHTML, like Gecko) "
+                    "Chrome/120.0 Safari/537.36"
+                ),
+                # לרוב המטא-תגים נמצאים בתחילת העמוד
+                "Range": "bytes=0-350000",
+            },
+        )
+
+        with urllib.request.urlopen(
+            request,
+            timeout=ARTICLE_TIMEOUT,
+        ) as response:
+
+            page_html = (
+                response.read()
+                .decode(
+                    "utf-8",
+                    errors="ignore",
+                )
+            )
+
+
+        patterns = [
+            r'<meta[^>]*property=["\']og:image["\'][^>]*content=["\']([^"\']+)["\']',
+            r'<meta[^>]*content=["\']([^"\']+)["\'][^>]*property=["\']og:image["\']',
+
+            r'<meta[^>]*name=["\']twitter:image["\'][^>]*content=["\']([^"\']+)["\']',
+            r'<meta[^>]*content=["\']([^"\']+)["\'][^>]*name=["\']twitter:image["\']',
+        ]
+
+
+        for pattern in patterns:
+
+            match = re.search(
+                pattern,
+                page_html,
+                flags=re.IGNORECASE,
+            )
+
+            if not match:
+                continue
+
+
+            image_url = html.unescape(
+                match.group(1).strip()
+            )
+
+
+            if image_url.startswith("//"):
+                image_url = (
+                    "https:" + image_url
+                )
+
+            elif image_url.startswith("/"):
+                image_url = urljoin(
+                    article_url,
+                    image_url,
+                )
+
+
+            if image_url.startswith(
+                ("http://", "https://")
+            ):
+                return image_url
+
+
+    except Exception as error:
+        print(
+            f"Image enrichment error "
+            f"({article_url}): {error}"
+        )
+
+
+    return None
+
+
+# =========================================================
+# DEDUP
 # =========================================================
 
 def article_exists(
@@ -743,11 +789,11 @@ def article_exists(
         return True
 
 
-    normalized = normalize_title(
+    normalized_title = normalize_title(
         title
     )
 
-    if not normalized:
+    if not normalized_title:
         return False
 
 
@@ -760,16 +806,16 @@ def article_exists(
         """
     )
 
-    rows = cursor.fetchall()
 
-    for row in rows:
-        existing_title = normalize_title(
+    for row in cursor.fetchall():
+
+        existing = normalize_title(
             row["title"]
         )
 
         if (
-            existing_title
-            and existing_title == normalized
+            existing
+            and existing == normalized_title
         ):
             return True
 
@@ -778,7 +824,7 @@ def article_exists(
 
 
 # =========================================================
-# FAST FEED DOWNLOAD
+# RSS DOWNLOAD
 # =========================================================
 
 def fetch_feed_xml(source):
@@ -788,22 +834,25 @@ def fetch_feed_xml(source):
             headers={
                 "User-Agent": (
                     "Mozilla/5.0 "
-                    "(compatible; OSINTGlobalDesk/2.0)"
+                    "(compatible; OSINTGlobalDesk/3.0)"
                 )
             },
         )
 
         with urllib.request.urlopen(
             request,
-            timeout=FETCH_TIMEOUT_SECONDS,
+            timeout=RSS_TIMEOUT,
         ) as response:
+
             return (
                 source,
                 response.read(),
                 None,
             )
 
+
     except Exception as error:
+
         return (
             source,
             None,
@@ -812,31 +861,102 @@ def fetch_feed_xml(source):
 
 
 # =========================================================
-# LIVE INGESTION
+# IMAGE ENRICHMENT
+# =========================================================
+
+def enrich_missing_images(
+    conn,
+    articles_to_enrich,
+):
+    if not articles_to_enrich:
+        return 0
+
+
+    articles_to_enrich = (
+        articles_to_enrich[
+            :MAX_IMAGE_ENRICHMENTS_PER_SYNC
+        ]
+    )
+
+
+    updates = []
+
+
+    with concurrent.futures.ThreadPoolExecutor(
+        max_workers=IMAGE_WORKERS
+    ) as executor:
+
+        future_map = {
+            executor.submit(
+                extract_original_article_image,
+                article["url"],
+            ): article
+
+            for article
+            in articles_to_enrich
+        }
+
+
+        for future in concurrent.futures.as_completed(
+            future_map
+        ):
+
+            article = future_map[future]
+
+            try:
+                image_url = future.result()
+
+                if image_url:
+
+                    updates.append(
+                        (
+                            image_url,
+                            article["id"],
+                        )
+                    )
+
+            except Exception:
+                pass
+
+
+    if not updates:
+        return 0
+
+
+    cursor = conn.cursor()
+
+    cursor.executemany(
+        """
+        UPDATE articles
+        SET image_url = ?
+        WHERE id = ?
+        """,
+        updates,
+    )
+
+    conn.commit()
+
+    return len(updates)
+
+
+# =========================================================
+# MAIN INGESTION
 # =========================================================
 
 def fetch_live_web_articles():
-    """
-    FAST INGESTION ONLY.
-
-    לא נכנסים לעמודי כתבות.
-    לא עושים HEAD לתמונות.
-    לא עושים enrichment כבד.
-
-    המטרה:
-    האפליקציה לא נתקעת.
-    """
-
     conn = get_db_connection()
     cursor = conn.cursor()
 
     total_added = 0
-    total_skipped_low_relevance = 0
-    total_duplicate = 0
+    total_duplicates = 0
+    total_noise = 0
+    total_low_relevance = 0
+
+    needs_image_enrichment = []
 
 
     # -----------------------------------------
-    # Fetch all RSS sources concurrently
+    # Fetch all RSS concurrently
     # -----------------------------------------
 
     with concurrent.futures.ThreadPoolExecutor(
@@ -854,25 +974,30 @@ def fetch_live_web_articles():
             for source in RSS_CHANNELS
         ]
 
-        results = [
+        feed_results = [
             future.result()
             for future in futures
         ]
 
 
     # -----------------------------------------
-    # Parse + insert sequentially
-    # SQLite writes stay in one thread
+    # Parse feeds
     # -----------------------------------------
 
-    for source, xml_data, error in results:
+    for (
+        source,
+        xml_data,
+        feed_error,
+    ) in feed_results:
 
-        if error is not None:
+        if feed_error is not None:
+
             print(
                 f"Feed error "
                 f"({source['name']}): "
-                f"{error}"
+                f"{feed_error}"
             )
+
             continue
 
 
@@ -882,17 +1007,20 @@ def fetch_live_web_articles():
             )
 
         except Exception as error:
+
             print(
-                f"XML parse error "
+                f"XML error "
                 f"({source['name']}): "
                 f"{error}"
             )
+
             continue
 
 
         items = root.findall(
             ".//item"
         )
+
 
         for item in items[
             :MAX_ITEMS_PER_SOURCE
@@ -927,8 +1055,11 @@ def fetch_live_web_articles():
                     title_elem is not None
                     and title_elem.text
                 )
-                else "Untitled Report"
+                else ""
             )
+
+            if not title:
+                continue
 
 
             # ---------------------------------
@@ -960,8 +1091,7 @@ def fetch_live_web_articles():
             raw_description = (
                 description_elem.text
                 if (
-                    description_elem
-                    is not None
+                    description_elem is not None
                     and description_elem.text
                 )
                 else ""
@@ -981,6 +1111,18 @@ def fetch_live_web_articles():
 
 
             # ---------------------------------
+            # SPORT / NOISE FILTER
+            # ---------------------------------
+
+            if is_noise_article(
+                title,
+                summary,
+            ):
+                total_noise += 1
+                continue
+
+
+            # ---------------------------------
             # DUPLICATES
             # ---------------------------------
 
@@ -989,7 +1131,7 @@ def fetch_live_web_articles():
                 url,
                 title,
             ):
-                total_duplicate += 1
+                total_duplicates += 1
                 continue
 
 
@@ -1017,7 +1159,7 @@ def fetch_live_web_articles():
 
 
             # ---------------------------------
-            # RELEVANCE
+            # RELEVANCE SCORE
             # ---------------------------------
 
             relevance_score = (
@@ -1033,20 +1175,16 @@ def fetch_live_web_articles():
             )
 
 
-            if not should_ingest_article(
+            if (
                 relevance_score
+                < MIN_RELEVANCE_SCORE
             ):
-                total_skipped_low_relevance += 1
+                total_low_relevance += 1
                 continue
 
 
             # ---------------------------------
-            # IMAGE
-            # ---------------------------------
-            #
-            # רק מה-RSS.
-            # בלי פתיחת article page.
-            #
+            # RSS IMAGE
             # ---------------------------------
 
             image_url = extract_feed_image(
@@ -1056,7 +1194,7 @@ def fetch_live_web_articles():
 
 
             # ---------------------------------
-            # DATES
+            # TIME
             # ---------------------------------
 
             published_at = parse_rss_date(
@@ -1064,13 +1202,6 @@ def fetch_live_web_articles():
             )
 
             created_at = utc_now_iso()
-
-
-            # ---------------------------------
-            # CONTENT
-            # ---------------------------------
-
-            full_content = summary
 
 
             # ---------------------------------
@@ -1094,6 +1225,7 @@ def fetch_live_web_articles():
                     priority,
                     created_at
                 )
+
                 VALUES
                 (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
@@ -1103,7 +1235,8 @@ def fetch_live_web_articles():
                     country,
                     title,
                     summary,
-                    full_content,
+                    summary,
+
                     (
                         "Domestic RSS"
                         if source[
@@ -1111,6 +1244,7 @@ def fetch_live_web_articles():
                         ] == "domestic"
                         else "International RSS"
                     ),
+
                     published_at,
                     image_url,
                     topic,
@@ -1121,18 +1255,100 @@ def fetch_live_web_articles():
 
 
             if cursor.rowcount > 0:
+
+                article_id = (
+                    cursor.lastrowid
+                )
+
                 total_added += 1
+
+
+                # רק כתבות בלי RSS image
+                # מועברות ל-enrichment
+
+                if not image_url:
+
+                    needs_image_enrichment.append(
+                        {
+                            "id": article_id,
+                            "url": url,
+                        }
+                    )
 
 
         conn.commit()
 
 
-    print(
-        "RSS sync finished | "
-        f"new={total_added} | "
-        f"duplicates={total_duplicate} | "
-        f"low_relevance="
-        f"{total_skipped_low_relevance}"
+    # =====================================================
+    # BACKFILL OLD ARTICLES WITHOUT IMAGES
+    # =====================================================
+    #
+    # כך גם הכתבות שכבר במסד יקבלו
+    # בהדרגה תמונה מהמקור.
+    #
+    # =====================================================
+
+    remaining_slots = (
+        MAX_IMAGE_ENRICHMENTS_PER_SYNC
+        - len(needs_image_enrichment)
     )
+
+
+    if remaining_slots > 0:
+
+        cursor.execute(
+            """
+            SELECT id, url
+            FROM articles
+            WHERE
+                image_url IS NULL
+                OR image_url = ''
+            ORDER BY id DESC
+            LIMIT ?
+            """,
+            (remaining_slots,),
+        )
+
+
+        existing_missing = (
+            cursor.fetchall()
+        )
+
+
+        already_queued = {
+            item["id"]
+            for item
+            in needs_image_enrichment
+        }
+
+
+        for row in existing_missing:
+
+            if row["id"] in already_queued:
+                continue
+
+            needs_image_enrichment.append(
+                {
+                    "id": row["id"],
+                    "url": row["url"],
+                }
+            )
+
+
+    images_updated = enrich_missing_images(
+        conn,
+        needs_image_enrichment,
+    )
+
+
+    print(
+        "RSS sync complete | "
+        f"new={total_added} | "
+        f"duplicates={total_duplicates} | "
+        f"sports/noise={total_noise} | "
+        f"low_relevance={total_low_relevance} | "
+        f"images_updated={images_updated}"
+    )
+
 
     return total_added
