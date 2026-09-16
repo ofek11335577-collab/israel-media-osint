@@ -17,7 +17,7 @@ from ingestion.fetcher import fetch_live_web_articles
 # =========================================================
 
 st.set_page_config(
-    page_title="OSINT Global Desk | Tactical Intelligence Terminal",
+    page_title="OSINT Global Desk",
     page_icon="🌐",
     layout="wide",
     initial_sidebar_state="collapsed",
@@ -30,8 +30,8 @@ st.set_page_config(
 
 def render_html(content):
     """
-    Render HTML without Streamlit interpreting indentation
-    as a Markdown code block.
+    Converts multiline HTML to a single line so Streamlit
+    does not interpret indentation as a Markdown code block.
     """
 
     cleaned = textwrap.dedent(content).strip()
@@ -58,66 +58,32 @@ def safe(value):
     )
 
 
-def image_html(
-    image_url,
-    height="220px",
-):
+def image_html(image_url, height="220px"):
     """
-    Displays every article image as a full-width card image.
+    Full-width responsive article image.
 
-    - Always fills the card width
-    - Keeps a consistent height
-    - Crops proportionally instead of stretching
-    - Hides itself if the image fails to load
+    If the image URL is missing or broken,
+    the entire image container disappears.
     """
-
-    article_image = image_html(
-    article["image_url"],
-    height="220px",)
-
-
-    lead_image = image_html(
-    lead["image_url"],
-    height="380px",)
-
-
-
 
     if image_url is None:
         return ""
 
-    image_url = str(
-        image_url
-    ).strip()
+    image_url = str(image_url).strip()
 
     if not image_url:
         return ""
 
-    safe_url = safe(
-        image_url
-    )
+    safe_url = safe(image_url)
 
     return (
-        f'<div style="'
-        f'width:100%;'
-        f'height:{height};'
-        f'overflow:hidden;'
-        f'border-radius:8px;'
-        f'margin-bottom:14px;'
-        f'background:#0f172a;'
-        f'">'
+        f'<div class="article-image-wrap" '
+        f'style="height:{height};">'
         f'<img '
         f'src="{safe_url}" '
-        f'style="'
-        f'width:100% !important;'
-        f'height:100% !important;'
-        f'display:block !important;'
-        f'object-fit:cover !important;'
-        f'object-position:center center !important;'
-        f'max-width:none !important;'
-        f'" '
-        f'onerror="this.parentElement.style.display=\'none\';" '
-        f'/>'
+        f'class="article-image" '
+        f'onerror="this.parentElement.style.display=\'none\';"'
+        f'>'
         f'</div>'
     )
 
@@ -130,7 +96,7 @@ init_db()
 
 
 # =========================================================
-# RSS SCHEDULER
+# FETCH TIMER
 # =========================================================
 
 def should_fetch():
@@ -167,12 +133,7 @@ def should_fetch():
             >= timedelta(minutes=5)
         )
 
-    except Exception as error:
-        print(
-            f"Could not read "
-            f"last fetch time: {error}"
-        )
-
+    except Exception:
         return True
 
 
@@ -187,14 +148,8 @@ def mark_fetch_complete():
     )
 
     cursor.execute("""
-        INSERT INTO system_state (
-            key,
-            value
-        )
-        VALUES (
-            'last_rss_fetch',
-            ?
-        )
+        INSERT INTO system_state (key, value)
+        VALUES ('last_rss_fetch', ?)
 
         ON CONFLICT(key)
         DO UPDATE SET
@@ -207,10 +162,6 @@ def mark_fetch_complete():
 # =========================================================
 # AUTO REFRESH
 # =========================================================
-#
-# Browser reruns every 5 minutes while app is active.
-#
-# =========================================================
 
 st_autorefresh(
     interval=5 * 60 * 1000,
@@ -219,21 +170,19 @@ st_autorefresh(
 
 
 # =========================================================
-# AUTOMATIC SYNC
+# AUTOMATIC RSS SYNC
 # =========================================================
 
 if should_fetch():
     try:
-        new_count = (
-            fetch_live_web_articles()
-        )
+        new_count = fetch_live_web_articles()
 
         mark_fetch_complete()
 
         st.cache_data.clear()
 
         print(
-            f"Automatic RSS sync: "
+            f"Automatic RSS sync complete: "
             f"{new_count} new reports."
         )
 
@@ -249,21 +198,13 @@ if should_fetch():
 # =========================================================
 
 if "view_mode" not in st.session_state:
-    st.session_state[
-        "view_mode"
-    ] = "Main Dashboard"
-
+    st.session_state["view_mode"] = "Main Dashboard"
 
 if "selected_country" not in st.session_state:
-    st.session_state[
-        "selected_country"
-    ] = "All"
-
+    st.session_state["selected_country"] = "All"
 
 if "reading_article_id" not in st.session_state:
-    st.session_state[
-        "reading_article_id"
-    ] = None
+    st.session_state["reading_article_id"] = None
 
 
 # =========================================================
@@ -289,284 +230,231 @@ header[data-testid="stHeader"] {
 }
 
 
-/* =========================
-   HEADER
-========================= */
+/* HEADER */
 
 .newsroom-header {
-    background:
-        linear-gradient(
-            90deg,
-            #0f172a,
-            #1e293b
-        );
+    background: linear-gradient(
+        90deg,
+        #0f172a,
+        #1e293b
+    );
 
-    border-bottom:
-        2px solid #0284c7;
+    border-bottom: 2px solid #0284c7;
 
-    padding:
-        14px 24px;
+    padding: 14px 24px;
 
-    border-radius:
-        8px;
+    border-radius: 8px;
 
-    display:
-        flex;
+    display: flex;
 
-    justify-content:
-        space-between;
+    justify-content: space-between;
 
-    align-items:
-        center;
+    align-items: center;
 
-    margin-bottom:
-        20px;
+    margin-bottom: 20px;
 
-    font-size:
-        0.85rem;
+    font-size: 0.85rem;
 
-    color:
-        #94a3b8;
+    color: #94a3b8;
 }
+
 
 .newsroom-logo {
-    font-family:
-        'JetBrains Mono',
-        monospace;
+    font-family: 'JetBrains Mono', monospace;
 
-    font-weight:
-        800;
+    font-weight: 800;
 
-    font-size:
-        1.4rem;
+    font-size: 1.4rem;
 
-    color:
-        #ffffff;
+    color: #ffffff;
 }
+
 
 .newsroom-logo span {
-    color:
-        #38bdf8;
+    color: #38bdf8;
 }
 
 
-/* =========================
-   TICKER
-========================= */
+/* TICKER */
 
 .ticker-wrap {
-    width:
-        100%;
+    width: 100%;
 
-    background:
-        #0f172a;
+    background: #0f172a;
 
-    border:
-        1px solid
+    border: 1px solid
         rgba(239, 68, 68, 0.4);
 
-    border-radius:
-        6px;
+    border-radius: 6px;
 
-    overflow:
-        hidden;
+    overflow: hidden;
 
-    height:
-        38px;
+    height: 38px;
 
-    display:
-        flex;
+    display: flex;
 
-    align-items:
-        center;
+    align-items: center;
 
-    margin-bottom:
-        20px;
+    margin-bottom: 20px;
 }
+
 
 .ticker-badge {
-    background:
-        #dc2626;
+    background: #dc2626;
 
-    color:
-        #ffffff;
+    color: white;
 
-    font-weight:
-        700;
+    font-weight: 700;
 
-    font-size:
-        0.78rem;
+    font-size: 0.78rem;
 
-    padding:
-        0 16px;
+    padding: 0 16px;
 
-    height:
-        100%;
+    height: 100%;
 
-    display:
-        flex;
+    display: flex;
 
-    align-items:
-        center;
+    align-items: center;
 
-    flex-shrink:
-        0;
+    flex-shrink: 0;
 }
+
 
 .ticker-content {
-    display:
-        flex;
+    display: flex;
 
-    white-space:
-        nowrap;
+    white-space: nowrap;
 
     animation:
-        ticker 70s
-        linear infinite;
+        ticker 70s linear infinite;
 
-    font-size:
-        0.85rem;
+    color: #f1f5f9;
 
-    font-weight:
-        500;
-
-    color:
-        #f1f5f9;
+    font-size: 0.85rem;
 }
+
 
 .ticker-item {
-    margin-left:
-        50px;
+    margin-left: 50px;
 
-    display:
-        inline-flex;
+    display: inline-flex;
 
-    align-items:
-        center;
+    align-items: center;
 }
+
 
 @keyframes ticker {
-    0% {
-        transform:
-            translateX(0);
+
+    from {
+        transform: translateX(0);
     }
 
-    100% {
-        transform:
-            translateX(100%);
+    to {
+        transform: translateX(100%);
     }
 }
 
 
-/* =========================
-   CARDS
-========================= */
+/* CARDS */
 
 .card {
-    background:
-        #111827;
+    background: #111827;
 
     border:
         1px solid
         rgba(56, 189, 248, 0.15);
 
-    border-radius:
-        10px;
+    border-radius: 10px;
 
-    padding:
-        18px;
+    padding: 18px;
 
-    margin-bottom:
-        18px;
+    margin-bottom: 18px;
 
-    min-height:
-        220px;
+    display: flex;
 
-    display:
-        flex;
-
-    flex-direction:
-        column;
-}
-
-.card-img {
-    width:
-        100%;
-
-    object-fit:
-        cover;
-
-    border-radius:
-        6px;
-
-    margin-bottom:
-        12px;
+    flex-direction: column;
 }
 
 
-/* =========================
-   TAGS
-========================= */
+/* IMAGES */
+
+.article-image-wrap {
+    width: 100%;
+
+    overflow: hidden;
+
+    border-radius: 8px;
+
+    margin-bottom: 16px;
+
+    background: #0f172a;
+}
+
+
+.article-image {
+    width: 100% !important;
+
+    height: 100% !important;
+
+    display: block !important;
+
+    object-fit: cover !important;
+
+    object-position:
+        center center !important;
+
+    max-width: none !important;
+}
+
+
+/* TAGS */
 
 .tag {
-    display:
-        inline-block;
+    display: inline-block;
 
-    padding:
-        3px 8px;
+    padding: 3px 8px;
 
-    border-radius:
-        4px;
+    border-radius: 4px;
 
-    font-size:
-        0.72rem;
+    font-size: 0.72rem;
 
-    font-weight:
-        600;
+    font-weight: 600;
 
-    margin-right:
-        6px;
+    margin-right: 6px;
 
-    margin-bottom:
-        4px;
+    margin-bottom: 5px;
 }
+
 
 .tag-source {
-    background:
-        #1f2937;
+    background: #1f2937;
 
-    color:
-        #60a5fa;
+    color: #60a5fa;
 }
+
 
 .tag-time {
-    background:
-        #374151;
+    background: #374151;
 
-    color:
-        #cbd5e1;
+    color: #cbd5e1;
 }
 
-.tag-breaking {
-    background:
-        #dc2626;
-
-    color:
-        #ffffff;
-}
 
 .tag-topic {
-    background:
-        #0369a1;
+    background: #0284c7;
 
-    color:
-        #ffffff;
+    color: white;
 }
 
 
-/* =========================
-   BUTTONS
-========================= */
+.tag-breaking {
+    background: #dc2626;
+
+    color: white;
+}
+
+
+/* BUTTONS */
 
 div.stButton > button {
     background-color:
@@ -577,7 +465,7 @@ div.stButton > button {
 
     border:
         1px solid
-        rgba(56, 189, 248, 0.2)
+        rgba(56,189,248,0.25)
         !important;
 
     border-radius:
@@ -587,9 +475,8 @@ div.stButton > button {
         600 !important;
 }
 
-div.stButton >
-button[kind="primary"] {
 
+div.stButton > button[kind="primary"] {
     background-color:
         #0284c7 !important;
 
@@ -597,7 +484,7 @@ button[kind="primary"] {
         #38bdf8 !important;
 
     color:
-        #ffffff !important;
+        white !important;
 }
 
 </style>
@@ -633,12 +520,8 @@ df = load_data()
 # =========================================================
 
 current_utc = (
-    datetime.now(
-        timezone.utc
-    )
-    .strftime(
-        "%Y-%m-%d %H:%M UTC"
-    )
+    datetime.now(timezone.utc)
+    .strftime("%Y-%m-%d %H:%M UTC")
 )
 
 
@@ -669,41 +552,25 @@ if not df.empty:
 
     ticker_items = []
 
-    for _, row in df.head(
-        30
-    ).iterrows():
-
-        source = safe(
-            row["source_name"]
-        )
-
-        title = safe(
-            row["title"]
-        )
+    for _, row in df.head(30).iterrows():
 
         ticker_items.append(
-            f"<span "
-            f"class='ticker-item'>"
-            f"⚡ [{source}] "
-            f"{title}"
+            f"<span class='ticker-item'>"
+            f"⚡ [{safe(row['source_name'])}] "
+            f"{safe(row['title'])}"
             f"</span>"
         )
-
-
-    ticker_html = "".join(
-        ticker_items
-    )
 
 
     render_html(f"""
     <div class="ticker-wrap">
 
         <div class="ticker-badge">
-            LIVE FEEDS
+            LIVE INTEL
         </div>
 
         <div class="ticker-content">
-            {ticker_html}
+            {''.join(ticker_items)}
         </div>
 
     </div>
@@ -729,167 +596,11 @@ if (
 
 
     article_df = df[
-        df["id"]
-        == article_id
+        df["id"] == article_id
     ]
 
 
-    if not article_df.empty:
-
-        article = (
-            article_df.iloc[0]
-        )
-
-
-        col_back, col_source = (
-            st.columns(2)
-        )
-
-
-        with col_back:
-
-            if st.button(
-                "← Back to Newsroom",
-                use_container_width=True,
-            ):
-
-                st.session_state[
-                    "reading_article_id"
-                ] = None
-
-                st.rerun()
-
-
-        with col_source:
-
-            st.link_button(
-                "🔗 Open Original Source ↗",
-                article["url"],
-                use_container_width=True,
-            )
-
-
-        source_name = safe(
-            article["source_name"]
-        )
-
-        country = safe(
-            article["country"]
-        )
-
-        published_at = safe(
-            article["published_at"]
-        )
-
-        topic = safe(
-            article["sentiment"]
-        )
-
-        relevance = safe(
-            article["priority"]
-        )
-
-
-        render_html(f"""
-        <div style="
-            margin-top:12px;
-            margin-bottom:12px;
-        ">
-
-            <span class="
-                tag
-                tag-source
-            ">
-                📰 {source_name}
-            </span>
-
-            <span class="
-                tag
-                tag-topic
-            ">
-                {topic}
-            </span>
-
-            <span class="
-                tag
-                tag-source
-            ">
-                {country}
-            </span>
-
-            <span class="
-                tag
-                tag-time
-            ">
-                🕒 {published_at}
-            </span>
-
-            <span class="
-                tag
-                tag-time
-            ">
-                Relevance: {relevance}/100
-            </span>
-
-        </div>
-        """)
-
-
-        st.title(
-            str(
-                article["title"]
-            )
-        )
-
-
-        article_image = (
-            image_html(
-                article["image_url"],
-                height="420px",
-            )
-        )
-
-
-        if article_image:
-
-            render_html(f"""
-            <div style="
-                margin-top:12px;
-                margin-bottom:20px;
-            ">
-                {article_image}
-            </div>
-            """)
-
-
-        article_content = safe(
-            article[
-                "full_content"
-            ]
-        )
-
-
-        render_html(f"""
-        <div style="
-            font-size:1.12rem;
-            line-height:1.8;
-            color:#e2e8f0;
-            background:#111827;
-            padding:30px;
-            border-radius:10px;
-            border:
-                1px solid
-                rgba(56,189,248,0.2);
-            border-left:
-                4px solid #0284c7;
-            white-space:pre-line;
-        ">
-            {article_content}
-        </div>
-        """)
-
-
-    else:
+    if article_df.empty:
 
         st.session_state[
             "reading_article_id"
@@ -898,26 +609,118 @@ if (
         st.rerun()
 
 
+    article = article_df.iloc[0]
+
+
+    back_col, source_col = (
+        st.columns(2)
+    )
+
+
+    with back_col:
+
+        if st.button(
+            "← Back to Newsroom",
+            use_container_width=True,
+        ):
+
+            st.session_state[
+                "reading_article_id"
+            ] = None
+
+            st.rerun()
+
+
+    with source_col:
+
+        st.link_button(
+            "🔗 Open Original Source ↗",
+            article["url"],
+            use_container_width=True,
+        )
+
+
+    render_html(f"""
+    <div style="
+        margin-top:12px;
+        margin-bottom:10px;
+    ">
+
+        <span class="tag tag-source">
+            📰 {safe(article['source_name'])}
+        </span>
+
+        <span class="tag tag-topic">
+            {safe(article['sentiment'])}
+        </span>
+
+        <span class="tag tag-source">
+            {safe(article['country'])}
+        </span>
+
+        <span class="tag tag-time">
+            🕒 {safe(article['published_at'])}
+        </span>
+
+        <span class="tag tag-time">
+            Score:
+            {safe(article['priority'])}
+        </span>
+
+    </div>
+    """)
+
+
+    st.title(
+        str(article["title"])
+    )
+
+
+    reader_image = image_html(
+        article["image_url"],
+        height="460px",
+    )
+
+
+    if reader_image:
+
+        render_html(
+            reader_image
+        )
+
+
+    render_html(f"""
+    <div style="
+        font-size:1.12rem;
+        line-height:1.8;
+        color:#e2e8f0;
+        background:#111827;
+        padding:30px;
+        border-radius:10px;
+        border:
+            1px solid
+            rgba(56,189,248,0.2);
+        border-left:
+            4px solid #0284c7;
+        white-space:pre-line;
+    ">
+        {safe(article['full_content'])}
+    </div>
+    """)
+
+
 # =========================================================
 # DASHBOARD
 # =========================================================
 
 else:
 
-    (
-        col_title,
-        col_view,
-        col_sync,
-    ) = st.columns(
-        [5, 4, 3]
+    title_col, view_col, sync_col = (
+        st.columns([5, 4, 3])
     )
 
 
-    # -----------------------------------------------------
-    # TITLE
-    # -----------------------------------------------------
-
-    with col_title:
+    with title_col:
 
         st.markdown(
             "## Global Intelligence Desk"
@@ -929,11 +732,7 @@ else:
         )
 
 
-    # -----------------------------------------------------
-    # VIEW
-    # -----------------------------------------------------
-
-    with col_view:
+    with view_col:
 
         selected_view = st.radio(
             "View",
@@ -955,17 +754,12 @@ else:
             label_visibility="collapsed",
         )
 
-
         st.session_state[
             "view_mode"
         ] = selected_view
 
 
-    # -----------------------------------------------------
-    # MANUAL SYNC
-    # -----------------------------------------------------
-
-    with col_sync:
+    with sync_col:
 
         if st.button(
             "🔄 Sync & Refresh Feeds",
@@ -973,7 +767,7 @@ else:
         ):
 
             with st.spinner(
-                "Synchronizing intelligence feeds..."
+                "Synchronizing feeds..."
             ):
 
                 try:
@@ -987,7 +781,6 @@ else:
                     st.cache_data.clear()
 
                     st.success(
-                        f"Sync complete. "
                         f"{new_count} "
                         f"new reports added."
                     )
@@ -995,7 +788,7 @@ else:
                 except Exception as error:
 
                     st.error(
-                        "Feed synchronization failed."
+                        "Feed sync failed."
                     )
 
                     print(
@@ -1008,70 +801,70 @@ else:
 
 
     # =====================================================
-    # ZONES
+    # NAVIGATION
     # =====================================================
 
     NAV_ZONES = [
-        {
-            "label": "All",
-            "val": "All",
-            "flag":
-                "https://flagcdn.com/w40/un.png",
-        },
-        {
-            "label": "Iran",
-            "val": "Iran",
-            "flag":
-                "https://flagcdn.com/w40/ir.png",
-        },
-        {
-            "label": "Saudi Arabia",
-            "val": "Saudi Arabia",
-            "flag":
-                "https://flagcdn.com/w40/sa.png",
-        },
-        {
-            "label": "UAE",
-            "val": "UAE",
-            "flag":
-                "https://flagcdn.com/w40/ae.png",
-        },
-        {
-            "label": "Yemen",
-            "val": "Yemen",
-            "flag":
-                "https://flagcdn.com/w40/ye.png",
-        },
-        {
-            "label": "Syria",
-            "val": "Syria",
-            "flag":
-                "https://flagcdn.com/w40/sy.png",
-        },
-        {
-            "label": "Iraq",
-            "val": "Iraq",
-            "flag":
-                "https://flagcdn.com/w40/iq.png",
-        },
-        {
-            "label": "Gaza & WB",
-            "val": "Gaza & WB",
-            "flag":
-                "https://flagcdn.com/w40/ps.png",
-        },
-        {
-            "label": "Israel",
-            "val": "Israel",
-            "flag":
-                "https://flagcdn.com/w40/il.png",
-        },
-        {
-            "label": "US & Global",
-            "val": "US & Global",
-            "flag":
-                "https://flagcdn.com/w40/us.png",
-        },
+
+        (
+            "All",
+            "All",
+            "https://flagcdn.com/w40/un.png",
+        ),
+
+        (
+            "Iran",
+            "Iran",
+            "https://flagcdn.com/w40/ir.png",
+        ),
+
+        (
+            "Saudi Arabia",
+            "Saudi Arabia",
+            "https://flagcdn.com/w40/sa.png",
+        ),
+
+        (
+            "UAE",
+            "UAE",
+            "https://flagcdn.com/w40/ae.png",
+        ),
+
+        (
+            "Yemen",
+            "Yemen",
+            "https://flagcdn.com/w40/ye.png",
+        ),
+
+        (
+            "Syria",
+            "Syria",
+            "https://flagcdn.com/w40/sy.png",
+        ),
+
+        (
+            "Iraq",
+            "Iraq",
+            "https://flagcdn.com/w40/iq.png",
+        ),
+
+        (
+            "Gaza & WB",
+            "Gaza & WB",
+            "https://flagcdn.com/w40/ps.png",
+        ),
+
+        (
+            "Israel",
+            "Israel",
+            "https://flagcdn.com/w40/il.png",
+        ),
+
+        (
+            "US & Global",
+            "US & Global",
+            "https://flagcdn.com/w40/us.png",
+        ),
     ]
 
 
@@ -1080,42 +873,42 @@ else:
     )
 
 
-    for index, zone in enumerate(
+    for index, (
+        label,
+        value,
+        flag,
+    ) in enumerate(
         NAV_ZONES
     ):
 
         with nav_columns[index]:
 
-            is_active = (
-                st.session_state[
-                    "selected_country"
-                ]
-                == zone["val"]
+            render_html(
+                f"""
+                <div style="
+                    text-align:center;
+                    margin-bottom:2px;
+                ">
+                    <img
+                        src="{flag}"
+                        width="24"
+                    >
+                </div>
+                """
             )
 
 
-            render_html(f"""
-            <div style="
-                text-align:center;
-                margin-bottom:2px;
-            ">
-                <img
-                    src="{zone['flag']}"
-                    width="24"
-                    style="
-                        border-radius:3px;
-                    "
-                />
-            </div>
-            """)
-
-
             if st.button(
-                zone["label"],
-                key=f"zone_{zone['val']}",
+                label,
+                key=f"zone_{value}",
                 type=(
                     "primary"
-                    if is_active
+                    if (
+                        st.session_state[
+                            "selected_country"
+                        ]
+                        == value
+                    )
                     else "secondary"
                 ),
                 use_container_width=True,
@@ -1123,7 +916,7 @@ else:
 
                 st.session_state[
                     "selected_country"
-                ] = zone["val"]
+                ] = value
 
                 st.rerun()
 
@@ -1173,15 +966,14 @@ else:
 
         st.markdown(
             f"### 🖥️ Analytics Archive "
-            f"({len(filtered_df):,} reports)"
+            f"({len(filtered_df):,})"
         )
 
 
-        search_query = st.text_input(
+        search = st.text_input(
             "Search archive:",
             placeholder=(
-                "Search title, "
-                "source or summary..."
+                "Search title, source, summary..."
             ),
         )
 
@@ -1191,26 +983,14 @@ else:
         )
 
 
-        if search_query:
+        if search:
 
-            table_df = table_df[
+            mask = (
 
                 table_df["title"]
                 .fillna("")
                 .str.contains(
-                    search_query,
-                    case=False,
-                    na=False,
-                )
-
-                |
-
-                table_df[
-                    "source_name"
-                ]
-                .fillna("")
-                .str.contains(
-                    search_query,
+                    search,
                     case=False,
                     na=False,
                 )
@@ -1220,14 +1000,28 @@ else:
                 table_df["summary"]
                 .fillna("")
                 .str.contains(
-                    search_query,
+                    search,
                     case=False,
                     na=False,
                 )
-            ]
+
+                |
+
+                table_df["source_name"]
+                .fillna("")
+                .str.contains(
+                    search,
+                    case=False,
+                    na=False,
+                )
+            )
+
+            table_df = (
+                table_df[mask]
+            )
 
 
-        display_table = table_df[
+        display_df = table_df[
             [
                 "published_at",
                 "country",
@@ -1240,27 +1034,27 @@ else:
         ].copy()
 
 
-        display_table.columns = [
+        display_df.columns = [
             "Published",
             "Zone",
             "Source",
             "Topic",
-            "Relevance",
+            "Score",
             "Title",
             "URL",
         ]
 
 
         st.dataframe(
-            display_table,
+            display_df,
             use_container_width=True,
-            height=550,
+            height=600,
             hide_index=True,
         )
 
 
     # =====================================================
-    # MAIN FEED
+    # NEWS FEED
     # =====================================================
 
     else:
@@ -1268,17 +1062,16 @@ else:
         if filtered_df.empty:
 
             st.info(
-                f"No intelligence reports "
-                f"currently indexed for "
-                f"{selected_zone}."
+                f"No reports indexed "
+                f"for {selected_zone}."
             )
 
 
         else:
 
-            # =================================================
+            # =============================================
             # LEAD STORY
-            # =================================================
+            # =============================================
 
             lead = (
                 filtered_df.iloc[0]
@@ -1287,36 +1080,7 @@ else:
 
             lead_image = image_html(
                 lead["image_url"],
-                height="380px",
-            )
-
-
-            lead_source = safe(
-                lead["source_name"]
-            )
-
-            lead_country = safe(
-                lead["country"]
-            )
-
-            lead_time = safe(
-                lead["published_at"]
-            )
-
-            lead_topic = safe(
-                lead["sentiment"]
-            )
-
-            lead_title = safe(
-                lead["title"]
-            )
-
-            lead_summary = safe(
-                lead["summary"]
-            )
-
-            lead_relevance = safe(
-                lead["priority"]
+                height="400px",
             )
 
 
@@ -1324,10 +1088,10 @@ else:
             <div
                 class="card"
                 style="
-                    margin-bottom:24px;
                     border:
                         1px solid
                         rgba(220,38,38,0.4);
+                    margin-bottom:24px;
                 "
             >
 
@@ -1350,7 +1114,7 @@ else:
                             tag-topic
                         "
                     >
-                        {lead_topic}
+                        {safe(lead['sentiment'])}
                     </span>
 
                     <span
@@ -1359,8 +1123,8 @@ else:
                             tag-source
                         "
                     >
-                        📰 {lead_source}
-                        ({lead_country})
+                        📰
+                        {safe(lead['source_name'])}
                     </span>
 
                     <span
@@ -1369,7 +1133,8 @@ else:
                             tag-time
                         "
                     >
-                        🕒 {lead_time}
+                        🕒
+                        {safe(lead['published_at'])}
                     </span>
 
                     <span
@@ -1378,8 +1143,7 @@ else:
                             tag-time
                         "
                     >
-                        Score:
-                        {lead_relevance}
+                        {safe(lead['priority'])}
                     </span>
 
                 </div>
@@ -1389,9 +1153,9 @@ else:
                     margin:12px 0 8px 0;
                     font-size:1.8rem;
                     font-weight:800;
-                    color:#ffffff;
+                    color:white;
                 ">
-                    {lead_title}
+                    {safe(lead['title'])}
                 </h2>
 
 
@@ -1399,19 +1163,20 @@ else:
                     color:#94a3b8;
                     font-size:1.05rem;
                     line-height:1.6;
-                    margin-bottom:15px;
                 ">
-                    {lead_summary}
+                    {safe(lead['summary'])}
                 </p>
 
             </div>
             """)
 
 
-            b1, b2 = st.columns(2)
+            lead_b1, lead_b2 = (
+                st.columns(2)
+            )
 
 
-            with b1:
+            with lead_b1:
 
                 if st.button(
                     "📖 Read Report ←",
@@ -1430,7 +1195,7 @@ else:
                     st.rerun()
 
 
-            with b2:
+            with lead_b2:
 
                 st.link_button(
                     "🔗 Open Original Source ↗",
@@ -1439,21 +1204,17 @@ else:
                 )
 
 
-            # =================================================
+            # =============================================
             # GRID
-            # =================================================
+            # =============================================
 
-            remaining_articles = (
-                filtered_df[
-                    filtered_df["id"]
-                    != lead["id"]
-                ]
-            )
+            remaining = filtered_df[
+                filtered_df["id"]
+                != lead["id"]
+            ]
 
 
-            if (
-                not remaining_articles.empty
-            ):
+            if not remaining.empty:
 
                 st.markdown(
                     f"### Zone Feed & Reports "
@@ -1466,65 +1227,33 @@ else:
                 )
 
 
-                for grid_index, (
+                for position, (
                     _,
-                    article,
+                    article_row,
                 ) in enumerate(
-                    remaining_articles
+                    remaining
                     .head(30)
                     .iterrows()
                 ):
 
+
                     with grid_columns[
-                        grid_index % 3
+                        position % 3
                     ]:
 
-                        article_image = (
-                            image_html(
-                                article[
-                                    "image_url"
-                                ]
-                            )
-                        )
 
-
-                        article_source = safe(
-                            article[
-                                "source_name"
-                            ]
-                        )
-
-                        article_time = safe(
-                            article[
-                                "published_at"
-                            ]
-                        )
-
-                        article_title = safe(
-                            article["title"]
-                        )
-
-                        article_summary = safe(
-                            article["summary"]
-                        )
-
-                        article_topic = safe(
-                            article[
-                                "sentiment"
-                            ]
-                        )
-
-                        article_score = safe(
-                            article[
-                                "priority"
-                            ]
+                        card_image = image_html(
+                            article_row[
+                                "image_url"
+                            ],
+                            height="230px",
                         )
 
 
                         render_html(f"""
                         <div class="card">
 
-                            {article_image}
+                            {card_image}
 
                             <div>
 
@@ -1534,7 +1263,11 @@ else:
                                         tag-source
                                     "
                                 >
-                                    {article_source}
+                                    {safe(
+                                        article_row[
+                                            'source_name'
+                                        ]
+                                    )}
                                 </span>
 
                                 <span
@@ -1543,7 +1276,11 @@ else:
                                         tag-topic
                                     "
                                 >
-                                    {article_topic}
+                                    {safe(
+                                        article_row[
+                                            'sentiment'
+                                        ]
+                                    )}
                                 </span>
 
                                 <span
@@ -1553,7 +1290,11 @@ else:
                                     "
                                 >
                                     🕒
-                                    {article_time}
+                                    {safe(
+                                        article_row[
+                                            'published_at'
+                                        ]
+                                    )}
                                 </span>
 
                                 <span
@@ -1562,7 +1303,11 @@ else:
                                         tag-time
                                     "
                                 >
-                                    {article_score}
+                                    {safe(
+                                        article_row[
+                                            'priority'
+                                        ]
+                                    )}
                                 </span>
 
                             </div>
@@ -1570,55 +1315,68 @@ else:
 
                             <div style="
                                 font-weight:700;
-                                font-size:1.02rem;
+                                font-size:1.05rem;
                                 margin:10px 0;
                                 line-height:1.4;
-                                color:#ffffff;
+                                color:white;
                             ">
-                                {article_title}
+                                {safe(
+                                    article_row[
+                                        'title'
+                                    ]
+                                )}
                             </div>
 
 
                             <p style="
                                 color:#94a3b8;
-                                font-size:0.85rem;
-                                line-height:1.5;
-                                margin-bottom:12px;
+                                font-size:0.9rem;
+                                line-height:1.55;
                             ">
-                                {article_summary}
+                                {safe(
+                                    article_row[
+                                        'summary'
+                                    ]
+                                )}
                             </p>
 
                         </div>
                         """)
 
 
-                        cb1, cb2 = (
+                        button_1, button_2 = (
                             st.columns(2)
                         )
 
 
-                        with cb1:
+                        with button_1:
 
                             if st.button(
                                 "Read ←",
                                 key=(
-                                    f"grid_read_"
-                                    f"{article['id']}"
+                                    f"read_"
+                                    f"{article_row['id']}"
                                 ),
                                 use_container_width=True,
                             ):
 
                                 st.session_state[
                                     "reading_article_id"
-                                ] = article["id"]
+                                ] = (
+                                    article_row[
+                                        "id"
+                                    ]
+                                )
 
                                 st.rerun()
 
 
-                        with cb2:
+                        with button_2:
 
                             st.link_button(
                                 "Source ↗",
-                                article["url"],
+                                article_row[
+                                    "url"
+                                ],
                                 use_container_width=True,
                             )
