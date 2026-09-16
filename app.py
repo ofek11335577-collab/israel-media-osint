@@ -11,6 +11,7 @@ from ingestion.fetcher import fetch_live_web_articles
 from services.translator import (
     ensure_hebrew_card_translations,
     ensure_hebrew_full_translation,
+    has_hebrew_text,
 )
 
 
@@ -32,8 +33,6 @@ init_db()
 # SESSION
 # =========================================================
 
-if "language" not in st.session_state:
-    st.session_state.language = "en"
 if "selected_country" not in st.session_state:
     st.session_state.selected_country = "All"
 if "reading_article_id" not in st.session_state:
@@ -41,7 +40,12 @@ if "reading_article_id" not in st.session_state:
 if "view_mode" not in st.session_state:
     st.session_state.view_mode = "dashboard"
 
-LANG = st.session_state.language
+# Language is kept in the URL so the switch behaves like a real link and
+# survives Streamlit reruns. English remains the default.
+query_lang = st.query_params.get("lang", "en")
+if isinstance(query_lang, list):
+    query_lang = query_lang[0] if query_lang else "en"
+LANG = query_lang if query_lang in {"en", "he"} else "en"
 IS_HE = LANG == "he"
 
 
@@ -82,6 +86,9 @@ UI = {
         "minutes_ago": "min ago",
         "hours_ago": "h ago",
         "days_ago": "d ago",
+        "system_online": "SYSTEM ONLINE",
+        "live_rss": "LIVE RSS",
+        "source_col": "Source",
     },
     "he": {
         "desk_title": "דסק מודיעין תקשורת עולמי",
@@ -115,6 +122,9 @@ UI = {
         "minutes_ago": "דק׳",
         "hours_ago": "שע׳",
         "days_ago": "ימים",
+        "system_online": "המערכת פעילה",
+        "live_rss": "RSS חי",
+        "source_col": "מקור",
     },
 }[LANG]
 
@@ -157,6 +167,33 @@ COUNTRY_FLAGS = {
     "US & Global": "🇺🇸",
 }
 
+SOURCE_TRANSLATIONS = {
+    "Reuters World": "רויטרס עולם",
+    "Associated Press": "אסושייטד פרס",
+    "Al Jazeera English": "אל ג׳זירה באנגלית",
+    "BBC Middle East": "BBC המזרח התיכון",
+    "The Guardian Middle East": "הגרדיאן המזרח התיכון",
+    "France 24 Middle East": "France 24 המזרח התיכון",
+    "Deutsche Welle": "דויטשה ולה",
+    "Middle East Eye": "Middle East Eye",
+    "Asharq Al-Awsat English": "א-שרק אל-אווסט באנגלית",
+    "Anadolu English": "אנאדולו באנגלית",
+    "Jerusalem Post": "ג׳רוזלם פוסט",
+    "Ynetnews": "Ynetnews",
+    "The Times of Israel": "טיימס אוף ישראל",
+    "Haaretz": "הארץ",
+    "IRNA English": "IRNA באנגלית",
+    "Mehr News English": "Mehr News באנגלית",
+    "Iran International": "איראן אינטרנשיונל",
+    "SANA English": "SANA באנגלית",
+    "Saudi Press Agency": "סוכנות הידיעות הסעודית",
+    "Arab News": "Arab News",
+    "Al Arabiya English": "אל-ערביה באנגלית",
+    "The National": "The National",
+    "WAFA English": "WAFA באנגלית",
+    "Rudaw English": "Rudaw באנגלית",
+}
+
 NAV_COUNTRIES = list(COUNTRY_FLAGS.keys())
 
 
@@ -170,10 +207,26 @@ def render_html(content):
     st.markdown(cleaned, unsafe_allow_html=True)
 
 
-def safe(value):
+def text_value(value):
     if value is None:
         return ""
-    return html.escape(str(value), quote=True)
+    try:
+        if pd.isna(value):
+            return ""
+    except Exception:
+        pass
+    return str(value).strip()
+
+
+def safe(value):
+    return html.escape(text_value(value), quote=True)
+
+
+def translated_source(source):
+    source = text_value(source)
+    if IS_HE:
+        return SOURCE_TRANSLATIONS.get(source, source)
+    return source
 
 
 def translated_topic(topic):
@@ -191,21 +244,24 @@ def translated_country(country):
 
 
 def article_title(row):
-    if IS_HE and row.get("title_he"):
-        return row.get("title_he")
-    return row.get("title") or ""
+    translated = text_value(row.get("title_he"))
+    if IS_HE and translated and has_hebrew_text(translated):
+        return translated
+    return text_value(row.get("title"))
 
 
 def article_summary(row):
-    if IS_HE and row.get("summary_he"):
-        return row.get("summary_he")
-    return row.get("summary") or ""
+    translated = text_value(row.get("summary_he"))
+    if IS_HE and translated and has_hebrew_text(translated):
+        return translated
+    return text_value(row.get("summary"))
 
 
 def article_full_content(row):
-    if IS_HE and row.get("full_content_he"):
-        return row.get("full_content_he")
-    return row.get("full_content") or row.get("summary") or ""
+    translated = text_value(row.get("full_content_he"))
+    if IS_HE and translated and has_hebrew_text(translated):
+        return translated
+    return text_value(row.get("full_content")) or text_value(row.get("summary"))
 
 
 def image_html(image_url, height="235px"):
@@ -221,7 +277,7 @@ def image_html(image_url, height="235px"):
 
 
 def framing_badge(value):
-    value = (value or "not_mentioned").strip().lower()
+    value = text_value(value).lower() or "not_mentioned"
 
     if value in {"critical", "hostile"}:
         label = "מסגור ביקורתי כלפי ישראל" if IS_HE else "Israel Framing: Critical"
@@ -477,6 +533,16 @@ div.stButton > button {{
 }}
 div.stButton > button[kind="primary"] {{ background:#0284c7!important; border-color:#38bdf8!important; color:#fff!important; }}
 [data-testid="stLinkButton"] a {{ border-radius:7px!important; }}
+
+.language-switch {{
+    display:flex; align-items:center; justify-content:center; gap:8px;
+    min-height:42px; width:100%; padding:7px 10px; box-sizing:border-box;
+    background:#111827; border:1px solid rgba(56,189,248,.28);
+    border-radius:8px; color:#f8fafc!important; text-decoration:none!important;
+    font-weight:750; font-size:.9rem; margin-top:1px;
+}}
+.language-switch:hover {{ background:#1f2937; border-color:#38bdf8; }}
+.language-switch img {{ width:25px; height:auto; border-radius:3px; }}
 </style>
 """)
 
@@ -492,19 +558,23 @@ with header_left:
     render_html(f"""
     <div class="newsroom-header">
         <div class="newsroom-logo">OSINT <span>DESK</span></div>
-        <div class="system-line">🟢 SYSTEM ONLINE &nbsp;|&nbsp; LIVE RSS &nbsp;|&nbsp; {current_utc}</div>
+        <div class="system-line">🟢 {UI['system_online']} &nbsp;|&nbsp; {UI['live_rss']} &nbsp;|&nbsp; {current_utc}</div>
     </div>
     """)
 
 with header_lang:
     if IS_HE:
-        if st.button("🇺🇸 English", use_container_width=True, key="lang_en"):
-            st.session_state.language = "en"
-            st.rerun()
+        render_html(
+            '<a class="language-switch" href="?lang=en">'
+            '<img src="https://flagcdn.com/w40/us.png" alt="US flag">'
+            '<span>English</span></a>'
+        )
     else:
-        if st.button("🇮🇱 עברית", use_container_width=True, key="lang_he"):
-            st.session_state.language = "he"
-            st.rerun()
+        render_html(
+            '<a class="language-switch" href="?lang=he">'
+            '<img src="https://flagcdn.com/w40/il.png" alt="Israel flag">'
+            '<span>עברית</span></a>'
+        )
 
 
 # =========================================================
@@ -533,7 +603,7 @@ if not df.empty:
         rowd = row.to_dict()
         ticker_items.append(
             f'<span class="ticker-item">⚡ '
-            f'<span class="ticker-source">[{safe(rowd.get("source_name"))}]</span> '
+            f'<span class="ticker-source">[{safe(translated_source(rowd.get("source_name")))}]</span> '
             f'{safe(article_title(rowd))}</span>'
         )
 
@@ -578,7 +648,7 @@ if st.session_state.reading_article_id is not None:
         )
 
     tags = (
-        f'<span class="tag tag-source">📰 {safe(row.get("source_name"))}</span>'
+        f'<span class="tag tag-source">📰 {safe(translated_source(row.get("source_name")))}</span>'
         f'<span class="tag tag-topic">{safe(translated_topic(row.get("topic")))}</span>'
         f'{framing_badge(row.get("israel_framing"))}'
         f'<span class="tag tag-source">{safe(translated_country(row.get("country")))}</span>'
@@ -804,7 +874,7 @@ if st.session_state.view_mode == "analytics":
         table = pd.DataFrame({
             UI["published"]: [format_date(x) for x in filtered["_published_dt"]],
             UI["zone"]: [translated_country(x) for x in filtered["country"]],
-            "Source": filtered["source_name"],
+            UI["source_col"]: [translated_source(x) for x in filtered["source_name"]],
             UI["topic"]: [translated_topic(x) for x in filtered["topic"]],
             UI["framing"]: filtered["israel_framing"].replace({
                 "critical": "Critical" if not IS_HE else "ביקורתי",
@@ -838,7 +908,7 @@ render_html(f"""
         <span class="tag tag-breaking">{safe(UI['latest_report'])}</span>
         <span class="tag tag-topic">{safe(translated_topic(lead.get('topic')))}</span>
         {framing_badge(lead.get('israel_framing'))}
-        <span class="tag tag-source">📰 {safe(lead.get('source_name'))}</span>
+        <span class="tag tag-source">📰 {safe(translated_source(lead.get('source_name')))}</span>
         <span class="tag tag-time">🕒 {safe(lead_fresh or format_date(lead.get('_published_dt')))}</span>
     </div>
     <div class="lead-title">{safe(article_title(lead))}</div>
@@ -869,7 +939,7 @@ if not remaining.empty:
             <div class="card">
                 {img}
                 <div>
-                    <span class="tag tag-source">{safe(row.get('source_name'))}</span>
+                    <span class="tag tag-source">{safe(translated_source(row.get('source_name')))}</span>
                     <span class="tag tag-topic">{safe(translated_topic(row.get('topic')))}</span>
                     {framing_badge(row.get('israel_framing'))}
                     <span class="tag tag-time">🕒 {safe(fresh or format_date(row.get('_published_dt')))}</span>

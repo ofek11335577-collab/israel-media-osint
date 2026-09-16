@@ -21,7 +21,8 @@ RSS_TIMEOUT = 6
 ARTICLE_TIMEOUT = 4
 MAX_ITEMS_PER_SOURCE = 22
 MAX_FEED_WORKERS = 10
-MAX_ARTICLE_ENRICHMENTS = 12
+MAX_ARTICLE_ENRICHMENTS = 18
+AUTO_ARTICLE_ENRICHMENTS = 3
 ARTICLE_ENRICH_WORKERS = 6
 MIN_RELEVANCE_SCORE = 34
 MAX_FULL_CONTENT_CHARS = 8000
@@ -50,6 +51,13 @@ RSS_CHANNELS = [
         "domestic_country": None,
     },
     {
+        "name": "Associated Press",
+        "urls": [google_news_feed("apnews.com", 2)],
+        "source_type": "international",
+        "source_country": "United States",
+        "domestic_country": None,
+    },
+    {
         "name": "Al Jazeera English",
         "urls": ["https://www.aljazeera.com/xml/rss/all.xml"],
         "source_type": "international",
@@ -74,10 +82,38 @@ RSS_CHANNELS = [
         "name": "France 24 Middle East",
         "urls": [
             "https://www.france24.com/en/middle-east/rss",
-            "https://www.france24.com/en/tag/middle-east/rss",
+            google_news_feed("france24.com", 2),
         ],
         "source_type": "international",
         "source_country": "France",
+        "domestic_country": None,
+    },
+    {
+        "name": "Deutsche Welle",
+        "urls": [google_news_feed("dw.com", 2)],
+        "source_type": "international",
+        "source_country": "Germany",
+        "domestic_country": None,
+    },
+    {
+        "name": "Middle East Eye",
+        "urls": [google_news_feed("middleeasteye.net", 2)],
+        "source_type": "regional",
+        "source_country": "United Kingdom",
+        "domestic_country": None,
+    },
+    {
+        "name": "Asharq Al-Awsat English",
+        "urls": [google_news_feed("english.aawsat.com", 2)],
+        "source_type": "regional",
+        "source_country": "Saudi Arabia",
+        "domestic_country": None,
+    },
+    {
+        "name": "Anadolu English",
+        "urls": [google_news_feed("aa.com.tr", 2)],
+        "source_type": "regional",
+        "source_country": "Turkey",
         "domestic_country": None,
     },
     {
@@ -108,15 +144,22 @@ RSS_CHANNELS = [
         "domestic_country": "Israel",
     },
     {
+        "name": "Haaretz",
+        "urls": [google_news_feed("haaretz.com", 2)],
+        "source_type": "domestic",
+        "source_country": "Israel",
+        "domestic_country": "Israel",
+    },
+    {
         "name": "IRNA English",
-        "urls": ["https://en.irna.ir/rss"],
+        "urls": ["https://en.irna.ir/rss", google_news_feed("en.irna.ir", 2)],
         "source_type": "domestic",
         "source_country": "Iran",
         "domestic_country": "Iran",
     },
     {
         "name": "Mehr News English",
-        "urls": ["https://en.mehrnews.com/rss"],
+        "urls": ["https://en.mehrnews.com/rss", google_news_feed("en.mehrnews.com", 2)],
         "source_type": "domestic",
         "source_country": "Iran",
         "domestic_country": "Iran",
@@ -130,7 +173,7 @@ RSS_CHANNELS = [
     },
     {
         "name": "SANA English",
-        "urls": ["https://www.sana.sy/en/syria/feed/"],
+        "urls": ["https://www.sana.sy/en/syria/feed/", google_news_feed("sana.sy", 2)],
         "source_type": "domestic",
         "source_country": "Syria",
         "domestic_country": "Syria",
@@ -174,13 +217,14 @@ RSS_CHANNELS = [
         "domestic_country": "Gaza & WB",
     },
     {
-        "name": "Haaretz",
-        "urls": [google_news_feed("haaretz.com", 2)],
+        "name": "Rudaw English",
+        "urls": [google_news_feed("rudaw.net", 2)],
         "source_type": "domestic",
-        "source_country": "Israel",
-        "domestic_country": "Israel",
+        "source_country": "Iraq",
+        "domestic_country": "Iraq",
     },
 ]
+
 
 
 # =========================================================
@@ -417,70 +461,96 @@ def calculate_relevance_score(title, summary, country, topic, source_type):
 # =========================================================
 # ISRAEL FRAMING SIGNALS
 # =========================================================
-# The classifier describes textual framing signals in the article. It does not
-# assign a fixed political stance to an outlet and does not infer a journalist's
-# private beliefs from the publisher alone.
+# This classifier describes the framing present in the text. It does not infer
+# a journalist's private political beliefs and it does not hard-code an outlet
+# as supportive/critical. Source type only affects confidence slightly; the
+# direction still has to come from words in the article itself.
 
-ISRAEL_REFERENCES = [
+ISRAEL_DIRECT_REFERENCES = [
     "israel", "israeli", "idf", "israel defense forces", "israel defence forces",
     "netanyahu", "jerusalem", "tel aviv", "zionist",
 ]
 
+ISRAEL_LINKED_ENTITIES = [
+    "gaza", "west bank", "hamas", "hezbollah", "settler", "settlers",
+    "hostage", "hostages", "october 7", "7 october", "golan heights",
+]
+
+ISRAEL_LINKED_ACTIONS = [
+    "war", "strike", "airstrike", "attack", "bombing", "bombardment", "ceasefire",
+    "raid", "military", "rocket", "missile", "killed", "wounded", "displaced",
+    "occupation", "blockade", "siege", "annexation", "border", "hostage",
+]
+
 CRITICAL_PHRASES = {
-    "ethnic cleansing": 7,
-    "genocide": 6,
-    "genocidal": 6,
-    "apartheid": 6,
-    "collective punishment": 6,
-    "war crimes": 5,
-    "war crime": 5,
-    "israeli aggression": 5,
-    "israeli atrocities": 6,
-    "israeli crimes": 5,
-    "israeli massacre": 6,
-    "massacre by israel": 6,
-    "brutal occupation": 5,
-    "illegal occupation": 4,
-    "occupation forces": 4,
-    "deliberately targeting civilians": 6,
-    "deliberate attack on civilians": 6,
-    "indiscriminate bombing": 5,
-    "indiscriminate attacks": 5,
-    "starvation as a weapon": 6,
-    "forced displacement": 4,
-    "settler violence": 4,
-    "illegal settlements": 4,
-    "siege of gaza": 4,
-    "blockade of gaza": 4,
-    "annexation": 3,
-    "far-right israeli": 3,
+    "ethnic cleansing": 8,
+    "genocide": 7,
+    "genocidal": 7,
+    "apartheid": 7,
+    "collective punishment": 7,
+    "war crimes": 6,
+    "war crime": 6,
+    "israeli aggression": 6,
+    "israeli atrocities": 7,
+    "israeli crimes": 6,
+    "israeli massacre": 7,
+    "massacre by israel": 7,
+    "brutal occupation": 6,
+    "illegal occupation": 5,
+    "occupation forces": 5,
+    "deliberately targeting civilians": 7,
+    "deliberate attack on civilians": 7,
+    "indiscriminate bombing": 6,
+    "indiscriminate attacks": 6,
+    "starvation as a weapon": 7,
+    "forced displacement": 5,
+    "settler violence": 5,
+    "illegal settlements": 5,
+    "siege of gaza": 5,
+    "blockade of gaza": 5,
+    "war on gaza": 4,
+    "far-right israeli": 4,
+    "israeli-hit": 4,
+    "israeli strike killed": 5,
+    "israeli strikes killed": 5,
+    "israeli forces killed": 5,
+    "israeli forces shot": 5,
+    "israeli bombardment": 5,
+    "israeli siege": 5,
 }
 
 SUPPORTIVE_PHRASES = {
-    "right to defend itself": 7,
-    "right to self-defense": 7,
-    "right to self defence": 7,
-    "israel's right to exist": 7,
-    "israel has the right to exist": 7,
-    "legitimate security concerns": 6,
-    "israel's security needs": 5,
-    "israeli security needs": 5,
-    "defending israel": 5,
-    "protect israeli civilians": 6,
-    "protecting israeli civilians": 6,
-    "terrorist attack on israel": 5,
-    "terror attack on israel": 5,
-    "terrorist attack against israel": 5,
-    "rocket fire on israel": 4,
-    "missile attack on israel": 4,
-    "hamas-led attack": 4,
-    "october 7 attack": 4,
-    "hostages rescued": 4,
-    "rescued hostages": 4,
-    "hostage rescue": 4,
-    "intercepted missiles": 3,
-    "intercepted rockets": 3,
+    "right to defend itself": 8,
+    "right to self-defense": 8,
+    "right to self defence": 8,
+    "israel's right to exist": 8,
+    "israel has the right to exist": 8,
+    "legitimate security concerns": 7,
+    "israel's security needs": 6,
+    "israeli security needs": 6,
+    "defending israel": 6,
+    "protect israeli civilians": 7,
+    "protecting israeli civilians": 7,
+    "terrorist attack on israel": 6,
+    "terror attack on israel": 6,
+    "terrorist attack against israel": 6,
+    "rocket fire on israel": 5,
+    "missile attack on israel": 5,
+    "missiles fired at israel": 5,
+    "rockets fired at israel": 5,
+    "hamas attack on israel": 5,
+    "hamas-led attack": 5,
+    "october 7 attack": 5,
+    "7 october attack": 5,
+    "hostages held by hamas": 5,
+    "hostages kidnapped": 5,
+    "hostages rescued": 5,
+    "rescued hostages": 5,
+    "intercepted missiles": 4,
+    "intercepted rockets": 4,
     "thwarted attack": 4,
+    "targeted militants": 3,
+    "hamas militants": 3,
 }
 
 CRITICAL_CONTEXT = {
@@ -489,47 +559,71 @@ CRITICAL_CONTEXT = {
     "blockade": 2,
     "starvation": 3,
     "displacement": 2,
+    "displaced": 2,
     "settler violence": 3,
-    "civilian deaths": 2,
+    "civilian deaths": 3,
+    "civilians killed": 3,
     "killed civilians": 3,
+    "children killed": 3,
     "human rights abuses": 3,
     "annexation": 2,
     "unlawful": 2,
     "indiscriminate": 3,
+    "bombardment": 2,
+    "destroyed": 1,
+    "devastation": 2,
+    "aid restrictions": 2,
+    "aid blocked": 3,
+    "killed": 1,
 }
 
 SUPPORTIVE_CONTEXT = {
-    "terrorist": 2,
-    "terror attack": 3,
+    "terrorist": 3,
+    "terror attack": 4,
     "security threat": 3,
-    "self-defense": 4,
-    "self defence": 4,
+    "self-defense": 5,
+    "self defence": 5,
     "hostage": 2,
     "hostages": 2,
-    "rocket fire": 2,
-    "missile fire": 2,
-    "intercepted": 2,
-    "militants": 1,
-    "armed attackers": 2,
+    "rocket fire": 3,
+    "missile fire": 3,
+    "intercepted": 3,
+    "militants": 2,
+    "armed attackers": 3,
+    "hamas fighters": 2,
+    "october 7": 2,
+    "7 october": 2,
 }
 
 ATTRIBUTION_MARKERS = [
     "accused", "accuses", "according to", "alleged", "alleges", "claimed", "claims",
     "rights group says", "un says", "officials say", "ministry says", "report says",
+    "prosecutors say", "critics say", "activists say",
 ]
 
 REJECTION_MARKERS = [
-    "rejects", "rejected", "denies", "denied", "disputes", "disputed", "dismisses", "dismissed",
+    "rejects", "rejected", "denies", "denied", "disputes", "disputed",
+    "dismisses", "dismissed", "calls the allegation false", "says the allegation is false",
 ]
+
+
+def _is_israel_related(text):
+    if any(ref in text for ref in ISRAEL_DIRECT_REFERENCES):
+        return True
+
+    entity_hit = any(entity in text for entity in ISRAEL_LINKED_ENTITIES)
+    action_hit = any(action in text for action in ISRAEL_LINKED_ACTIONS)
+    return entity_hit and action_hit
 
 
 def _weighted_phrase_score(text, weighted_phrases):
     return sum(weight for phrase, weight in weighted_phrases.items() if phrase in text)
 
 
-def _reference_windows(text, radius=180):
+def _reference_windows(text, radius=220):
     windows = []
-    for ref in ISRAEL_REFERENCES:
+    refs = ISRAEL_DIRECT_REFERENCES + ISRAEL_LINKED_ENTITIES
+    for ref in refs:
         start = 0
         while True:
             idx = text.find(ref, start)
@@ -550,28 +644,41 @@ def _context_score(windows, weighted_terms):
 def _discount_attributed_or_rejected(text, weighted_phrases):
     discount = 0
     for phrase, weight in weighted_phrases.items():
-        idx = text.find(phrase)
-        if idx == -1:
-            continue
-        context = text[max(0, idx - 100): min(len(text), idx + len(phrase) + 80)]
-        if any(marker in context for marker in REJECTION_MARKERS):
-            discount += weight
-        elif any(marker in context for marker in ATTRIBUTION_MARKERS):
-            discount += max(1, weight // 2)
+        search_from = 0
+        while True:
+            idx = text.find(phrase, search_from)
+            if idx == -1:
+                break
+            context = text[max(0, idx - 120): min(len(text), idx + len(phrase) + 100)]
+            if any(marker in context for marker in REJECTION_MARKERS):
+                # Explicit rejection/denial should cancel both the normal
+                # phrase score and the extra headline weight when applicable.
+                discount += weight * 2
+            elif any(marker in context for marker in ATTRIBUTION_MARKERS):
+                discount += max(1, weight // 3)
+            search_from = idx + len(phrase)
     return discount
 
 
-def classify_israel_framing(title, summary, full_content=""):
+def classify_israel_framing(
+    title,
+    summary,
+    full_content="",
+    source_name="",
+    source_type="international",
+    source_country="",
+):
     text = f"{title or ''}. {summary or ''}. {full_content or ''}".lower()
     title_text = (title or "").lower()
 
-    if not any(ref in text for ref in ISRAEL_REFERENCES):
+    if not _is_israel_related(text):
         return "not_mentioned", ""
 
     critical = _weighted_phrase_score(text, CRITICAL_PHRASES)
     supportive = _weighted_phrase_score(text, SUPPORTIVE_PHRASES)
 
-    # Headline framing has extra weight because it is editorially prominent.
+    # Headline framing is editorially prominent, so explicit signals in a
+    # headline count twice.
     critical += _weighted_phrase_score(title_text, CRITICAL_PHRASES)
     supportive += _weighted_phrase_score(title_text, SUPPORTIVE_PHRASES)
 
@@ -582,16 +689,22 @@ def classify_israel_framing(title, summary, full_content=""):
     critical = max(0, critical - _discount_attributed_or_rejected(text, CRITICAL_PHRASES))
     supportive = max(0, supportive - _discount_attributed_or_rejected(text, SUPPORTIVE_PHRASES))
 
-    # Provide auditable evidence rather than relying on an outlet-level prior.
-    critical_hits = [p for p in CRITICAL_PHRASES if p in text][:4]
-    supportive_hits = [p for p in SUPPORTIVE_PHRASES if p in text][:4]
+    # Source type is used only as a confidence adjustment. We deliberately do
+    # not say "outlet X is automatically critical/supportive" because an outlet
+    # can publish straight news, analysis, interviews and opinion pieces.
+    threshold = 5
+    if source_type == "domestic" and max(critical, supportive) >= 4:
+        threshold = 4
 
-    if critical >= 4 and critical >= supportive + 2:
-        evidence = ", ".join(critical_hits) or "critical framing terms near Israel references"
+    critical_hits = [p for p in CRITICAL_PHRASES if p in text][:5]
+    supportive_hits = [p for p in SUPPORTIVE_PHRASES if p in text][:5]
+
+    if critical >= threshold and critical >= supportive + 2:
+        evidence = ", ".join(critical_hits) or "critical wording around Israel-linked entities"
         return "critical", evidence
 
-    if supportive >= 4 and supportive >= critical + 2:
-        evidence = ", ".join(supportive_hits) or "security/supportive framing terms near Israel references"
+    if supportive >= threshold and supportive >= critical + 2:
+        evidence = ", ".join(supportive_hits) or "security/supportive wording around Israel-linked entities"
         return "supportive", evidence
 
     return "neutral", "mixed or primarily descriptive wording"
@@ -600,71 +713,81 @@ def classify_israel_framing(title, summary, full_content=""):
 # =========================================================
 # IMAGE HELPERS
 # =========================================================
+# Important: image URLs are never rewritten to a guessed width anymore. Some
+# news CDNs sign their URLs, and changing ?w=... can break an otherwise valid
+# image. We prefer the largest candidate supplied by the feed and replace it
+# with the publisher's og:image during enrichment.
+
 
 def image_candidate_score(url, width=None, height=None):
     score = 0
     try:
         if width:
-            score += min(int(width), 2200)
+            score += min(int(width), 2400)
         if height:
-            score += min(int(height), 1400) // 2
+            score += min(int(height), 1600) // 2
     except Exception:
         pass
 
     low = (url or "").lower()
-    for marker in ["thumbnail", "thumb", "small", "tiny", "120x", "150x", "200x", "240x", "300x", "320x"]:
+    for marker in [
+        "thumbnail", "thumb", "tiny", "small", "120x", "150x", "180x",
+        "200x", "240x", "300x", "320x", "400x",
+    ]:
         if marker in low:
-            score -= 700
+            score -= 800
     for marker in ["1200", "1600", "1920", "2048", "large", "original", "master"]:
         if marker in low:
-            score += 450
+            score += 350
     return score
 
 
-def upgrade_common_image_url(image_url):
-    if not image_url:
-        return image_url
-    try:
-        parts = urlsplit(image_url)
-        query = dict(parse_qsl(parts.query, keep_blank_values=True))
-        changed = False
-        for key in ["w", "width", "imgWidth", "imageWidth"]:
-            if key in query:
-                try:
-                    if int(query[key]) < 1200:
-                        query[key] = "1200"
-                        changed = True
-                except Exception:
-                    pass
-        if changed:
-            return urlunsplit((parts.scheme, parts.netloc, parts.path, urlencode(query), parts.fragment))
-    except Exception:
-        pass
-    return image_url
+def _clean_image_url(url, base_url=""):
+    url = html.unescape((url or "").strip())
+    if not url or url.startswith(("data:", "blob:")):
+        return ""
+    if base_url:
+        url = urljoin(base_url, url)
+    return url if url.startswith(("http://", "https://")) else ""
 
 
-def extract_feed_image(item, raw_description):
+def extract_feed_image(item, raw_description, used_feed_url=""):
     candidates = []
 
+    # Google News RSS usually does not expose the publisher's real article
+    # image. Avoid treating logos/thumbnails from that wrapper as final images.
+    if "news.google.com" in (used_feed_url or ""):
+        return None
+
     for media in item.findall("{http://search.yahoo.com/mrss/}content"):
-        if media.get("url"):
-            candidates.append((media.get("url"), media.get("width"), media.get("height")))
+        url = _clean_image_url(media.get("url"))
+        if url:
+            candidates.append((image_candidate_score(url, media.get("width"), media.get("height")), url))
 
     for media in item.findall("{http://search.yahoo.com/mrss/}thumbnail"):
-        if media.get("url"):
-            candidates.append((media.get("url"), media.get("width"), media.get("height")))
+        url = _clean_image_url(media.get("url"))
+        if url:
+            candidates.append((image_candidate_score(url, media.get("width"), media.get("height")), url))
 
     enclosure = item.find("enclosure")
-    if enclosure is not None and enclosure.get("url"):
-        candidates.append((enclosure.get("url"), None, None))
+    if enclosure is not None:
+        url = _clean_image_url(enclosure.get("url"))
+        if url and (enclosure.get("type") or "").lower().startswith("image"):
+            candidates.append((image_candidate_score(url), url))
 
     if raw_description:
         for url in re.findall(r'<img[^>]+src=["\']([^"\']+)["\']', raw_description, flags=re.I):
-            candidates.append((url, None, None))
+            url = _clean_image_url(url)
+            if url:
+                candidates.append((image_candidate_score(url), url))
+
         for srcset in re.findall(r'srcset=["\']([^"\']+)["\']', raw_description, flags=re.I):
             for piece in srcset.split(","):
                 bits = piece.strip().split()
                 if not bits:
+                    continue
+                url = _clean_image_url(bits[0])
+                if not url:
                     continue
                 width = None
                 if len(bits) > 1 and bits[1].endswith("w"):
@@ -672,30 +795,38 @@ def extract_feed_image(item, raw_description):
                         width = int(bits[1][:-1])
                     except Exception:
                         pass
-                candidates.append((bits[0], width, None))
+                candidates.append((image_candidate_score(url, width, None), url))
 
-    cleaned = []
-    for url, width, height in candidates:
-        url = upgrade_common_image_url(html.unescape((url or "").strip()))
-        if url.startswith(("http://", "https://")):
-            cleaned.append((image_candidate_score(url, width, height), url))
+    if not candidates:
+        return None
 
-    return max(cleaned)[1] if cleaned else None
+    candidates.sort(key=lambda x: x[0], reverse=True)
+    return candidates[0][1]
 
 
 def image_looks_low_quality(image_url):
     if not image_url:
         return True
+
     low = image_url.lower()
-    if any(marker in low for marker in ["thumbnail", "thumb", "tiny", "small", "120x", "150x", "180x", "200x", "240x", "300x", "320x"]):
+    if any(marker in low for marker in [
+        "thumbnail", "thumb", "tiny", "small", "120x", "150x", "180x",
+        "200x", "240x", "300x", "320x", "400x",
+    ]):
         return True
+
     try:
         query = dict(parse_qsl(urlsplit(image_url).query))
         for key in ["w", "width", "imgWidth", "imageWidth"]:
-            if key in query and int(query[key]) < 700:
-                return True
+            if key in query:
+                try:
+                    if int(query[key]) < 700:
+                        return True
+                except Exception:
+                    pass
     except Exception:
         pass
+
     return False
 
 
@@ -758,37 +889,50 @@ def fetch_feed_xml(source):
 # =========================================================
 
 def _best_page_image(soup, article_url):
-    candidates = []
-
+    # Publisher og:image is normally the canonical high-resolution card image.
     selectors = [
         ('meta[property="og:image:secure_url"]', "content"),
         ('meta[property="og:image"]', "content"),
-        ('meta[name="twitter:image"]', "content"),
         ('meta[name="twitter:image:src"]', "content"),
+        ('meta[name="twitter:image"]', "content"),
     ]
 
     for selector, attr in selectors:
         for node in soup.select(selector):
-            value = node.get(attr)
+            value = _clean_image_url(node.get(attr), article_url)
             if value:
-                value = urljoin(article_url, html.unescape(value.strip()))
-                candidates.append((image_candidate_score(value), value))
+                return value
 
+    # Fallback: choose the largest-looking image inside the article itself.
+    candidates = []
     article = soup.find("article") or soup.find("main")
     if article:
-        for img in article.find_all("img")[:12]:
-            value = img.get("src") or img.get("data-src")
-            if not value:
-                continue
-            value = urljoin(article_url, html.unescape(value.strip()))
-            width = img.get("width")
-            height = img.get("height")
-            candidates.append((image_candidate_score(value, width, height), value))
+        for img in article.find_all("img")[:20]:
+            srcset = img.get("srcset") or ""
+            if srcset:
+                for piece in srcset.split(","):
+                    bits = piece.strip().split()
+                    if not bits:
+                        continue
+                    value = _clean_image_url(bits[0], article_url)
+                    width = None
+                    if len(bits) > 1 and bits[1].endswith("w"):
+                        try:
+                            width = int(bits[1][:-1])
+                        except Exception:
+                            pass
+                    if value:
+                        candidates.append((image_candidate_score(value, width, None), value))
+
+            value = _clean_image_url(img.get("src") or img.get("data-src"), article_url)
+            if value:
+                candidates.append((image_candidate_score(value, img.get("width"), img.get("height")), value))
 
     if not candidates:
         return None
-    candidates.sort(reverse=True)
-    return upgrade_common_image_url(candidates[0][1])
+
+    candidates.sort(key=lambda x: x[0], reverse=True)
+    return candidates[0][1]
 
 
 def _extract_article_text(soup):
@@ -854,21 +998,33 @@ def enrich_recent_articles(conn, limit=MAX_ARTICLE_ENRICHMENTS):
     cursor = conn.cursor()
     cursor.execute(
         """
-        SELECT id, url, title, summary, full_content, image_url
+        SELECT id, url, title, summary, full_content, image_url,
+               source_name, source_type, source_country
         FROM articles
         WHERE url IS NOT NULL AND url != ''
-          AND (
-              image_url IS NULL OR image_url = ''
-              OR full_content IS NULL OR LENGTH(full_content) < 700
-          )
         ORDER BY published_at DESC, id DESC
-        LIMIT ?
-        """,
-        (int(limit),),
+        LIMIT 36
+        """
     )
     rows = [dict(row) for row in cursor.fetchall()]
     if not rows:
         return 0
+
+    def enrichment_priority(row):
+        missing_image = not (row.get("image_url") or "").strip()
+        low_image = image_looks_low_quality(row.get("image_url"))
+        short_body = len((row.get("full_content") or "").strip()) < 700
+
+        if missing_image:
+            return 0
+        if low_image:
+            return 1
+        if short_body:
+            return 2
+        return 3
+
+    rows.sort(key=enrichment_priority)
+    rows = rows[:int(limit)]
 
     results = []
     with concurrent.futures.ThreadPoolExecutor(
@@ -885,7 +1041,11 @@ def enrich_recent_articles(conn, limit=MAX_ARTICLE_ENRICHMENTS):
     now = utc_now_iso()
     for result in results:
         cursor.execute(
-            "SELECT title, summary, full_content, image_url FROM articles WHERE id = ?",
+            """
+            SELECT title, summary, full_content, image_url,
+                   source_name, source_type, source_country
+            FROM articles WHERE id = ?
+            """,
             (result["id"],),
         )
         existing = cursor.fetchone()
@@ -893,12 +1053,17 @@ def enrich_recent_articles(conn, limit=MAX_ARTICLE_ENRICHMENTS):
             continue
 
         new_content = result["full_content"] or existing["full_content"] or existing["summary"] or ""
+        # A page-level og:image wins over the feed thumbnail. If extraction
+        # fails, keep the existing feed image.
         new_image = result["image_url"] or existing["image_url"]
 
         framing, evidence = classify_israel_framing(
             existing["title"],
             existing["summary"],
             new_content,
+            existing["source_name"],
+            existing["source_type"] or "international",
+            existing["source_country"] or "",
         )
         topic = classify_topic(existing["title"], existing["summary"], new_content)
 
@@ -943,7 +1108,7 @@ def backfill_classification(conn):
     cursor = conn.cursor()
     cursor.execute(
         """
-        SELECT id, title, summary, full_content, country, source_type
+        SELECT id, title, summary, full_content, country, source_type, source_name, source_country
         FROM articles
         ORDER BY published_at DESC, id DESC
         LIMIT 500
@@ -957,6 +1122,9 @@ def backfill_classification(conn):
             row["title"],
             row["summary"],
             row["full_content"],
+            row["source_name"],
+            row["source_type"] or "international",
+            row["source_country"] or "",
         )
         source_type = row["source_type"] or "international"
         relevance = calculate_relevance_score(
@@ -1079,8 +1247,17 @@ def fetch_live_web_articles(enrich=False):
                 total_low_relevance += 1
                 continue
 
-            framing, framing_evidence = classify_israel_framing(title, summary)
-            image_url = extract_feed_image(item, raw_description)
+            framing, framing_evidence = classify_israel_framing(
+                title,
+                summary,
+                "",
+                source["name"],
+                source["source_type"],
+                source["source_country"],
+            )
+            image_url = extract_feed_image(item, raw_description, used_url or "")
+            if image_looks_low_quality(image_url):
+                image_url = None
             published_at = parse_rss_date(date_elem)
             now = utc_now_iso()
 
@@ -1139,9 +1316,15 @@ def fetch_live_web_articles(enrich=False):
 
         conn.commit()
 
-    enriched = 0
+    # Manual sync enriches a larger recent batch. Automatic five-minute sync
+    # enriches only three newest rows concurrently, keeping startup bounded
+    # while still giving the newest lead stories a real publisher image.
     if enrich:
-        enriched = enrich_recent_articles(conn)
+        enriched = enrich_recent_articles(conn, limit=MAX_ARTICLE_ENRICHMENTS)
+    elif total_added > 0:
+        enriched = enrich_recent_articles(conn, limit=AUTO_ARTICLE_ENRICHMENTS)
+    else:
+        enriched = 0
 
     reclassified = backfill_classification(conn)
 
