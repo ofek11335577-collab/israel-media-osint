@@ -76,16 +76,7 @@ def image_html(image_url, height="230px"):
     )
 
 
-def israel_tone_html(value):
-    """
-    Israel framing badge.
-
-    hostile  -> red
-    positive -> blue
-    neutral  -> gray
-    empty    -> gray "Israel: Not Mentioned"
-    """
-
+def israel_framing_html(value):
     if value is None:
         value = ""
 
@@ -94,21 +85,21 @@ def israel_tone_html(value):
     if value == "hostile":
         return (
             '<span class="tag tag-israel-hostile">'
-            'Israel Tone: Hostile'
+            'Israel Framing: Hostile'
             '</span>'
         )
 
     if value == "positive":
         return (
             '<span class="tag tag-israel-positive">'
-            'Israel Tone: Positive'
+            'Israel Framing: Positive'
             '</span>'
         )
 
     if value == "neutral":
         return (
             '<span class="tag tag-israel-neutral">'
-            'Israel Tone: Neutral'
+            'Israel Framing: Neutral'
             '</span>'
         )
 
@@ -155,10 +146,9 @@ def should_fetch():
                 tzinfo=timezone.utc
             )
 
-        now = datetime.now(timezone.utc)
-
         return (
-            now - last_fetch
+            datetime.now(timezone.utc)
+            - last_fetch
             >= timedelta(minutes=5)
         )
 
@@ -177,8 +167,14 @@ def mark_fetch_complete():
     )
 
     cursor.execute("""
-        INSERT INTO system_state (key, value)
-        VALUES ('last_rss_fetch', ?)
+        INSERT INTO system_state (
+            key,
+            value
+        )
+        VALUES (
+            'last_rss_fetch',
+            ?
+        )
 
         ON CONFLICT(key)
         DO UPDATE SET
@@ -259,9 +255,7 @@ header[data-testid="stHeader"] {
 }
 
 
-/* =========================
-   HEADER
-========================= */
+/* HEADER */
 
 .newsroom-header {
     background: linear-gradient(
@@ -271,7 +265,9 @@ header[data-testid="stHeader"] {
     );
 
     border-bottom: 2px solid #0284c7;
+
     padding: 14px 24px;
+
     border-radius: 8px;
 
     display: flex;
@@ -281,13 +277,17 @@ header[data-testid="stHeader"] {
     margin-bottom: 20px;
 
     font-size: 0.85rem;
+
     color: #94a3b8;
 }
 
 .newsroom-logo {
     font-family: 'JetBrains Mono', monospace;
+
     font-weight: 800;
+
     font-size: 1.4rem;
+
     color: #ffffff;
 }
 
@@ -296,21 +296,23 @@ header[data-testid="stHeader"] {
 }
 
 
-/* =========================
-   TICKER
-========================= */
+/* TICKER */
 
 .ticker-wrap {
     width: 100%;
+
     background: #0f172a;
 
     border: 1px solid rgba(239, 68, 68, 0.4);
+
     border-radius: 6px;
 
     overflow: hidden;
+
     height: 38px;
 
     display: flex;
+
     align-items: center;
 
     margin-bottom: 20px;
@@ -318,15 +320,19 @@ header[data-testid="stHeader"] {
 
 .ticker-badge {
     background: #dc2626;
+
     color: white;
 
     font-weight: 700;
+
     font-size: 0.78rem;
 
     padding: 0 16px;
+
     height: 100%;
 
     display: flex;
+
     align-items: center;
 
     flex-shrink: 0;
@@ -334,11 +340,13 @@ header[data-testid="stHeader"] {
 
 .ticker-content {
     display: flex;
+
     white-space: nowrap;
 
     animation: ticker 70s linear infinite;
 
     color: #f1f5f9;
+
     font-size: 0.85rem;
 }
 
@@ -346,6 +354,7 @@ header[data-testid="stHeader"] {
     margin-left: 50px;
 
     display: inline-flex;
+
     align-items: center;
 }
 
@@ -360,33 +369,34 @@ header[data-testid="stHeader"] {
 }
 
 
-/* =========================
-   CARDS
-========================= */
+/* CARDS */
 
 .card {
     background: #111827;
 
     border: 1px solid rgba(56, 189, 248, 0.15);
+
     border-radius: 10px;
 
     padding: 18px;
+
     margin-bottom: 18px;
 
     display: flex;
+
     flex-direction: column;
 }
 
 
-/* =========================
-   IMAGES
-========================= */
+/* IMAGES */
 
 .article-image-wrap {
     width: 100%;
+
     overflow: hidden;
 
     border-radius: 8px;
+
     margin-bottom: 16px;
 
     background: #0f172a;
@@ -394,87 +404,94 @@ header[data-testid="stHeader"] {
 
 .article-image {
     width: 100% !important;
+
     height: 100% !important;
 
     display: block !important;
 
     object-fit: cover !important;
+
     object-position: center center !important;
 
     max-width: none !important;
 }
 
 
-/* =========================
-   TAGS
-========================= */
+/* TAGS */
 
 .tag {
     display: inline-block;
 
     padding: 4px 9px;
+
     border-radius: 5px;
 
     font-size: 0.72rem;
+
     font-weight: 700;
 
     margin-right: 6px;
+
     margin-bottom: 5px;
 }
 
 .tag-source {
     background: #1f2937;
+
     color: #60a5fa;
 }
 
 .tag-time {
     background: #374151;
+
     color: #cbd5e1;
 }
 
 .tag-topic {
     background: #0284c7;
+
     color: #ffffff;
 }
 
 .tag-breaking {
     background: #dc2626;
+
     color: #ffffff;
 }
 
 
-/* =========================
-   ISRAEL TONE
-========================= */
+/* ISRAEL FRAMING */
 
 .tag-israel-hostile {
     background: #dc2626;
-    color: #ffffff;
 
     border: 1px solid #ef4444;
+
+    color: #ffffff;
 }
 
 .tag-israel-positive {
     background: #0284c7;
-    color: #ffffff;
 
     border: 1px solid #38bdf8;
+
+    color: #ffffff;
 }
 
 .tag-israel-neutral {
     background: #4b5563;
-    color: #ffffff;
 
     border: 1px solid #6b7280;
+
+    color: #ffffff;
 }
 
 
-/* =========================
-   BUTTONS
-========================= */
+/* BUTTONS */
 
 div.stButton > button {
     background-color: #1f2937 !important;
+
     color: #f8fafc !important;
 
     border:
@@ -489,7 +506,9 @@ div.stButton > button {
 
 div.stButton > button[kind="primary"] {
     background-color: #0284c7 !important;
+
     border-color: #38bdf8 !important;
+
     color: white !important;
 }
 
@@ -597,9 +616,7 @@ if st.session_state["reading_article_id"] is not None:
 
     if article_df.empty:
 
-        st.session_state[
-            "reading_article_id"
-        ] = None
+        st.session_state["reading_article_id"] = None
 
         st.rerun()
 
@@ -617,9 +634,7 @@ if st.session_state["reading_article_id"] is not None:
             use_container_width=True,
         ):
 
-            st.session_state[
-                "reading_article_id"
-            ] = None
+            st.session_state["reading_article_id"] = None
 
             st.rerun()
 
@@ -633,7 +648,7 @@ if st.session_state["reading_article_id"] is not None:
         )
 
 
-    article_israel_tone = israel_tone_html(
+    article_framing = israel_framing_html(
         article["analyst_name"]
     )
 
@@ -652,7 +667,7 @@ if st.session_state["reading_article_id"] is not None:
             {safe(article['sentiment'])}
         </span>
 
-        {article_israel_tone}
+        {article_framing}
 
         <span class="tag tag-source">
             {safe(article['country'])}
@@ -678,6 +693,7 @@ if st.session_state["reading_article_id"] is not None:
 
 
     if reader_image:
+
         render_html(
             reader_image
         )
@@ -689,6 +705,7 @@ if st.session_state["reading_article_id"] is not None:
         line-height:1.8;
 
         color:#e2e8f0;
+
         background:#111827;
 
         padding:30px;
@@ -743,9 +760,7 @@ else:
             index=(
                 0
                 if (
-                    st.session_state[
-                        "view_mode"
-                    ]
+                    st.session_state["view_mode"]
                     == "Main Dashboard"
                 )
                 else 1
@@ -754,9 +769,7 @@ else:
             label_visibility="collapsed",
         )
 
-        st.session_state[
-            "view_mode"
-        ] = selected_view
+        st.session_state["view_mode"] = selected_view
 
 
     with sync_col:
@@ -904,9 +917,7 @@ else:
                 type=(
                     "primary"
                     if (
-                        st.session_state[
-                            "selected_country"
-                        ]
+                        st.session_state["selected_country"]
                         == value
                     )
                     else "secondary"
@@ -914,9 +925,7 @@ else:
                 use_container_width=True,
             ):
 
-                st.session_state[
-                    "selected_country"
-                ] = value
+                st.session_state["selected_country"] = value
 
                 st.rerun()
 
@@ -929,9 +938,7 @@ else:
     # =====================================================
 
     selected_zone = (
-        st.session_state[
-            "selected_country"
-        ]
+        st.session_state["selected_country"]
     )
 
 
@@ -958,9 +965,7 @@ else:
     # =====================================================
 
     if (
-        st.session_state[
-            "view_mode"
-        ]
+        st.session_state["view_mode"]
         == "Analytics Terminal"
     ):
 
@@ -1037,7 +1042,7 @@ else:
             "Zone",
             "Source",
             "Topic",
-            "Israel Tone",
+            "Israel Framing",
             "Title",
             "URL",
         ]
@@ -1080,10 +1085,8 @@ else:
             )
 
 
-            lead_israel_tone = (
-                israel_tone_html(
-                    lead["analyst_name"]
-                )
+            lead_framing = israel_framing_html(
+                lead["analyst_name"]
             )
 
 
@@ -1121,7 +1124,7 @@ else:
                         {safe(lead['sentiment'])}
                     </span>
 
-                    {lead_israel_tone}
+                    {lead_framing}
 
                     <span
                         class="
@@ -1150,6 +1153,7 @@ else:
                     margin:12px 0 8px 0;
 
                     font-size:1.8rem;
+
                     font-weight:800;
 
                     color:white;
@@ -1162,6 +1166,7 @@ else:
                     color:#94a3b8;
 
                     font-size:1.05rem;
+
                     line-height:1.6;
                 ">
                     {safe(lead['summary'])}
@@ -1243,19 +1248,13 @@ else:
 
 
                         card_image = image_html(
-                            article_row[
-                                "image_url"
-                            ],
+                            article_row["image_url"],
                             height="230px",
                         )
 
 
-                        card_israel_tone = (
-                            israel_tone_html(
-                                article_row[
-                                    "analyst_name"
-                                ]
-                            )
+                        card_framing = israel_framing_html(
+                            article_row["analyst_name"]
                         )
 
 
@@ -1292,7 +1291,7 @@ else:
                                     )}
                                 </span>
 
-                                {card_israel_tone}
+                                {card_framing}
 
                                 <span
                                     class="
@@ -1366,11 +1365,9 @@ else:
 
                                 st.session_state[
                                     "reading_article_id"
-                                ] = (
-                                    article_row[
-                                        "id"
-                                    ]
-                                )
+                                ] = article_row[
+                                    "id"
+                                ]
 
                                 st.rerun()
 
@@ -1379,8 +1376,6 @@ else:
 
                             st.link_button(
                                 "Source ↗",
-                                article_row[
-                                    "url"
-                                ],
+                                article_row["url"],
                                 use_container_width=True,
                             )

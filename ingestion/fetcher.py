@@ -78,10 +78,7 @@ RSS_CHANNELS = [
 
     {
         "name": "Saudi Press Agency",
-        "url": (
-            "https://www.spa.gov.sa/"
-            "rss.xml"
-        ),
+        "url": "https://www.spa.gov.sa/rss.xml",
         "source_type": "domestic",
         "domestic_country": "Saudi Arabia",
     },
@@ -120,15 +117,19 @@ MIN_RELEVANCE_SCORE = 35
 # =========================================================
 
 def clean_html(raw_html):
+
     if not raw_html:
         return ""
 
     text = raw_html
 
+
     for _ in range(2):
+
         text = html.unescape(
             text
         )
+
 
     text = re.sub(
         r"<[^>]+>",
@@ -136,9 +137,11 @@ def clean_html(raw_html):
         text,
     )
 
+
     text = html.unescape(
         text
     )
+
 
     text = re.sub(
         r"\s+",
@@ -146,22 +149,26 @@ def clean_html(raw_html):
         text,
     )
 
+
     return text.strip()
 
 
 # =========================================================
-# URL NORMALIZATION
+# URL
 # =========================================================
 
 def normalize_url(url):
+
     if not url:
         return ""
+
 
     try:
 
         parts = urlsplit(
             url.strip()
         )
+
 
         return urlunsplit(
             (
@@ -173,22 +180,26 @@ def normalize_url(url):
             )
         )
 
+
     except Exception:
 
         return url.strip()
 
 
 # =========================================================
-# TITLE NORMALIZATION
+# TITLE
 # =========================================================
 
 def normalize_title(title):
+
     if not title:
         return ""
+
 
     text = html.unescape(
         title
     ).lower()
+
 
     text = re.sub(
         r"[^\w\s]",
@@ -196,11 +207,13 @@ def normalize_title(title):
         text,
     )
 
+
     text = re.sub(
         r"\s+",
         " ",
         text,
     )
+
 
     return text.strip()
 
@@ -232,17 +245,13 @@ def parse_rss_date(
 
                 if parsed.tzinfo is None:
 
-                    parsed = (
-                        parsed.replace(
-                            tzinfo=timezone.utc
-                        )
+                    parsed = parsed.replace(
+                        tzinfo=timezone.utc
                     )
 
 
-                parsed = (
-                    parsed.astimezone(
-                        timezone.utc
-                    )
+                parsed = parsed.astimezone(
+                    timezone.utc
                 )
 
 
@@ -309,6 +318,7 @@ SPORTS_KEYWORDS = [
 
     "manchester united",
     "manchester city",
+
     "chelsea",
     "arsenal",
     "liverpool",
@@ -316,6 +326,7 @@ SPORTS_KEYWORDS = [
 
     "real madrid",
     "barcelona",
+
     "psg",
     "bayern",
 
@@ -1031,19 +1042,10 @@ def calculate_relevance_score(
 
 
 # =========================================================
-# ISRAEL ARTICLE TONE
-# =========================================================
-#
-# Important:
-#
-# This estimates the framing/tone of the article text
-# toward Israel.
-#
-# It does NOT claim to know the author's personal beliefs.
-#
+# ISRAEL FRAMING CLASSIFIER
 # =========================================================
 
-ISRAEL_REFERENCE_KEYWORDS = [
+ISRAEL_REFERENCES = [
 
     "israel",
 
@@ -1065,65 +1067,229 @@ ISRAEL_REFERENCE_KEYWORDS = [
 ]
 
 
-ISRAEL_HOSTILE_FRAMING = [
+# Weighted hostile framing.
+#
+# Strong ideological / accusatory language
+# receives more weight than ordinary reporting.
 
-    "genocide",
+HOSTILE_PHRASES = {
 
-    "genocidal",
+    "ethnic cleansing": 6,
 
-    "apartheid",
+    "genocide": 5,
 
-    "ethnic cleansing",
+    "genocidal": 5,
 
-    "war crime",
+    "apartheid": 5,
 
-    "war crimes",
+    "collective punishment": 5,
 
-    "collective punishment",
+    "war crimes": 4,
 
-    "zionist regime",
+    "war crime": 4,
 
-    "israeli aggression",
+    "israeli aggression": 4,
 
-    "israeli atrocities",
+    "zionist regime": 4,
 
-    "israeli crimes",
+    "israeli atrocities": 5,
 
-    "israeli massacre",
+    "israeli crimes": 4,
 
-    "massacre by israel",
+    "israeli massacre": 5,
 
-    "brutal occupation",
+    "massacre by israel": 5,
+
+    "brutal occupation": 4,
+
+    "illegal occupation": 3,
+
+    "occupation forces": 3,
+
+    "deliberate attack on civilians": 5,
+
+    "deliberately targeting civilians": 5,
+
+    "indiscriminate attacks": 4,
+
+    "indiscriminate bombing": 4,
+
+    "starvation as a weapon": 5,
+
+    "forced displacement": 3,
+
+    "colonial occupation": 4,
+
+    "settler violence": 3,
+}
+
+
+# Weighted supportive framing.
+
+POSITIVE_PHRASES = {
+
+    "right to defend itself": 6,
+
+    "right to self-defense": 6,
+
+    "right to self defence": 6,
+
+    "israel's right to exist": 6,
+
+    "israel has the right to exist": 6,
+
+    "legitimate security concerns": 5,
+
+    "israel's security needs": 5,
+
+    "israeli security needs": 5,
+
+    "defending israel": 4,
+
+    "defend israel": 4,
+
+    "protect israeli civilians": 5,
+
+    "protecting israeli civilians": 5,
+
+    "terror attack against israel": 4,
+
+    "terrorist attack against israel": 4,
+
+    "terror attack on israel": 4,
+
+    "terrorist attack on israel": 4,
+
+    "hostages rescued": 3,
+
+    "rescued hostages": 3,
+
+    "hostage rescue": 3,
+
+    "intercepted missiles": 2,
+
+    "intercepted rockets": 2,
+
+    "thwarted an attack": 3,
+
+    "thwarted attack": 3,
+}
+
+
+HOSTILE_CONTEXT_TERMS = {
+
+    "aggression": 3,
+
+    "atrocity": 3,
+
+    "atrocities": 3,
+
+    "massacre": 3,
+
+    "occupation": 2,
+
+    "occupying": 2,
+
+    "brutal": 2,
+
+    "illegal": 1,
+
+    "unlawful": 2,
+
+    "indiscriminate": 3,
+
+    "oppression": 3,
+
+    "oppressive": 3,
+
+    "colonial": 2,
+
+    "siege": 2,
+
+    "besieged": 2,
+
+    "starvation": 3,
+}
+
+
+POSITIVE_CONTEXT_TERMS = {
+
+    "self-defense": 4,
+
+    "self defence": 4,
+
+    "defending": 2,
+
+    "security": 1,
+
+    "protecting": 2,
+
+    "protect": 2,
+
+    "intercept": 2,
+
+    "intercepted": 2,
+
+    "rescue": 2,
+
+    "rescued": 2,
+
+    "thwart": 2,
+
+    "thwarted": 2,
+
+    "terrorist": 1,
+
+    "terror attack": 2,
+
+    "hostage": 1,
+
+    "hostages": 1,
+}
+
+
+# Phrases indicating that strong language is being
+# reported as an allegation or explicitly rejected.
+
+REJECTION_PATTERNS = [
+
+    r"reject(?:s|ed|ing)?\s+(?:the\s+)?"
+    r"(?:claim|claims|accusation|accusations|allegation|allegations)"
+    r".{0,40}",
+
+    r"den(?:y|ies|ied|ying)\s+(?:the\s+)?"
+    r"(?:claim|claims|accusation|accusations|allegation|allegations)"
+    r".{0,40}",
+
+    r"disput(?:e|es|ed|ing)\s+(?:the\s+)?"
+    r"(?:claim|claims|accusation|accusations)"
+    r".{0,40}",
 ]
 
 
-ISRAEL_POSITIVE_FRAMING = [
+ATTRIBUTION_WORDS = [
 
-    "right to defend itself",
+    "accused",
 
-    "right to self-defense",
+    "accuses",
 
-    "right to self defence",
+    "accusing",
 
-    "israel's security",
+    "alleged",
 
-    "israeli security",
+    "alleges",
 
-    "defending israel",
+    "claimed",
 
-    "defend israel",
+    "claims",
 
-    "terror threat against israel",
+    "according to",
 
-    "terrorist threat against israel",
+    "rights group says",
 
-    "protect israeli civilians",
+    "un says",
 
-    "protecting israeli civilians",
-
-    "israeli hostages",
-
-    "hostages rescued",
+    "critics say",
 ]
 
 
@@ -1139,16 +1305,221 @@ def is_israel_related(
 
 
     return any(
-        keyword in text
-        for keyword
-        in ISRAEL_REFERENCE_KEYWORDS
+        reference in text
+        for reference
+        in ISRAEL_REFERENCES
     )
 
 
-def classify_israel_tone(
+def phrase_weight_score(
+    text,
+    phrase_weights,
+):
+
+    score = 0
+
+
+    for phrase, weight in phrase_weights.items():
+
+        if phrase in text:
+
+            score += weight
+
+
+    return score
+
+
+def israel_context_windows(
+    text,
+    window_size=140,
+):
+
+    windows = []
+
+
+    for reference in ISRAEL_REFERENCES:
+
+        start = 0
+
+
+        while True:
+
+            index = text.find(
+                reference,
+                start,
+            )
+
+
+            if index == -1:
+
+                break
+
+
+            left = max(
+                0,
+                index - window_size,
+            )
+
+
+            right = min(
+                len(text),
+                index
+                + len(reference)
+                + window_size,
+            )
+
+
+            windows.append(
+                text[
+                    left:right
+                ]
+            )
+
+
+            start = (
+                index
+                + len(reference)
+            )
+
+
+    return windows
+
+
+def context_score(
+    windows,
+    weighted_terms,
+):
+
+    score = 0
+
+
+    for window in windows:
+
+        for term, weight in weighted_terms.items():
+
+            if term in window:
+
+                score += weight
+
+
+    return score
+
+
+def rejection_adjustment(
+    text,
+    phrases,
+):
+
+    adjustment = 0
+
+
+    for phrase in phrases:
+
+        phrase_index = text.find(
+            phrase
+        )
+
+
+        if phrase_index == -1:
+
+            continue
+
+
+        context_start = max(
+            0,
+            phrase_index - 90,
+        )
+
+
+        context = text[
+            context_start:
+            phrase_index
+            + len(phrase)
+            + 20
+        ]
+
+
+        for pattern in REJECTION_PATTERNS:
+
+            if re.search(
+                pattern,
+                context,
+                flags=re.IGNORECASE,
+            ):
+
+                adjustment += 4
+
+                break
+
+
+    return adjustment
+
+
+def attribution_count(
+    text,
+    phrases,
+):
+
+    count = 0
+
+
+    for phrase in phrases:
+
+        index = text.find(
+            phrase
+        )
+
+
+        if index == -1:
+
+            continue
+
+
+        context = text[
+            max(
+                0,
+                index - 80,
+            ):
+            min(
+                len(text),
+                index
+                + len(phrase)
+                + 80,
+            )
+        ]
+
+
+        if any(
+            attribution
+            in context
+            for attribution
+            in ATTRIBUTION_WORDS
+        ):
+
+            count += 1
+
+
+    return count
+
+
+def classify_israel_framing(
     title,
     summary,
 ):
+    """
+    Returns:
+
+        hostile
+        positive
+        neutral
+        ""
+
+    Empty string means Israel is not meaningfully
+    referenced in the article text.
+
+    This is a framing classifier, not a claim
+    about the journalist's private beliefs.
+    """
 
     if not is_israel_related(
         title,
@@ -1158,39 +1529,189 @@ def classify_israel_tone(
         return ""
 
 
-    text = (
-        f"{title or ''} "
-        f"{summary or ''}"
+    title_text = (
+        title or ""
     ).lower()
 
 
-    hostile_score = sum(
-        1
-        for phrase
-        in ISRAEL_HOSTILE_FRAMING
-        if phrase in text
+    summary_text = (
+        summary or ""
+    ).lower()
+
+
+    full_text = (
+        f"{title_text}. "
+        f"{summary_text}"
     )
 
 
-    positive_score = sum(
-        1
-        for phrase
-        in ISRAEL_POSITIVE_FRAMING
-        if phrase in text
+    # -----------------------------------------------------
+    # BASE PHRASE SCORES
+    # -----------------------------------------------------
+
+    hostile_score = (
+        phrase_weight_score(
+            full_text,
+            HOSTILE_PHRASES,
+        )
     )
 
+
+    positive_score = (
+        phrase_weight_score(
+            full_text,
+            POSITIVE_PHRASES,
+        )
+    )
+
+
+    # -----------------------------------------------------
+    # HEADLINE HAS MORE INFLUENCE
+    # -----------------------------------------------------
+
+    hostile_title_score = (
+        phrase_weight_score(
+            title_text,
+            HOSTILE_PHRASES,
+        )
+    )
+
+
+    positive_title_score = (
+        phrase_weight_score(
+            title_text,
+            POSITIVE_PHRASES,
+        )
+    )
+
+
+    hostile_score += (
+        hostile_title_score
+    )
+
+
+    positive_score += (
+        positive_title_score
+    )
+
+
+    # -----------------------------------------------------
+    # LOCAL CONTEXT AROUND ISRAEL REFERENCES
+    # -----------------------------------------------------
+
+    windows = (
+        israel_context_windows(
+            full_text
+        )
+    )
+
+
+    hostile_score += (
+        context_score(
+            windows,
+            HOSTILE_CONTEXT_TERMS,
+        )
+    )
+
+
+    positive_score += (
+        context_score(
+            windows,
+            POSITIVE_CONTEXT_TERMS,
+        )
+    )
+
+
+    # -----------------------------------------------------
+    # DO NOT OVERREACT TO REJECTED ACCUSATIONS
+    #
+    # Example:
+    # "Israel rejects accusations of genocide"
+    # -----------------------------------------------------
+
+    hostile_rejections = (
+        rejection_adjustment(
+            full_text,
+            HOSTILE_PHRASES.keys(),
+        )
+    )
+
+
+    positive_rejections = (
+        rejection_adjustment(
+            full_text,
+            POSITIVE_PHRASES.keys(),
+        )
+    )
+
+
+    hostile_score = max(
+        0,
+        hostile_score
+        - hostile_rejections,
+    )
+
+
+    positive_score = max(
+        0,
+        positive_score
+        - positive_rejections,
+    )
+
+
+    # -----------------------------------------------------
+    # ALLEGATIONS GET SLIGHTLY LOWER CONFIDENCE
+    # -----------------------------------------------------
+
+    hostile_attributions = (
+        attribution_count(
+            full_text,
+            HOSTILE_PHRASES.keys(),
+        )
+    )
+
+
+    positive_attributions = (
+        attribution_count(
+            full_text,
+            POSITIVE_PHRASES.keys(),
+        )
+    )
+
+
+    hostile_score = max(
+        0,
+        hostile_score
+        - hostile_attributions,
+    )
+
+
+    positive_score = max(
+        0,
+        positive_score
+        - positive_attributions,
+    )
+
+
+    # -----------------------------------------------------
+    # DECISION
+    # -----------------------------------------------------
 
     if (
+        hostile_score >= 3
+        and
         hostile_score
-        > positive_score
+        >= positive_score + 2
     ):
 
         return "hostile"
 
 
     if (
+        positive_score >= 3
+        and
         positive_score
-        > hostile_score
+        >= hostile_score + 2
     ):
 
         return "positive"
@@ -1456,10 +1977,8 @@ def extract_feed_image(
             )
 
 
-    enclosure = (
-        item.find(
-            "enclosure"
-        )
+    enclosure = item.find(
+        "enclosure"
     )
 
 
@@ -1525,6 +2044,7 @@ def extract_feed_image(
             for piece in srcset.split(
                 ","
             ):
+
 
                 piece = piece.strip()
 
@@ -1832,7 +2352,7 @@ def extract_original_article_image(
 
 
 # =========================================================
-# LOW QUALITY IMAGE CHECK
+# LOW QUALITY IMAGE
 # =========================================================
 
 def image_looks_low_quality(
@@ -1935,7 +2455,7 @@ def image_looks_low_quality(
 
 
 # =========================================================
-# DUPLICATES
+# DUPLICATE CHECK
 # =========================================================
 
 def article_exists(
@@ -2027,7 +2547,7 @@ def fetch_feed_xml(
                     "User-Agent": (
                         "Mozilla/5.0 "
                         "(compatible; "
-                        "OSINTGlobalDesk/6.0)"
+                        "OSINTGlobalDesk/7.0)"
                     )
                 },
             )
@@ -2174,10 +2694,10 @@ def enrich_images(
 
 
 # =========================================================
-# BACKFILL ISRAEL TONE
+# BACKFILL ISRAEL FRAMING
 # =========================================================
 
-def backfill_israel_tone(
+def backfill_israel_framing(
     conn,
 ):
 
@@ -2208,8 +2728,8 @@ def backfill_israel_tone(
     for row in rows:
 
 
-        tone = (
-            classify_israel_tone(
+        framing = (
+            classify_israel_framing(
                 row[
                     "title"
                 ],
@@ -2222,7 +2742,7 @@ def backfill_israel_tone(
 
         updates.append(
             (
-                tone,
+                framing,
                 row[
                     "id"
                 ],
@@ -2264,7 +2784,7 @@ def fetch_live_web_articles():
 
 
     # =====================================================
-    # CLEAN OLD SPORTS / NOISE
+    # CLEAN OLD SPORTS
     # =====================================================
 
     deleted_noise = (
@@ -2272,6 +2792,7 @@ def fetch_live_web_articles():
             cursor
         )
     )
+
 
     conn.commit()
 
@@ -2289,7 +2810,7 @@ def fetch_live_web_articles():
 
 
     # =====================================================
-    # FETCH FEEDS IN PARALLEL
+    # FETCH FEEDS
     # =====================================================
 
     with (
@@ -2327,7 +2848,7 @@ def fetch_live_web_articles():
 
 
     # =====================================================
-    # PARSE
+    # PARSE FEEDS
     # =====================================================
 
     for (
@@ -2413,9 +2934,7 @@ def fetch_live_web_articles():
             )
 
 
-            # -------------------------------------------------
             # TITLE
-            # -------------------------------------------------
 
             title = (
 
@@ -2439,9 +2958,7 @@ def fetch_live_web_articles():
                 continue
 
 
-            # -------------------------------------------------
             # URL
-            # -------------------------------------------------
 
             raw_url = (
 
@@ -2472,9 +2989,7 @@ def fetch_live_web_articles():
             )
 
 
-            # -------------------------------------------------
             # SUMMARY
-            # -------------------------------------------------
 
             raw_description = (
 
@@ -2512,9 +3027,7 @@ def fetch_live_web_articles():
             )
 
 
-            # -------------------------------------------------
             # NOISE
-            # -------------------------------------------------
 
             if is_noise_article(
                 title,
@@ -2528,9 +3041,7 @@ def fetch_live_web_articles():
                 continue
 
 
-            # -------------------------------------------------
             # DUPLICATE
-            # -------------------------------------------------
 
             if article_exists(
                 cursor,
@@ -2545,9 +3056,7 @@ def fetch_live_web_articles():
                 continue
 
 
-            # -------------------------------------------------
             # COUNTRY
-            # -------------------------------------------------
 
             country = (
                 classify_country(
@@ -2560,9 +3069,7 @@ def fetch_live_web_articles():
             )
 
 
-            # -------------------------------------------------
             # TOPIC
-            # -------------------------------------------------
 
             topic = (
                 classify_topic(
@@ -2572,9 +3079,7 @@ def fetch_live_web_articles():
             )
 
 
-            # -------------------------------------------------
             # RELEVANCE
-            # -------------------------------------------------
 
             relevance_score = (
                 calculate_relevance_score(
@@ -2602,21 +3107,17 @@ def fetch_live_web_articles():
                 continue
 
 
-            # -------------------------------------------------
-            # ISRAEL TONE
-            # -------------------------------------------------
+            # ISRAEL FRAMING
 
-            israel_tone = (
-                classify_israel_tone(
+            israel_framing = (
+                classify_israel_framing(
                     title,
                     summary,
                 )
             )
 
 
-            # -------------------------------------------------
             # IMAGE
-            # -------------------------------------------------
 
             image_url = (
                 extract_feed_image(
@@ -2626,9 +3127,7 @@ def fetch_live_web_articles():
             )
 
 
-            # -------------------------------------------------
             # TIME
-            # -------------------------------------------------
 
             published_at = (
                 parse_rss_date(
@@ -2642,9 +3141,7 @@ def fetch_live_web_articles():
             )
 
 
-            # -------------------------------------------------
             # INSERT
-            # -------------------------------------------------
 
             cursor.execute(
                 """
@@ -2683,7 +3180,7 @@ def fetch_live_web_articles():
 
                     summary,
 
-                    israel_tone,
+                    israel_framing,
 
                     published_at,
 
@@ -2737,7 +3234,7 @@ def fetch_live_web_articles():
 
 
     # =====================================================
-    # UPGRADE OLD LOW QUALITY IMAGES
+    # UPGRADE EXISTING IMAGES
     # =====================================================
 
     if (
@@ -2834,10 +3331,6 @@ def fetch_live_web_articles():
                 )
 
 
-    # =====================================================
-    # IMAGE ENRICHMENT
-    # =====================================================
-
     images_updated = (
         enrich_images(
             conn,
@@ -2847,11 +3340,11 @@ def fetch_live_web_articles():
 
 
     # =====================================================
-    # BACKFILL TONE FOR OLD ARTICLES
+    # RECLASSIFY ALL EXISTING ARTICLES
     # =====================================================
 
-    tone_rows_updated = (
-        backfill_israel_tone(
+    framing_rows_updated = (
+        backfill_israel_framing(
             conn
         )
     )
@@ -2869,7 +3362,7 @@ def fetch_live_web_articles():
         f"low_relevance={total_low_relevance} | "
         f"old_noise_removed={deleted_noise} | "
         f"images_upgraded={images_updated} | "
-        f"tone_rows_updated={tone_rows_updated}"
+        f"framing_updated={framing_rows_updated}"
     )
 
 
