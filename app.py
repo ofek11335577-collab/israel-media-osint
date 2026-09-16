@@ -29,10 +29,13 @@ st.set_page_config(
 # =========================================================
 
 def render_html(content):
+    """
+    Render HTML without Streamlit interpreting indentation
+    as a Markdown code block.
+    """
+
     cleaned = textwrap.dedent(content).strip()
 
-    # הופך את כל ה-HTML לשורה אחת כדי ש-Streamlit
-    # לא יפרש הזחות פנימיות כ-Markdown code blocks
     cleaned = " ".join(
         line.strip()
         for line in cleaned.splitlines()
@@ -48,18 +51,58 @@ def render_html(content):
 def safe(value):
     if value is None:
         return ""
-    return html.escape(str(value))
+
+    return html.escape(
+        str(value),
+        quote=True,
+    )
+
+
+def image_html(
+    image_url,
+    height="200px",
+):
+    """
+    Return image HTML only when URL exists.
+
+    If browser cannot load the image,
+    onerror hides it completely instead of leaving
+    a broken/empty image area.
+    """
+
+    if image_url is None:
+        return ""
+
+    image_url = str(
+        image_url
+    ).strip()
+
+    if not image_url:
+        return ""
+
+    safe_url = safe(
+        image_url
+    )
+
+    return (
+        f'<img '
+        f'class="card-img" '
+        f'src="{safe_url}" '
+        f'style="height:{height};" '
+        f'onerror="this.style.display=\'none\';" '
+        f'/>'
+    )
 
 
 # =========================================================
-# DATABASE INIT
+# DATABASE
 # =========================================================
 
 init_db()
 
 
 # =========================================================
-# RSS SCHEDULER HELPERS
+# RSS SCHEDULER
 # =========================================================
 
 def should_fetch():
@@ -96,10 +139,12 @@ def should_fetch():
             >= timedelta(minutes=5)
         )
 
-    except Exception as e:
+    except Exception as error:
         print(
-            f"Could not parse last fetch time: {e}"
+            f"Could not read "
+            f"last fetch time: {error}"
         )
+
         return True
 
 
@@ -133,50 +178,64 @@ def mark_fetch_complete():
 
 # =========================================================
 # AUTO REFRESH
-# כל 5 דקות מתבצע rerun לאפליקציה
+# =========================================================
+#
+# Browser reruns every 5 minutes while app is active.
+#
 # =========================================================
 
 st_autorefresh(
     interval=5 * 60 * 1000,
-    key="rss_auto_refresh"
+    key="rss_auto_refresh",
 )
 
 
 # =========================================================
-# AUTOMATIC RSS FETCH
+# AUTOMATIC SYNC
 # =========================================================
 
 if should_fetch():
     try:
-        new_count = fetch_live_web_articles()
+        new_count = (
+            fetch_live_web_articles()
+        )
 
         mark_fetch_complete()
 
         st.cache_data.clear()
 
         print(
-            f"Automatic RSS sync complete: "
-            f"{new_count} new articles added."
+            f"Automatic RSS sync: "
+            f"{new_count} new reports."
         )
 
-    except Exception as e:
+    except Exception as error:
         print(
-            f"Automatic RSS sync failed: {e}"
+            f"Automatic RSS sync failed: "
+            f"{error}"
         )
 
 
 # =========================================================
-# STATE MANAGEMENT
+# SESSION STATE
 # =========================================================
 
 if "view_mode" not in st.session_state:
-    st.session_state["view_mode"] = "Main Dashboard"
+    st.session_state[
+        "view_mode"
+    ] = "Main Dashboard"
+
 
 if "selected_country" not in st.session_state:
-    st.session_state["selected_country"] = "All"
+    st.session_state[
+        "selected_country"
+    ] = "All"
+
 
 if "reading_article_id" not in st.session_state:
-    st.session_state["reading_article_id"] = None
+    st.session_state[
+        "reading_article_id"
+    ] = None
 
 
 # =========================================================
@@ -188,7 +247,10 @@ render_html("""
 
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap');
 
-html, body, [class*="css"], .stApp {
+html,
+body,
+[class*="css"],
+.stApp {
     font-family: 'Inter', sans-serif !important;
     background-color: #07090e;
     color: #f1f5f9;
@@ -199,147 +261,315 @@ header[data-testid="stHeader"] {
 }
 
 
-/* HEADER */
+/* =========================
+   HEADER
+========================= */
 
 .newsroom-header {
-    background: linear-gradient(90deg, #0f172a, #1e293b);
-    border-bottom: 2px solid #0284c7;
-    padding: 14px 24px;
-    border-radius: 8px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 20px;
-    font-size: 0.85rem;
-    color: #94a3b8;
+    background:
+        linear-gradient(
+            90deg,
+            #0f172a,
+            #1e293b
+        );
+
+    border-bottom:
+        2px solid #0284c7;
+
+    padding:
+        14px 24px;
+
+    border-radius:
+        8px;
+
+    display:
+        flex;
+
+    justify-content:
+        space-between;
+
+    align-items:
+        center;
+
+    margin-bottom:
+        20px;
+
+    font-size:
+        0.85rem;
+
+    color:
+        #94a3b8;
 }
 
 .newsroom-logo {
-    font-family: 'JetBrains Mono', monospace;
-    font-weight: 800;
-    font-size: 1.4rem;
-    color: #ffffff;
+    font-family:
+        'JetBrains Mono',
+        monospace;
+
+    font-weight:
+        800;
+
+    font-size:
+        1.4rem;
+
+    color:
+        #ffffff;
 }
 
 .newsroom-logo span {
-    color: #38bdf8;
+    color:
+        #38bdf8;
 }
 
 
-/* TICKER */
+/* =========================
+   TICKER
+========================= */
 
 .ticker-wrap {
-    width: 100%;
-    background: #0f172a;
-    border: 1px solid rgba(239, 68, 68, 0.4);
-    border-radius: 6px;
-    overflow: hidden;
-    height: 38px;
-    display: flex;
-    align-items: center;
-    margin-bottom: 20px;
+    width:
+        100%;
+
+    background:
+        #0f172a;
+
+    border:
+        1px solid
+        rgba(239, 68, 68, 0.4);
+
+    border-radius:
+        6px;
+
+    overflow:
+        hidden;
+
+    height:
+        38px;
+
+    display:
+        flex;
+
+    align-items:
+        center;
+
+    margin-bottom:
+        20px;
 }
 
 .ticker-badge {
-    background: #dc2626;
-    color: #ffffff;
-    font-weight: 700;
-    font-size: 0.78rem;
-    padding: 0 16px;
-    height: 100%;
-    display: flex;
-    align-items: center;
-    flex-shrink: 0;
+    background:
+        #dc2626;
+
+    color:
+        #ffffff;
+
+    font-weight:
+        700;
+
+    font-size:
+        0.78rem;
+
+    padding:
+        0 16px;
+
+    height:
+        100%;
+
+    display:
+        flex;
+
+    align-items:
+        center;
+
+    flex-shrink:
+        0;
 }
 
 .ticker-content {
-    display: flex;
-    white-space: nowrap;
-    animation: ticker 70s linear infinite;
-    font-size: 0.85rem;
-    font-weight: 500;
-    color: #f1f5f9;
+    display:
+        flex;
+
+    white-space:
+        nowrap;
+
+    animation:
+        ticker 70s
+        linear infinite;
+
+    font-size:
+        0.85rem;
+
+    font-weight:
+        500;
+
+    color:
+        #f1f5f9;
 }
 
 .ticker-item {
-    margin-left: 50px;
-    display: inline-flex;
-    align-items: center;
+    margin-left:
+        50px;
+
+    display:
+        inline-flex;
+
+    align-items:
+        center;
 }
 
 @keyframes ticker {
     0% {
-        transform: translateX(0);
+        transform:
+            translateX(0);
     }
+
     100% {
-        transform: translateX(100%);
+        transform:
+            translateX(100%);
     }
 }
 
 
-/* CARDS */
+/* =========================
+   CARDS
+========================= */
 
 .card {
-    background: #111827;
-    border: 1px solid rgba(56, 189, 248, 0.15);
-    border-radius: 10px;
-    padding: 18px;
-    margin-bottom: 18px;
-    height: 100%;
-    display: flex;
-    flex-direction: column;
+    background:
+        #111827;
+
+    border:
+        1px solid
+        rgba(56, 189, 248, 0.15);
+
+    border-radius:
+        10px;
+
+    padding:
+        18px;
+
+    margin-bottom:
+        18px;
+
+    min-height:
+        220px;
+
+    display:
+        flex;
+
+    flex-direction:
+        column;
 }
 
 .card-img {
-    width: 100%;
-    height: 200px;
-    object-fit: cover;
-    border-radius: 6px;
-    margin-bottom: 12px;
+    width:
+        100%;
+
+    object-fit:
+        cover;
+
+    border-radius:
+        6px;
+
+    margin-bottom:
+        12px;
 }
 
 
-/* TAGS */
+/* =========================
+   TAGS
+========================= */
 
 .tag {
-    display: inline-block;
-    padding: 2px 8px;
-    border-radius: 4px;
-    font-size: 0.72rem;
-    font-weight: 600;
-    margin-right: 6px;
+    display:
+        inline-block;
+
+    padding:
+        3px 8px;
+
+    border-radius:
+        4px;
+
+    font-size:
+        0.72rem;
+
+    font-weight:
+        600;
+
+    margin-right:
+        6px;
+
+    margin-bottom:
+        4px;
 }
 
 .tag-source {
-    background: #1f2937;
-    color: #60a5fa;
+    background:
+        #1f2937;
+
+    color:
+        #60a5fa;
 }
 
 .tag-time {
-    background: #374151;
-    color: #9ca3af;
+    background:
+        #374151;
+
+    color:
+        #cbd5e1;
 }
 
 .tag-breaking {
-    background: #dc2626;
-    color: #ffffff;
+    background:
+        #dc2626;
+
+    color:
+        #ffffff;
+}
+
+.tag-topic {
+    background:
+        #0369a1;
+
+    color:
+        #ffffff;
 }
 
 
-/* BUTTONS */
+/* =========================
+   BUTTONS
+========================= */
 
 div.stButton > button {
-    background-color: #1f2937 !important;
-    color: #f8fafc !important;
-    border: 1px solid rgba(56, 189, 248, 0.2) !important;
-    border-radius: 6px !important;
-    font-weight: 600 !important;
+    background-color:
+        #1f2937 !important;
+
+    color:
+        #f8fafc !important;
+
+    border:
+        1px solid
+        rgba(56, 189, 248, 0.2)
+        !important;
+
+    border-radius:
+        6px !important;
+
+    font-weight:
+        600 !important;
 }
 
-div.stButton > button[kind="primary"] {
-    background-color: #0284c7 !important;
-    border-color: #38bdf8 !important;
-    color: #ffffff !important;
+div.stButton >
+button[kind="primary"] {
+
+    background-color:
+        #0284c7 !important;
+
+    border-color:
+        #38bdf8 !important;
+
+    color:
+        #ffffff !important;
 }
 
 </style>
@@ -347,7 +577,7 @@ div.stButton > button[kind="primary"] {
 
 
 # =========================================================
-# DATA LOADING
+# DATA
 # =========================================================
 
 @st.cache_data(ttl=30)
@@ -358,7 +588,10 @@ def load_data():
         """
         SELECT *
         FROM articles
-        ORDER BY published_at DESC, id DESC
+        ORDER BY
+            priority DESC,
+            published_at DESC,
+            id DESC
         """,
         conn,
     )
@@ -371,9 +604,15 @@ df = load_data()
 # HEADER
 # =========================================================
 
-current_utc = datetime.now(
-    timezone.utc
-).strftime("%Y-%m-%d %H:%M UTC")
+current_utc = (
+    datetime.now(
+        timezone.utc
+    )
+    .strftime(
+        "%Y-%m-%d %H:%M UTC"
+    )
+)
+
 
 render_html(f"""
 <div class="newsroom-header">
@@ -399,25 +638,34 @@ render_html(f"""
 # =========================================================
 
 if not df.empty:
+
     ticker_items = []
 
-    for _, row in df.head(30).iterrows():
+    for _, row in df.head(
+        30
+    ).iterrows():
+
         source = safe(
             row["source_name"]
         )
+
         title = safe(
             row["title"]
         )
 
         ticker_items.append(
-            f"<span class='ticker-item'>"
-            f"⚡ [{source}] {title}"
+            f"<span "
+            f"class='ticker-item'>"
+            f"⚡ [{source}] "
+            f"{title}"
             f"</span>"
         )
+
 
     ticker_html = "".join(
         ticker_items
     )
+
 
     render_html(f"""
     <div class="ticker-wrap">
@@ -438,99 +686,160 @@ if not df.empty:
 # ARTICLE READER
 # =========================================================
 
-if st.session_state[
-    "reading_article_id"
-] is not None:
-
-    article_id = st.session_state[
+if (
+    st.session_state[
         "reading_article_id"
     ]
+    is not None
+):
+
+    article_id = (
+        st.session_state[
+            "reading_article_id"
+        ]
+    )
+
 
     article_df = df[
-        df["id"] == article_id
+        df["id"]
+        == article_id
     ]
+
 
     if not article_df.empty:
 
-        article = article_df.iloc[0]
-
-        col_back, col_source = st.columns(
-            2
+        article = (
+            article_df.iloc[0]
         )
 
+
+        col_back, col_source = (
+            st.columns(2)
+        )
+
+
         with col_back:
+
             if st.button(
                 "← Back to Newsroom",
                 use_container_width=True,
             ):
+
                 st.session_state[
                     "reading_article_id"
                 ] = None
 
                 st.rerun()
 
+
         with col_source:
+
             st.link_button(
                 "🔗 Open Original Source ↗",
                 article["url"],
                 use_container_width=True,
             )
 
+
         source_name = safe(
             article["source_name"]
-        )
-
-        published_at = safe(
-            article["published_at"]
         )
 
         country = safe(
             article["country"]
         )
 
+        published_at = safe(
+            article["published_at"]
+        )
+
+        topic = safe(
+            article["sentiment"]
+        )
+
+        relevance = safe(
+            article["priority"]
+        )
+
+
         render_html(f"""
         <div style="
             margin-top:12px;
-            margin-bottom:8px;
+            margin-bottom:12px;
         ">
 
-            <span class="tag tag-source">
+            <span class="
+                tag
+                tag-source
+            ">
                 📰 {source_name}
             </span>
 
-            <span class="tag tag-time">
+            <span class="
+                tag
+                tag-topic
+            ">
+                {topic}
+            </span>
+
+            <span class="
+                tag
+                tag-source
+            ">
+                {country}
+            </span>
+
+            <span class="
+                tag
+                tag-time
+            ">
                 🕒 {published_at}
             </span>
 
-            <span
-                class="tag"
-                style="
-                    background:#0369a1;
-                    color:#fff;
-                "
-            >
-                {country}
+            <span class="
+                tag
+                tag-time
+            ">
+                Relevance: {relevance}/100
             </span>
 
         </div>
         """)
 
+
         st.title(
-            str(article["title"])
+            str(
+                article["title"]
+            )
         )
 
-        if article["image_url"]:
-            try:
-                st.image(
-                    article["image_url"],
-                    use_container_width=True,
-                )
-            except Exception:
-                pass
+
+        article_image = (
+            image_html(
+                article["image_url"],
+                height="420px",
+            )
+        )
+
+
+        if article_image:
+
+            render_html(f"""
+            <div style="
+                margin-top:12px;
+                margin-bottom:20px;
+            ">
+                {article_image}
+            </div>
+            """)
+
 
         article_content = safe(
-            article["full_content"]
+            article[
+                "full_content"
+            ]
         )
+
 
         render_html(f"""
         <div style="
@@ -540,7 +849,6 @@ if st.session_state[
             background:#111827;
             padding:30px;
             border-radius:10px;
-            margin-top:20px;
             border:
                 1px solid
                 rgba(56,189,248,0.2);
@@ -552,7 +860,9 @@ if st.session_state[
         </div>
         """)
 
+
     else:
+
         st.session_state[
             "reading_article_id"
         ] = None
@@ -561,26 +871,42 @@ if st.session_state[
 
 
 # =========================================================
-# MAIN DASHBOARD
+# DASHBOARD
 # =========================================================
 
 else:
 
-    col_title, col_view, col_sync = (
-        st.columns([5, 4, 3])
+    (
+        col_title,
+        col_view,
+        col_sync,
+    ) = st.columns(
+        [5, 4, 3]
     )
 
+
+    # -----------------------------------------------------
+    # TITLE
+    # -----------------------------------------------------
+
     with col_title:
+
         st.markdown(
             "## Global Intelligence Desk"
         )
 
         st.caption(
-            f"{len(df):,} reports ingested "
-            f"from live feeds"
+            f"{len(df):,} "
+            f"intelligence reports indexed"
         )
 
+
+    # -----------------------------------------------------
+    # VIEW
+    # -----------------------------------------------------
+
     with col_view:
+
         selected_view = st.radio(
             "View",
             [
@@ -589,31 +915,41 @@ else:
             ],
             index=(
                 0
-                if st.session_state[
-                    "view_mode"
-                ]
-                == "Main Dashboard"
+                if (
+                    st.session_state[
+                        "view_mode"
+                    ]
+                    == "Main Dashboard"
+                )
                 else 1
             ),
             horizontal=True,
             label_visibility="collapsed",
         )
 
+
         st.session_state[
             "view_mode"
         ] = selected_view
 
+
+    # -----------------------------------------------------
+    # MANUAL SYNC
+    # -----------------------------------------------------
+
     with col_sync:
+
         if st.button(
             "🔄 Sync & Refresh Feeds",
             use_container_width=True,
         ):
 
             with st.spinner(
-                "Fetching latest live feeds..."
+                "Synchronizing intelligence feeds..."
             ):
 
                 try:
+
                     new_count = (
                         fetch_live_web_articles()
                     )
@@ -624,76 +960,97 @@ else:
 
                     st.success(
                         f"Sync complete. "
-                        f"{new_count} new reports added."
+                        f"{new_count} "
+                        f"new reports added."
                     )
 
-                except Exception as e:
+                except Exception as error:
+
                     st.error(
                         "Feed synchronization failed."
                     )
 
                     print(
-                        f"Manual sync error: {e}"
+                        f"Manual sync error: "
+                        f"{error}"
                     )
+
 
             st.rerun()
 
 
     # =====================================================
-    # ZONE NAVIGATION
+    # ZONES
     # =====================================================
 
     NAV_ZONES = [
         {
             "label": "All",
             "val": "All",
-            "flag": "https://flagcdn.com/w40/un.png",
+            "flag":
+                "https://flagcdn.com/w40/un.png",
         },
         {
             "label": "Iran",
             "val": "Iran",
-            "flag": "https://flagcdn.com/w40/ir.png",
+            "flag":
+                "https://flagcdn.com/w40/ir.png",
         },
         {
             "label": "Saudi Arabia",
             "val": "Saudi Arabia",
-            "flag": "https://flagcdn.com/w40/sa.png",
+            "flag":
+                "https://flagcdn.com/w40/sa.png",
         },
         {
             "label": "UAE",
             "val": "UAE",
-            "flag": "https://flagcdn.com/w40/ae.png",
+            "flag":
+                "https://flagcdn.com/w40/ae.png",
         },
         {
             "label": "Yemen",
             "val": "Yemen",
-            "flag": "https://flagcdn.com/w40/ye.png",
+            "flag":
+                "https://flagcdn.com/w40/ye.png",
         },
         {
             "label": "Syria",
             "val": "Syria",
-            "flag": "https://flagcdn.com/w40/sy.png",
+            "flag":
+                "https://flagcdn.com/w40/sy.png",
         },
         {
             "label": "Iraq",
             "val": "Iraq",
-            "flag": "https://flagcdn.com/w40/iq.png",
+            "flag":
+                "https://flagcdn.com/w40/iq.png",
         },
         {
             "label": "Gaza & WB",
             "val": "Gaza & WB",
-            "flag": "https://flagcdn.com/w40/ps.png",
+            "flag":
+                "https://flagcdn.com/w40/ps.png",
+        },
+        {
+            "label": "Israel",
+            "val": "Israel",
+            "flag":
+                "https://flagcdn.com/w40/il.png",
         },
         {
             "label": "US & Global",
             "val": "US & Global",
-            "flag": "https://flagcdn.com/w40/us.png",
+            "flag":
+                "https://flagcdn.com/w40/us.png",
         },
     ]
+
 
     nav_columns = st.columns(
         len(NAV_ZONES)
     )
+
 
     for index, zone in enumerate(
         NAV_ZONES
@@ -707,6 +1064,7 @@ else:
                 ]
                 == zone["val"]
             )
+
 
             render_html(f"""
             <div style="
@@ -722,6 +1080,7 @@ else:
                 />
             </div>
             """)
+
 
             if st.button(
                 zone["label"],
@@ -740,21 +1099,27 @@ else:
 
                 st.rerun()
 
+
     st.markdown("---")
 
 
     # =====================================================
-    # FILTERING
+    # FILTER
     # =====================================================
 
-    selected_zone = st.session_state[
-        "selected_country"
-    ]
+    selected_zone = (
+        st.session_state[
+            "selected_country"
+        ]
+    )
+
 
     if selected_zone == "All":
+
         filtered_df = df
 
     else:
+
         filtered_df = df[
             df["country"]
             .fillna("")
@@ -768,11 +1133,13 @@ else:
 
 
     # =====================================================
-    # ANALYTICS TERMINAL
+    # ANALYTICS
     # =====================================================
 
     if (
-        st.session_state["view_mode"]
+        st.session_state[
+            "view_mode"
+        ]
         == "Analytics Terminal"
     ):
 
@@ -781,18 +1148,25 @@ else:
             f"({len(filtered_df):,} reports)"
         )
 
+
         search_query = st.text_input(
             "Search archive:",
             placeholder=(
-                "Search title, source or summary..."
+                "Search title, "
+                "source or summary..."
             ),
         )
 
-        table_df = filtered_df.copy()
+
+        table_df = (
+            filtered_df.copy()
+        )
+
 
         if search_query:
 
             table_df = table_df[
+
                 table_df["title"]
                 .fillna("")
                 .str.contains(
@@ -800,15 +1174,21 @@ else:
                     case=False,
                     na=False,
                 )
+
                 |
-                table_df["source_name"]
+
+                table_df[
+                    "source_name"
+                ]
                 .fillna("")
                 .str.contains(
                     search_query,
                     case=False,
                     na=False,
                 )
+
                 |
+
                 table_df["summary"]
                 .fillna("")
                 .str.contains(
@@ -818,25 +1198,30 @@ else:
                 )
             ]
 
+
         display_table = table_df[
             [
                 "published_at",
                 "country",
                 "source_name",
                 "sentiment",
+                "priority",
                 "title",
                 "url",
             ]
         ].copy()
 
+
         display_table.columns = [
             "Published",
             "Zone",
             "Source",
-            "Category",
+            "Topic",
+            "Relevance",
             "Title",
             "URL",
         ]
+
 
         st.dataframe(
             display_table,
@@ -845,13 +1230,9 @@ else:
             hide_index=True,
         )
 
-        st.caption(
-            f"{len(table_df):,} matching reports"
-        )
-
 
     # =====================================================
-    # MAIN NEWSROOM VIEW
+    # MAIN FEED
     # =====================================================
 
     else:
@@ -859,23 +1240,28 @@ else:
         if filtered_df.empty:
 
             st.info(
-                f"No live reports currently indexed "
-                f"for zone: {selected_zone}. "
-                f"Click 'Sync & Refresh Feeds' "
-                f"to fetch latest reports."
+                f"No intelligence reports "
+                f"currently indexed for "
+                f"{selected_zone}."
             )
+
 
         else:
 
-            # ---------------------------------------------
+            # =================================================
             # LEAD STORY
-            # ---------------------------------------------
+            # =================================================
 
-            lead = filtered_df.iloc[0]
-
-            lead_image = safe(
-                lead["image_url"]
+            lead = (
+                filtered_df.iloc[0]
             )
+
+
+            lead_image = image_html(
+                lead["image_url"],
+                height="380px",
+            )
+
 
             lead_source = safe(
                 lead["source_name"]
@@ -889,7 +1275,7 @@ else:
                 lead["published_at"]
             )
 
-            lead_category = safe(
+            lead_topic = safe(
                 lead["sentiment"]
             )
 
@@ -900,6 +1286,11 @@ else:
             lead_summary = safe(
                 lead["summary"]
             )
+
+            lead_relevance = safe(
+                lead["priority"]
+            )
+
 
             render_html(f"""
             <div
@@ -912,46 +1303,59 @@ else:
                 "
             >
 
-                <img
-                    class="card-img"
-                    style="height:380px;"
-                    src="{lead_image}"
-                />
+                {lead_image}
 
                 <div>
 
                     <span
-                        class="tag tag-breaking"
-                    >
-                        TOP LEAD STORY
-                        ({safe(selected_zone.upper())})
-                    </span>
-
-                    <span
-                        class="tag"
-                        style="
-                            background:#0369a1;
-                            color:#fff;
+                        class="
+                            tag
+                            tag-breaking
                         "
                     >
-                        {lead_category}
+                        TOP INTELLIGENCE REPORT
                     </span>
 
                     <span
-                        class="tag tag-source"
+                        class="
+                            tag
+                            tag-topic
+                        "
                     >
-                        📰
-                        {lead_source}
+                        {lead_topic}
+                    </span>
+
+                    <span
+                        class="
+                            tag
+                            tag-source
+                        "
+                    >
+                        📰 {lead_source}
                         ({lead_country})
                     </span>
 
                     <span
-                        class="tag tag-time"
+                        class="
+                            tag
+                            tag-time
+                        "
                     >
                         🕒 {lead_time}
                     </span>
 
+                    <span
+                        class="
+                            tag
+                            tag-time
+                        "
+                    >
+                        Score:
+                        {lead_relevance}
+                    </span>
+
                 </div>
+
 
                 <h2 style="
                     margin:12px 0 8px 0;
@@ -961,6 +1365,7 @@ else:
                 ">
                     {lead_title}
                 </h2>
+
 
                 <p style="
                     color:#94a3b8;
@@ -974,9 +1379,12 @@ else:
             </div>
             """)
 
+
             b1, b2 = st.columns(2)
 
+
             with b1:
+
                 if st.button(
                     "📖 Read Report ←",
                     key=(
@@ -993,7 +1401,9 @@ else:
 
                     st.rerun()
 
+
             with b2:
+
                 st.link_button(
                     "🔗 Open Original Source ↗",
                     lead["url"],
@@ -1001,23 +1411,32 @@ else:
                 )
 
 
-            # ---------------------------------------------
-            # ARTICLE GRID
-            # ---------------------------------------------
+            # =================================================
+            # GRID
+            # =================================================
 
-            remaining_articles = filtered_df[
-                filtered_df["id"]
-                != lead["id"]
-            ]
+            remaining_articles = (
+                filtered_df[
+                    filtered_df["id"]
+                    != lead["id"]
+                ]
+            )
 
-            if not remaining_articles.empty:
+
+            if (
+                not remaining_articles.empty
+            ):
 
                 st.markdown(
                     f"### Zone Feed & Reports "
                     f"({len(filtered_df)})"
                 )
 
-                grid_columns = st.columns(3)
+
+                grid_columns = (
+                    st.columns(3)
+                )
+
 
                 for grid_index, (
                     _,
@@ -1032,16 +1451,25 @@ else:
                         grid_index % 3
                     ]:
 
-                        article_image = safe(
-                            article["image_url"]
+                        article_image = (
+                            image_html(
+                                article[
+                                    "image_url"
+                                ]
+                            )
                         )
 
+
                         article_source = safe(
-                            article["source_name"]
+                            article[
+                                "source_name"
+                            ]
                         )
 
                         article_time = safe(
-                            article["published_at"]
+                            article[
+                                "published_at"
+                            ]
                         )
 
                         article_title = safe(
@@ -1052,13 +1480,23 @@ else:
                             article["summary"]
                         )
 
+                        article_topic = safe(
+                            article[
+                                "sentiment"
+                            ]
+                        )
+
+                        article_score = safe(
+                            article[
+                                "priority"
+                            ]
+                        )
+
+
                         render_html(f"""
                         <div class="card">
 
-                            <img
-                                class="card-img"
-                                src="{article_image}"
-                            />
+                            {article_image}
 
                             <div>
 
@@ -1074,6 +1512,15 @@ else:
                                 <span
                                     class="
                                         tag
+                                        tag-topic
+                                    "
+                                >
+                                    {article_topic}
+                                </span>
+
+                                <span
+                                    class="
+                                        tag
                                         tag-time
                                     "
                                 >
@@ -1081,7 +1528,17 @@ else:
                                     {article_time}
                                 </span>
 
+                                <span
+                                    class="
+                                        tag
+                                        tag-time
+                                    "
+                                >
+                                    {article_score}
+                                </span>
+
                             </div>
+
 
                             <div style="
                                 font-weight:700;
@@ -1092,6 +1549,7 @@ else:
                             ">
                                 {article_title}
                             </div>
+
 
                             <p style="
                                 color:#94a3b8;
@@ -1105,11 +1563,14 @@ else:
                         </div>
                         """)
 
+
                         cb1, cb2 = (
                             st.columns(2)
                         )
 
+
                         with cb1:
+
                             if st.button(
                                 "Read ←",
                                 key=(
@@ -1125,7 +1586,9 @@ else:
 
                                 st.rerun()
 
+
                         with cb2:
+
                             st.link_button(
                                 "Source ↗",
                                 article["url"],
